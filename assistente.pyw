@@ -123,7 +123,7 @@ def comandos (comando):
     elif 'falar' in comando:
         comando = comando.replace('falar ','')
         falar(comando)
-    elif 'google' in comando:
+    elif 'internet' in comando:
         pyautogui.hotkey('ctrl','shift','c')
     elif 'estoque' in comando:
         falar(ConsultarEstoque())
@@ -140,7 +140,7 @@ def abrirsite ():
 def escolhersite():
     falar('Qual o site?')
     site = Ligar_microfone()
-    planilhaDeSite = pd.read_excel(r"Servi-oAutomatico\Lista de Sites.xlsx")
+    planilhaDeSite = pd.read_excel(r"ServicoAutomatico\Lista de Sites.xlsx")
     out = planilhaDeSite.to_numpy().tolist()
     TuplaDeSITE = [tuple(elt) for elt in out]
     for SITE,URL in TuplaDeSITE:
@@ -181,7 +181,7 @@ def AbrirRequisicao ():
 def EscolherCentroDeCusto ():
     falar('Qual centro de custo será o destinatário?')
     CC = Ligar_microfone()
-    df = pd.read_excel(r"ServiçoAutomatico\Lista de CC.xlsx")
+    df = pd.read_excel(r"ServicoAutomatico\Lista de CC.xlsx")
     out = df.to_numpy().tolist()
     TuplaDeCC = [tuple(elt) for elt in out]
     for codigo,escrito in TuplaDeCC:
@@ -218,7 +218,7 @@ def EscolherMaterialPrimeiro ():
 
 def Cod4rMaterial ():
     Material = EscolherMaterialPrimeiro()
-    df = pd.read_excel(r"ServiçoAutomatico\Lista de Materiais.xlsx")
+    df = pd.read_excel(r"ServicoAutomatico\Lista de Materiais.xlsx")
     out = df.to_numpy().tolist()
     TuplaDeMateriais = [tuple(elt) for elt in out]
     for codigo,material in TuplaDeMateriais:
