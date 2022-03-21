@@ -50,7 +50,7 @@ def chamarAXerife ():
                     if comando == '':
                         pedircomando()
                     else:
-                        comandos(comando)
+                        comando2(comando)
                     pedircomando()
                 elif 'fechar' in comando:
                     falar('fechando assistente, até a próxima...')
@@ -88,7 +88,7 @@ def pedircomando():
     falar('Diga um comando')
     ordem = Ligar_microfone()
     ordem = ordem.replace('xerife ','')
-    comandos(ordem)
+    comando2(ordem)
 
 def comandos (comando):
     
@@ -402,5 +402,9 @@ def comando2(comando):
     ('site',abrirsite(comando)),
     ('clicar em',clicarNaNet(comando)),)
 
+    for comandos,acao in TuplaDeComandos:
+        if comandos in comando:
+            comando = comando.replace(f'{comandos} ','')
+            return(acao)
 
 chamarAXerife()
