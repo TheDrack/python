@@ -127,7 +127,6 @@ def localizanatela(imagem):
         #Se imagem for localizada 
         if local != None:
             pyautogui.moveTo(local)
-            pyautogui.click()
             print(f'Imagem {imagem} localizada na posição: {local}')
             break
 
@@ -139,6 +138,7 @@ def localizanatela(imagem):
         #Aguarda um pouco para tentar novamente
         time.sleep(0.25)
         k += 1
+    return (local)
 
 def clicarNaNet (comando):
     falar('procurando')
@@ -202,8 +202,8 @@ def AbrirRequisicao ():
     falar('Irá inicializar uma requisição automatizada, não clique em nada')
     pyautogui.leftClick(200,1050)
     pyautogui.hotkey('win','up')
-    localizanatela('botaoFECHAR2.PNG')
-    localizanatela('botaoFECHAR.PNG')
+    pyautogui.click(localizanatela('botaoFECHAR2.PNG'))
+    pyautogui.click(localizanatela('botaoFECHAR.PNG'))
     pyautogui.leftClick(200,50)
     pyautogui.doubleClick(100,175)
     pyautogui.PAUSE = 0.6
@@ -307,7 +307,7 @@ def FazerRequisicaoSulfite (teste):
 def AtualizarInventario (teste):
     falar('Atualizando planilha de inventario')
     pyautogui.PAUSE = 0.4
-    pyautogui.leftClick(660,1050)
+    pyautogui.click(localizanatela('botaoALMOX.PNG'))
     pyautogui.leftClick(200,50)
     pyautogui.doubleClick(100,270)
     pyautogui.doubleClick(160,165)
@@ -321,7 +321,7 @@ def AtualizarInventario (teste):
     # pyautogui.alert('clique em Ok quando carregar a página de impressão, para evitar falhas com a velocidade do 4R')
     # pyautogui.leftClick(20,30)
     tempoDeEspera = 10
-    localizanatela('botaoPDF.PNG')
+    pyautogui.click(localizanatela('botaoPDF.PNG'))
     aperta('home')
     aperta('down')
     aperta('down')
@@ -368,12 +368,12 @@ def AbrirPlanilha (teste):
     pyautogui.PAUSE = 0.4
     pyautogui.hotkey('ctrl', 'shift', 'i')
     tempoDeEspera = 10
-    localizanatela('botaoABRIRPLANILHA.PNG')
+    pyautogui.click(localizanatela('botaoABRIRPLANILHA.PNG'))
     aperta('enter')
     time.sleep(2)
     pyautogui.hotkey('win', 'right')
     pyautogui.hotkey('ctrl', 'b')
-    localizanatela('botaoALMOX.PNG')
+    pyautogui.click(localizanatela('botaoALMOX.PNG'))
     pyautogui.hotkey('win','left')
     pyautogui.alert('Automatização concluida, continue manualmente')
 
