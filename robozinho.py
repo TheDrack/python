@@ -65,11 +65,12 @@ if "sim" in localizanatela("login4R.png"):
     aperta('enter')
     aperta('enter')
 
-pyautogui.hotkey('ctrl', 'shift', 'c')
+os.startfile("C:\Program Files\Google\Chrome\Application\chrome.exe")
 falar("abrindo internet")
+
 pyautogui.moveTo(1,1)
 time.sleep(1)
-
+pyautogui.hotkey('alt','tab')
 if "sim" in localizanatela("login1DOC.png"): 
     pyautogui.leftClick(1000,700)
 else :
