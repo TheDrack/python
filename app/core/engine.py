@@ -15,11 +15,17 @@ class JarvisEngine:
     Handles speech recognition and text-to-speech functionality.
     """
     
-    def __init__(self):
-        """Initialize the voice engine with pyttsx3 and speech_recognition."""
+    def __init__(self, log_file: str = 'arq01.txt'):
+        """
+        Initialize the voice engine with pyttsx3 and speech_recognition.
+        
+        Args:
+            log_file: Path to file for logging unrecognized commands (default: 'arq01.txt')
+        """
         self.audio = sr.Recognizer()
         self.maquina = pyttsx3.init()
         self.logger = logging.getLogger(__name__)
+        self.log_file = log_file
         
         # Configure logging only if no handlers exist
         if not self.logger.handlers:
@@ -56,8 +62,13 @@ class JarvisEngine:
                     audio_data = self.audio.listen(s)
                     comando = self.audio.recognize_google(audio_data, language='pt-BR', show_all=True)
                     
-                    if comando != []:
-                        comando = self.audio.recognize_google(audio_data, language='pt-BR')
+                    if comando:
+                        # Extract the best result from show_all response
+                        if isinstance(comando, dict) and 'alternative' in comando:
+                            comando = comando['alternative'][0]['transcript']
+                        else:
+                            # Fallback if show_all didn't return expected format
+                            comando = self.audio.recognize_google(audio_data, language='pt-BR')
                         comando = comando.lower()
                         
                         if 'cancelar' in comando:
@@ -101,8 +112,13 @@ class JarvisEngine:
                     audio_data = self.audio.listen(s)
                     comando = self.audio.recognize_google(audio_data, language='pt-BR', show_all=True)
                     
-                    if comando != []:
-                        comando = self.audio.recognize_google(audio_data, language='pt-BR')
+                    if comando:
+                        # Extract the best result from show_all response
+                        if isinstance(comando, dict) and 'alternative' in comando:
+                            comando = comando['alternative'][0]['transcript']
+                        else:
+                            # Fallback if show_all didn't return expected format
+                            comando = self.audio.recognize_google(audio_data, language='pt-BR')
                         comando = comando.lower()
                         
                         if 'xerife' in comando:
@@ -121,7 +137,7 @@ class JarvisEngine:
                         else:
                             # Log unrecognized commands to file
                             self.logger.info(f"Unrecognized command (not containing 'xerife'): {comando}")
-                            with open('arq01.txt', 'a') as arquivo:
+                            with open(self.log_file, 'a') as arquivo:
                                 arquivo.write(comando + "\n")
                                 
                 except sr.UnknownValueError:
