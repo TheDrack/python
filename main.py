@@ -10,8 +10,8 @@ A modular voice assistant with support for:
 - Extensible command system
 """
 
+from app.actions.system_commands import CommandProcessor, SystemCommands, WebNavigator
 from app.core.engine import JarvisEngine
-from app.actions.system_commands import SystemCommands, WebNavigator, CommandProcessor
 
 
 def main() -> None:
@@ -21,7 +21,7 @@ def main() -> None:
     system_commands = SystemCommands()
     web_navigator = WebNavigator(system_commands)
     command_processor = CommandProcessor(system_commands, web_navigator)
-    
+
     # Start the assistant
     try:
         engine.wait_for_wake_word(command_processor.process)

@@ -1,0 +1,60 @@
+# Git
+.git
+.gitignore
+.gitattributes
+
+# Python
+__pycache__
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info
+dist
+build
+.eggs
+
+# Virtual environments
+venv/
+env/
+ENV/
+.venv
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+
+# Testing
+.pytest_cache
+.coverage
+htmlcov/
+.mypy_cache
+
+# Documentation
+*.md
+!README.md
+
+# Development
+.env
+.env.*
+!.env.example
+
+# Logs
+logs/
+*.log
+
+# Data files (build time)
+data/*.xlsx
+data/*.xls
+data/*.csv
+
+# Original files
+assistente.pyw
+leitorDePDF.py
+
+# Docker
+docker-compose.yml
+Dockerfile
+.dockerignore
