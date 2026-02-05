@@ -42,12 +42,13 @@ class TestJarvisEngine:
         """Test successful voice recognition"""
         engine = JarvisEngine()
         
-        # Mock audio input
-        mock_source = MagicMock()
+        # Mock audio input - create an AudioSource-like object
+        mock_source = MagicMock(spec=sr.AudioSource)
         mock_microphone.return_value.__enter__.return_value = mock_source
         
         # Mock recognition
         mock_audio = Mock()
+        engine.recognizer.adjust_for_ambient_noise = Mock()
         engine.recognizer.listen = Mock(return_value=mock_audio)
         engine.recognizer.recognize_google = Mock(
             side_effect=[
@@ -66,10 +67,11 @@ class TestJarvisEngine:
         """Test listen when no speech is detected"""
         engine = JarvisEngine()
         
-        mock_source = MagicMock()
+        mock_source = MagicMock(spec=sr.AudioSource)
         mock_microphone.return_value.__enter__.return_value = mock_source
         
         mock_audio = Mock()
+        engine.recognizer.adjust_for_ambient_noise = Mock()
         engine.recognizer.listen = Mock(return_value=mock_audio)
         engine.recognizer.recognize_google = Mock(return_value=[])  # Empty result
         
@@ -94,10 +96,11 @@ class TestJarvisEngine:
         """Test get_command with cancel keyword"""
         engine = JarvisEngine()
         
-        mock_source = MagicMock()
+        mock_source = MagicMock(spec=sr.AudioSource)
         mock_microphone.return_value.__enter__.return_value = mock_source
         
         mock_audio = Mock()
+        engine.recognizer.adjust_for_ambient_noise = Mock()
         engine.recognizer.listen = Mock(return_value=mock_audio)
         engine.recognizer.recognize_google = Mock(
             side_effect=[

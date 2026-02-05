@@ -3,6 +3,12 @@
 
 import pytest
 from unittest.mock import Mock, patch, MagicMock
+import sys
+
+# Mock PyAutoGUI and pynput before importing
+sys.modules['pyautogui'] = MagicMock()
+sys.modules['pynput'] = MagicMock()
+sys.modules['pynput.keyboard'] = MagicMock()
 
 from app.actions.system_commands import (
     SystemCommands,
