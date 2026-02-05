@@ -4,9 +4,9 @@
 import logging
 from typing import Optional
 
-from app.application.ports import VoiceProvider
 from app.adapters.edge.tts_adapter import TTSAdapter
 from app.adapters.edge.voice_adapter import VoiceAdapter
+from app.application.ports import VoiceProvider
 
 logger = logging.getLogger(__name__)
 

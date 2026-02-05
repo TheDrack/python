@@ -2,7 +2,6 @@
 """Assistant Service - Main use case orchestrator"""
 
 import logging
-from typing import Optional
 
 from app.application.ports import ActionProvider, VoiceProvider, WebProvider
 from app.domain.models import CommandType, Response

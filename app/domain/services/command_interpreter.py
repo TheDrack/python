@@ -1,8 +1,6 @@
 # -*- coding: utf-8 -*-
 """Command Interpreter - Pure business logic for interpreting user commands"""
 
-from typing import Optional
-
 from app.domain.models import CommandType, Intent
 
 
@@ -74,9 +72,7 @@ class CommandInterpreter:
             confidence=0.5,
         )
 
-    def _build_parameters(
-        self, command_type: CommandType, param: str, full_command: str
-    ) -> dict:
+    def _build_parameters(self, command_type: CommandType, param: str, full_command: str) -> dict:
         """
         Build parameters dictionary based on command type
 
