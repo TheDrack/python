@@ -2,6 +2,7 @@
 """Keyboard Adapter - pynput implementation for keyboard control"""
 
 import logging
+from typing import Optional
 
 try:
     from pynput.keyboard import Controller
@@ -85,7 +86,9 @@ class KeyboardAdapter(ActionProvider):
         """
         logger.debug("KeyboardAdapter.click delegates to AutomationAdapter")
 
-    def locate_on_screen(self, image_path: str, timeout: float = None) -> tuple:
+    def locate_on_screen(
+        self, image_path: str, timeout: float = None
+    ) -> Optional[tuple[int, int]]:
         """
         Locate on screen (delegates to AutomationAdapter)
 
@@ -94,7 +97,7 @@ class KeyboardAdapter(ActionProvider):
             timeout: Search timeout
 
         Returns:
-            Coordinates tuple
+            Coordinates tuple or None
         """
         logger.debug("KeyboardAdapter.locate_on_screen delegates to AutomationAdapter")
         return None

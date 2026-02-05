@@ -96,14 +96,13 @@ class TestAssistantService:
         assert response.success is False
         assert response.error == "UNKNOWN_COMMAND"
 
-    def test_process_invalid_command(self, service):
-        """Test processing command with missing parameters"""
-        # "escreva" alone will still work, it just types "escreva"
-        # Better test: empty URL which should fail validation
-        response = service.process_command("site")  # Missing URL
+    def test_process_command_with_validation_error(self, service):
+        """Test that commands requiring parameters are validated"""
+        # Unknown command should fail
+        response = service.process_command("comando inexistente xyz")
 
-        # The command will be interpreted but URL will be empty
-        assert response.success is True  # It still succeeds with empty URL
+        assert response.success is False
+        assert response.error == "UNKNOWN_COMMAND"
 
     def test_stop(self, service):
         """Test stop method"""

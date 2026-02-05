@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """
-Validation script for hexagonal architecture
-Tests that core components can be imported and instantiated
+Validation script for hexagonal architecture.
+Tests that core components can be imported and instantiated.
 """
 
 import sys
@@ -12,8 +12,8 @@ def test_domain_imports():
     """Test domain layer imports"""
     print("Testing domain layer imports...")
     try:
-        from app.domain.models import Command, CommandType, Intent, Response
-        from app.domain.services import CommandInterpreter, IntentProcessor
+        from app.domain.models import Command, CommandType, Intent, Response  # noqa: F401
+        from app.domain.services import CommandInterpreter, IntentProcessor  # noqa: F401
 
         print("✓ Domain models imported successfully")
         print("✓ Domain services imported successfully")
@@ -27,13 +27,13 @@ def test_application_imports():
     """Test application layer imports"""
     print("\nTesting application layer imports...")
     try:
-        from app.application.ports import (
+        from app.application.ports import (  # noqa: F401
             ActionProvider,
+            SystemController,
             VoiceProvider,
             WebProvider,
-            SystemController,
         )
-        from app.application.services import AssistantService
+        from app.application.services import AssistantService  # noqa: F401
 
         print("✓ Application ports imported successfully")
         print("✓ Application services imported successfully")
@@ -47,7 +47,7 @@ def test_adapter_imports():
     """Test adapter layer imports"""
     print("\nTesting adapter layer imports...")
     try:
-        from app.adapters.edge import (
+        from app.adapters.edge import (  # noqa: F401
             AutomationAdapter,
             CombinedVoiceProvider,
             KeyboardAdapter,
@@ -67,7 +67,7 @@ def test_container_import():
     """Test DI container import"""
     print("\nTesting DI container...")
     try:
-        from app.container import Container, create_edge_container
+        from app.container import Container, create_edge_container  # noqa: F401
 
         print("✓ Container imported successfully")
         return True

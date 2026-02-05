@@ -44,9 +44,9 @@ class CommandInterpreter:
         # Normalize input
         command = raw_input.lower().strip()
 
-        # Remove wake word if present
+        # Remove wake word if present (handle both with and without space)
         if self.wake_word in command:
-            command = command.replace(f"{self.wake_word} ", "").strip()
+            command = command.replace(self.wake_word, "").strip()
 
         # Parse command
         for pattern, command_type in self._command_patterns.items():
