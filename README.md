@@ -1,6 +1,8 @@
 # Jarvis Voice Assistant
 [![Python Tests](https://github.com/TheDrack/python/actions/workflows/python-tests.yml/badge.svg?branch=main)](https://github.com/TheDrack/python/actions/workflows/python-tests.yml)
 
+> **Note**: O badge de status do GitHub Actions só é visível para usuários autenticados com acesso a este repositório privado. Clique no badge para ver os resultados dos testes.
+
 A professional, modular voice assistant built with Python, featuring voice recognition, text-to-speech, and system automation capabilities.
 
 ## Features
