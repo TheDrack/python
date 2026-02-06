@@ -92,11 +92,11 @@ DATA_FILES = [
 ]
 
 # Excluded modules (to reduce size)
+# Note: Only exclude modules that are not used by the application
 EXCLUDED_MODULES = [
     'matplotlib',
     'PIL',
     'tkinter',
-    'numpy',  # Only if not used
 ]
 
 

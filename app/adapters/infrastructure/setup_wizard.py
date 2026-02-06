@@ -28,6 +28,11 @@ from sqlmodel import Session, create_engine, text
 
 logger = logging.getLogger(__name__)
 
+# Constants
+MIN_API_KEY_LENGTH = 30  # Minimum length for a valid API key
+CLIPBOARD_CHECK_INTERVAL = 0.5  # Seconds between clipboard checks
+CLIPBOARD_TIMEOUT = 180  # Maximum time to wait for clipboard (3 minutes)
+
 # ANSI color codes for terminal UI
 class Colors:
     HEADER = '\033[95m'
@@ -129,18 +134,17 @@ def get_api_key_with_clipboard() -> Optional[str]:
         pass
     
     try:
-        # Monitor clipboard for up to 3 minutes
-        timeout = 180  # 3 minutes
+        # Monitor clipboard for up to CLIPBOARD_TIMEOUT seconds
         start_time = time.time()
         
-        while time.time() - start_time < timeout:
+        while time.time() - start_time < CLIPBOARD_TIMEOUT:
             try:
                 current_clipboard = pyperclip.paste()
                 
                 # Check if clipboard content changed and looks like an API key
-                if current_clipboard != initial_clipboard and len(current_clipboard) > 20:
+                if current_clipboard != initial_clipboard and len(current_clipboard) > MIN_API_KEY_LENGTH:
                     # Google API keys typically start with "AIza"
-                    if current_clipboard.startswith("AIza") or len(current_clipboard) > 30:
+                    if current_clipboard.startswith("AIza") or len(current_clipboard) > MIN_API_KEY_LENGTH:
                         print_success(f"\n✓ Chave API capturada automaticamente!")
                         print_info(f"Chave: {current_clipboard[:10]}...{current_clipboard[-5:]}")
                         
@@ -151,13 +155,13 @@ def get_api_key_with_clipboard() -> Optional[str]:
                             initial_clipboard = current_clipboard
                             print_info("Continuando a monitorar...")
                 
-                time.sleep(0.5)  # Check every 500ms
+                time.sleep(CLIPBOARD_CHECK_INTERVAL)  # Check every 500ms
                 
             except KeyboardInterrupt:
                 raise
             except Exception as e:
                 logger.debug(f"Error checking clipboard: {e}")
-                time.sleep(0.5)
+                time.sleep(CLIPBOARD_CHECK_INTERVAL)
         
         print_warning("\nTempo limite atingido. Vamos inserir manualmente.")
         
@@ -298,18 +302,26 @@ def send_first_contact(
     print_info(f"Enviando comando de 'Primeiro Contato' para {assistant_name}...\n")
     
     try:
+        import json
+        
         # Create database connection
         engine = create_engine(database_url, echo=False)
         
         # Import the Interaction model
         from app.adapters.infrastructure.sqlite_history_adapter import Interaction
         
+        # Create parameters dictionary properly using json.dumps
+        parameters = json.dumps({
+            "user_id": user_id,
+            "assistant_name": assistant_name
+        })
+        
         with Session(engine) as session:
             # Create first contact interaction
             first_contact = Interaction(
                 user_input=f"Olá {assistant_name}, apresente-se!",
                 command_type="first_contact",
-                parameters='{"user_id": "' + user_id + '", "assistant_name": "' + assistant_name + '"}',
+                parameters=parameters,
                 success=True,
                 response_text=f"Olá! Eu sou {assistant_name}, seu novo braço direito. Estou aqui para ajudá-lo com suas tarefas. Como posso ser útil hoje?",
                 status="completed"
