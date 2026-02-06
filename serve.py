@@ -61,13 +61,18 @@ def main() -> None:
     # Check adapter availability (but don't fail - API can still work)
     try:
         if hasattr(assistant.voice, "is_available") and not assistant.voice.is_available():
-            logger.warning("Voice recognition not available - API will work but voice features may be limited")
+            logger.warning(
+                "Voice recognition not available - API will work but voice features may be limited"
+            )
     except Exception as e:
         logger.warning(f"Could not check voice availability: {e}")
 
     try:
         if hasattr(assistant.action, "is_available") and not assistant.action.is_available():
-            logger.warning("Action automation not available - API will work but automation features may be limited")
+            logger.warning(
+                "Action automation not available - "
+                "API will work but automation may be limited"
+            )
     except Exception as e:
         logger.warning(f"Could not check action availability: {e}")
 

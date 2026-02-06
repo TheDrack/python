@@ -2,7 +2,6 @@
 """FastAPI Server for Headless Control Interface"""
 
 import logging
-from typing import Optional
 
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import JSONResponse
@@ -114,7 +113,7 @@ def create_api_server(assistant_service: AssistantService) -> FastAPI:
             raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
     @app.get("/health")
-    async def health_check():
+    async def health_check() -> JSONResponse:
         """
         Health check endpoint
 
