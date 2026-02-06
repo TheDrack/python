@@ -1,20 +1,22 @@
 # -*- coding: utf-8 -*-
 """Tests for Setup Wizard functionality"""
 
-import os
+# Mock pyperclip early to ensure consistent test environment across all tests.
+# Even though pyperclip is now imported inside functions in setup_wizard.py,
+# we mock it here to control its behavior during tests.
 import sys
-import tempfile
-from pathlib import Path
-from unittest.mock import MagicMock, Mock, patch
+from unittest.mock import Mock
 
-import pytest
-
-# CRITICAL: Mock pyperclip BEFORE any project imports to prevent ImportError
-# This must be at module level because pytest imports the module before fixtures run
-# The setup_wizard module imports pyperclip at the top level, so we must mock it early
 _original_pyperclip = sys.modules.get('pyperclip')
 if 'pyperclip' not in sys.modules:
     sys.modules['pyperclip'] = Mock()
+
+import os
+import tempfile
+from pathlib import Path
+from unittest.mock import MagicMock, patch
+
+import pytest
 
 
 @pytest.fixture(scope="module", autouse=True)
@@ -177,21 +179,22 @@ DATABASE_URL=sqlite:///jarvis.db
     @patch('app.adapters.infrastructure.setup_wizard.input')
     def test_get_api_key_with_clipboard_auto_capture(self, mock_input, mock_browser):
         """Test API key capture with automatic clipboard detection"""
-        # Import and patch pyperclip at module level
-        import app.adapters.infrastructure.setup_wizard as wizard_module
+        # Mock the pyperclip module that gets imported inside the function
+        mock_pyperclip = Mock()
+        # Simulate clipboard behavior with three paste() calls:
+        # 1. First call: initial clipboard check to verify pyperclip is available (returns "")
+        # 2. Second call: initial state before user copies API key (returns "")
+        # 3. Third call: after user copies API key to clipboard (returns the actual key)
+        mock_pyperclip.paste.side_effect = ["", "", "AIzaSyB38zXj77_eNGKb2nB5NfrQKl1s7XwIpIc"]
         
-        with patch.object(wizard_module, 'pyperclip') as mock_pyperclip:
-            with patch.object(wizard_module, 'CLIPBOARD_AVAILABLE', True):
-                # Simulate clipboard behavior:
-                # First call (initial state): empty clipboard before user copies API key
-                # Second call (after user copies): API key is now in clipboard
-                mock_pyperclip.paste.side_effect = ["", "AIzaSyB38zXj77_eNGKb2nB5NfrQKl1s7XwIpIc"]
-                mock_input.side_effect = ["", "s"]  # Press enter to open browser, then confirm
-                
-                result = wizard_module.get_api_key_with_clipboard()
-                
-                assert result == "AIzaSyB38zXj77_eNGKb2nB5NfrQKl1s7XwIpIc"
-                assert mock_browser.called
+        with patch.dict('sys.modules', {'pyperclip': mock_pyperclip}):
+            mock_input.side_effect = ["", "s"]  # Press enter to open browser, then confirm
+            
+            from app.adapters.infrastructure.setup_wizard import get_api_key_with_clipboard
+            result = get_api_key_with_clipboard()
+            
+            assert result == "AIzaSyB38zXj77_eNGKb2nB5NfrQKl1s7XwIpIc"
+            assert mock_browser.called
 
 
 if __name__ == "__main__":
