@@ -117,7 +117,7 @@ class TestEncryption:
         """Test that decryption fails with invalid encrypted data"""
         invalid_encrypted = f"{ENCRYPTION_PREFIX}this_is_not_valid_encrypted_data"
         
-        with pytest.raises(Exception):
+        with pytest.raises((InvalidToken, ValueError)):
             decrypt_value(invalid_encrypted)
 
     def test_multiple_values_encrypted_differently(self):

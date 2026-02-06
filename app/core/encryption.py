@@ -11,7 +11,6 @@ import logging
 import platform
 import uuid
 from base64 import b64decode, b64encode
-from typing import Optional
 
 from cryptography.fernet import Fernet, InvalidToken
 from cryptography.hazmat.primitives import hashes
@@ -64,7 +63,11 @@ def derive_key_from_hardware() -> bytes:
     hardware_id = get_hardware_id()
     
     # Use a fixed salt for deterministic key generation
-    # This is acceptable because the hardware_id itself is secret/unique
+    # SECURITY NOTE: Using a fixed salt is acceptable here because the hardware_id
+    # itself provides uniqueness and acts as the primary secret. The salt serves
+    # to namespace the key derivation for this specific use case (Jarvis encryption).
+    # This allows consistent key generation on the same hardware while preventing
+    # key reuse across different applications or contexts.
     salt = b"jarvis-hardware-encryption-v1"
     
     # Derive key using PBKDF2
@@ -104,7 +107,7 @@ def encrypt_value(value: str) -> str:
         raise
 
 
-def decrypt_value(encrypted_value: str) -> Optional[str]:
+def decrypt_value(encrypted_value: str) -> str:
     """
     Decrypt a value using hardware-derived key.
     
@@ -112,7 +115,7 @@ def decrypt_value(encrypted_value: str) -> Optional[str]:
         encrypted_value: The encrypted value (with or without prefix)
         
     Returns:
-        Decrypted plaintext value, or None if decryption fails
+        Decrypted plaintext value
         
     Raises:
         ValueError: If the value is not properly encrypted
