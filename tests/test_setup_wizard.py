@@ -9,8 +9,17 @@ from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 
-# Mock pyperclip before importing setup_wizard to avoid import errors
-sys.modules['pyperclip'] = Mock()
+
+@pytest.fixture(scope="module", autouse=True)
+def mock_pyperclip():
+    """Mock pyperclip module before importing setup_wizard to avoid import errors"""
+    mock_module = Mock()
+    sys.modules['pyperclip'] = mock_module
+    yield mock_module
+    # Cleanup - restore original module if it existed
+    if 'pyperclip' in sys.modules:
+        del sys.modules['pyperclip']
+
 
 from app.adapters.infrastructure.setup_wizard import (
     check_env_complete,
