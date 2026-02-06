@@ -2,6 +2,9 @@
 """Assistant Service - Main use case orchestrator"""
 
 import logging
+from collections import deque
+from datetime import datetime
+from typing import Deque, Dict, Any
 
 from app.application.ports import ActionProvider, VoiceProvider, WebProvider
 from app.domain.models import CommandType, Response
@@ -43,6 +46,8 @@ class AssistantService:
         self.processor = intent_processor
         self.wake_word = wake_word
         self.is_running = False
+        # Command history tracking (max 100 commands)
+        self._command_history: Deque[Dict[str, Any]] = deque(maxlen=100)
 
     def start(self) -> None:
         """Start the assistant and listen for commands"""
@@ -90,13 +95,16 @@ class AssistantService:
         validation = self.processor.validate_intent(intent)
         if not validation.success:
             logger.warning(f"Invalid intent: {validation.message}")
+            self._add_to_history(user_input, validation)
             return validation
 
         # Create command
         command = self.processor.create_command(intent)
 
         # Execute the command
-        return self._execute_command(command.intent.command_type, command.intent.parameters)
+        response = self._execute_command(command.intent.command_type, command.intent.parameters)
+        self._add_to_history(user_input, response)
+        return response
 
     def _handle_wake_word(self, user_input: str) -> None:
         """
@@ -179,3 +187,34 @@ class AssistantService:
         """Stop the assistant"""
         self.is_running = False
         logger.info("Assistant stop requested")
+
+    def get_command_history(self, limit: int = 5) -> list[Dict[str, Any]]:
+        """
+        Get recent command history
+
+        Args:
+            limit: Maximum number of commands to return (default: 5)
+
+        Returns:
+            List of command history items
+        """
+        history_list = list(self._command_history)
+        # Return most recent first
+        return history_list[-limit:][::-1] if history_list else []
+
+    def _add_to_history(self, command: str, response: Response) -> None:
+        """
+        Add a command to history
+
+        Args:
+            command: The command that was executed
+            response: The response from execution
+        """
+        history_item = {
+            "command": command,
+            "timestamp": datetime.utcnow().isoformat() + "Z",
+            "success": response.success,
+            "message": response.message,
+        }
+        self._command_history.append(history_item)
+        logger.debug(f"Added to history: {command}")
