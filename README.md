@@ -51,7 +51,7 @@ See [ARCHITECTURE.md](ARCHITECTURE.md) for detailed architecture documentation.
 │   │   └── services/        # Use cases (AssistantService)
 │   ├── adapters/            # Adapters (implementations)
 │   │   ├── edge/            # Edge adapters (PyAutoGUI, SpeechRecognition, pyttsx3)
-│   │   └── infrastructure/  # Infrastructure adapters (future: APIs, DBs)
+│   │   └── infrastructure/  # Infrastructure adapters (API server, database, auth, LLM)
 │   ├── container.py         # Dependency Injection container
 │   ├── bootstrap_edge.py    # Bootstrap for Edge deployment
 │   ├── core/                # Legacy core (deprecated, kept for compatibility)
