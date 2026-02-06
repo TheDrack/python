@@ -1,8 +1,6 @@
 # -*- coding: utf-8 -*-
 """Tests for SQLite History Adapter"""
 
-import os
-import tempfile
 from datetime import datetime
 
 import pytest
@@ -17,25 +15,14 @@ class TestSQLiteHistoryAdapter:
     """Test cases for SQLiteHistoryAdapter"""
 
     @pytest.fixture
-    def temp_db(self):
-        """Create a temporary database file"""
-        fd, path = tempfile.mkstemp(suffix=".db")
-        os.close(fd)
-        yield path
-        # Cleanup
-        if os.path.exists(path):
-            os.remove(path)
+    def adapter(self):
+        """Create an adapter instance with in-memory database"""
+        return SQLiteHistoryAdapter(database_url="sqlite:///:memory:")
 
-    @pytest.fixture
-    def adapter(self, temp_db):
-        """Create an adapter instance with temporary database"""
-        return SQLiteHistoryAdapter(db_path=temp_db)
-
-    def test_initialization(self, temp_db):
+    def test_initialization(self):
         """Test adapter initialization creates database and tables"""
-        adapter = SQLiteHistoryAdapter(db_path=temp_db)
-        assert adapter.db_path == temp_db
-        assert os.path.exists(temp_db)
+        adapter = SQLiteHistoryAdapter(database_url="sqlite:///:memory:")
+        assert adapter.database_url == "sqlite:///:memory:"
 
     def test_save_interaction(self, adapter):
         """Test saving an interaction to the database"""
