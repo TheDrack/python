@@ -212,7 +212,7 @@ class AssistantService:
         """
         history_item = {
             "command": command,
-            "timestamp": datetime.utcnow().isoformat() + "Z",
+            "timestamp": datetime.now().astimezone().isoformat(),
             "success": response.success,
             "message": response.message,
         }
