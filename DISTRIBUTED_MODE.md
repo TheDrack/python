@@ -46,8 +46,8 @@ This document explains how to configure and run Jarvis in distributed mode, wher
    DATABASE_URL=postgresql://postgres:YOUR_PASSWORD@db.YOUR_PROJECT_REF.supabase.co:5432/postgres
    SECRET_KEY=your-secret-key-change-this-in-production-minimum-32-characters
    API_HOST=0.0.0.0
-   API_PORT=8000
    ```
+   **Note**: Render automatically sets the `PORT` environment variable, so you don't need to configure it manually.
 4. Set build command: `pip install -r requirements/core.txt`
 5. Set start command: `python serve.py`
 6. Deploy!

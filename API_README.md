@@ -33,14 +33,21 @@ The server will start on `http://0.0.0.0:8000` by default.
 You can configure the server using environment variables:
 
 - `API_HOST`: Host to bind to (default: `0.0.0.0`)
-- `API_PORT`: Port to listen on (default: `8000`)
+- `PORT`: Port to listen on (standard for Render and cloud platforms, default: `8000`)
+- `API_PORT`: Alternative port variable for backward compatibility (default: `8000`)
 - `DISPLAY`: Set to empty string for headless mode
 - `USE_LLM`: Use LLM-based command interpretation (default: `false`)
+
+**Note**: The server prioritizes `PORT` over `API_PORT` to be compatible with cloud platforms like Render.com that automatically set the `PORT` environment variable.
 
 Example:
 
 ```bash
+# Local development with custom port
 API_HOST=127.0.0.1 API_PORT=8888 python serve.py
+
+# Or using PORT (Render-compatible)
+PORT=8888 python serve.py
 ```
 
 ## API Endpoints
@@ -247,7 +254,8 @@ COPY serve.py .
 
 ENV DISPLAY=""
 ENV API_HOST=0.0.0.0
-ENV API_PORT=8000
+# PORT can be overridden at runtime (e.g., by Render)
+ENV PORT=8000
 
 CMD ["python", "serve.py"]
 ```

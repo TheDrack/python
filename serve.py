@@ -80,8 +80,9 @@ def main() -> None:
     app = create_api_server(assistant)
 
     # Get server configuration from environment
+    # Render uses PORT, but support API_PORT for backward compatibility
     host = os.getenv("API_HOST", "0.0.0.0")
-    port = int(os.getenv("API_PORT", "8000"))
+    port = int(os.getenv("PORT", os.getenv("API_PORT", "8000")))
 
     logger.info(f"Starting server on {host}:{port}")
     logger.info("API Documentation available at http://localhost:8000/docs")
