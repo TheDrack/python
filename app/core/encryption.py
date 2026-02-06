@@ -15,7 +15,7 @@ from typing import Optional
 
 from cryptography.fernet import Fernet, InvalidToken
 from cryptography.hazmat.primitives import hashes
-from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2
+from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 
 logger = logging.getLogger(__name__)
 
@@ -68,7 +68,7 @@ def derive_key_from_hardware() -> bytes:
     salt = b"jarvis-hardware-encryption-v1"
     
     # Derive key using PBKDF2
-    kdf = PBKDF2(
+    kdf = PBKDF2HMAC(
         algorithm=hashes.SHA256(),
         length=32,
         salt=salt,
