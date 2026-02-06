@@ -128,6 +128,7 @@ a = Analysis(
     win_private_assemblies=False,
     cipher=block_cipher,
     noarchive=False,
+    collect_all=['pyautogui', 'pyperclip', 'google.generativeai', 'pyttsx3'],
 )
 
 pyz = PYZ(a.pure, a.zipped_data, cipher=block_cipher)
@@ -155,6 +156,7 @@ exe = EXE(
     codesign_identity=None,
     entitlements_file=None,
     icon={repr(ICON_PATH) if ICON_PATH else None},
+    onefile=True,
 )
 """
     
@@ -177,22 +179,26 @@ def build_executable():
         subprocess.check_call([sys.executable, "-m", "pip", "install", "pyinstaller"])
         import PyInstaller.__main__
     
+    # Clean up old build artifacts
+    import shutil
+    if BUILD_DIR.exists():
+        print(f"[*] Removing old build directory: {BUILD_DIR}")
+        shutil.rmtree(BUILD_DIR)
+    if DIST_DIR.exists():
+        print(f"[*] Removing old dist directory: {DIST_DIR}")
+        shutil.rmtree(DIST_DIR)
+    
     # Create spec file
     spec_file = create_spec_file()
     
     print("\nBuilding executable with PyInstaller...")
     print("This may take a few minutes...\n")
     
-    # Run PyInstaller with --onefile and --collect-all for problematic packages
-    # --onefile: Creates a single executable file (also configured in spec file for clarity)
-    # --collect-all: Collects all submodules and data files for packages that PyInstaller may miss
+    # Run PyInstaller with only --clean flag
+    # All configuration is now in the spec file
     PyInstaller.__main__.run([
-        str(spec_file),
         '--clean',
-        '--noconfirm',
-        '--onefile',  # Explicitly ensure single file output (redundant with spec but explicit)
-        '--collect-all', 'pyttsx3',  # Collect all pyttsx3 submodules (drivers, etc.)
-        '--collect-all', 'google.generativeai',  # Collect all google-generativeai submodules
+        str(spec_file),
     ])
     
     # Check if executable was created
