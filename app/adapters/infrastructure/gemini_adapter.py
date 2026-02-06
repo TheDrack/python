@@ -28,6 +28,7 @@ class LLMCommandAdapter:
         model_name: str = "gemini-1.5-flash",
         voice_provider: Optional[VoiceProvider] = None,
         wake_word: str = "xerife",
+        history_provider: Optional["HistoryProvider"] = None,
     ):
         """
         Initialize the LLM Command Adapter
@@ -37,9 +38,11 @@ class LLMCommandAdapter:
             model_name: Name of the Gemini model to use
             voice_provider: Optional voice provider for clarifications
             wake_word: The wake word to filter out from commands
+            history_provider: Optional history provider for context
         """
         self.wake_word = wake_word
         self.voice_provider = voice_provider
+        self.history_provider = history_provider
         self.model_name = model_name
 
         # Get API key from parameter or environment
@@ -115,9 +118,13 @@ class LLMCommandAdapter:
             )
 
         try:
+            # Add context from recent history if available
+            context_message = self._build_context_message()
+            full_message = f"{context_message}\n\n{command}" if context_message else command
+
             # Send message to Gemini in a separate thread to avoid blocking
             response = await asyncio.to_thread(
-                self.chat.send_message, command
+                self.chat.send_message, full_message
             )
 
             # Check if the model used a function call
@@ -189,8 +196,12 @@ class LLMCommandAdapter:
             )
 
         try:
+            # Add context from recent history if available
+            context_message = self._build_context_message()
+            full_message = f"{context_message}\n\n{command}" if context_message else command
+
             # Send message to Gemini
-            response = self.chat.send_message(command)
+            response = self.chat.send_message(full_message)
 
             # Check if the model used a function call
             if response.candidates and response.candidates[0].content.parts:
@@ -342,3 +353,33 @@ class LLMCommandAdapter:
         cancel_keywords = ["cancelar", "parar", "stop"]
         command = raw_input.lower().strip()
         return any(keyword in command for keyword in cancel_keywords)
+
+    def _build_context_message(self) -> str:
+        """
+        Build context message from the last 3 commands in history.
+
+        Returns:
+            Formatted context string or empty string if no history
+        """
+        if not self.history_provider:
+            return ""
+
+        try:
+            # Get last 3 commands from history
+            recent_history = self.history_provider.get_recent_history(limit=3)
+            if not recent_history:
+                return ""
+
+            # Build context message
+            context_lines = ["Contexto (últimos comandos executados):"]
+            for item in reversed(recent_history):  # Show oldest first
+                command_type = item.get("command_type", "unknown")
+                user_input = item.get("user_input", "")
+                success = item.get("success", False)
+                status = "sucesso" if success else "falhou"
+                context_lines.append(f"- '{user_input}' -> {command_type} ({status})")
+
+            return "\n".join(context_lines)
+        except Exception as e:
+            logger.warning(f"Error building context message: {e}")
+            return ""

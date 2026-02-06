@@ -6,8 +6,8 @@ import os
 from typing import Optional
 
 from app.adapters.edge import AutomationAdapter, CombinedVoiceProvider, WebAdapter
-from app.adapters.infrastructure import LLMCommandAdapter
-from app.application.ports import ActionProvider, VoiceProvider, WebProvider
+from app.adapters.infrastructure import LLMCommandAdapter, SQLiteHistoryAdapter
+from app.application.ports import ActionProvider, HistoryProvider, VoiceProvider, WebProvider
 from app.application.services import AssistantService
 from app.domain.services import CommandInterpreter, IntentProcessor
 
@@ -25,11 +25,13 @@ class Container:
         voice_provider: Optional[VoiceProvider] = None,
         action_provider: Optional[ActionProvider] = None,
         web_provider: Optional[WebProvider] = None,
+        history_provider: Optional[HistoryProvider] = None,
         wake_word: str = "xerife",
         language: str = "pt-BR",
         use_llm: bool = False,
         gemini_api_key: Optional[str] = None,
         gemini_model: str = "gemini-1.5-flash",
+        db_path: str = "jarvis.db",
     ):
         """
         Initialize the container
@@ -38,22 +40,26 @@ class Container:
             voice_provider: Optional pre-configured voice provider
             action_provider: Optional pre-configured action provider
             web_provider: Optional pre-configured web provider
+            history_provider: Optional pre-configured history provider
             wake_word: Wake word for the assistant
             language: Language for voice recognition
             use_llm: Whether to use LLM-based command interpretation (default: False)
             gemini_api_key: Optional Gemini API key (defaults to GEMINI_API_KEY env var)
             gemini_model: Gemini model name to use (default: gemini-1.5-flash)
+            db_path: Path to SQLite database file (default: jarvis.db)
         """
         self.wake_word = wake_word
         self.language = language
         self.use_llm = use_llm
         self.gemini_api_key = gemini_api_key or os.getenv("GEMINI_API_KEY")
         self.gemini_model = gemini_model or os.getenv("GEMINI_MODEL", "gemini-1.5-flash")
+        self.db_path = db_path
 
         # Create or use provided adapters
         self._voice_provider = voice_provider
         self._action_provider = action_provider
         self._web_provider = web_provider
+        self._history_provider = history_provider
 
         # Domain services (always created fresh)
         self._command_interpreter: Optional[CommandInterpreter] = None
@@ -94,6 +100,14 @@ class Container:
         return self._web_provider
 
     @property
+    def history_provider(self) -> HistoryProvider:
+        """Get or create history provider"""
+        if self._history_provider is None:
+            logger.info(f"Creating default SQLiteHistoryAdapter with database: {self.db_path}")
+            self._history_provider = SQLiteHistoryAdapter(db_path=self.db_path)
+        return self._history_provider
+
+    @property
     def command_interpreter(self) -> CommandInterpreter:
         """Get or create command interpreter"""
         if self._command_interpreter is None:
@@ -106,6 +120,7 @@ class Container:
                         model_name=self.gemini_model,
                         voice_provider=self.voice_provider,
                         wake_word=self.wake_word,
+                        history_provider=self.history_provider,
                     )
                 return self._llm_command_adapter
             else:
@@ -132,6 +147,7 @@ class Container:
                 web_provider=self.web_provider,
                 command_interpreter=self.command_interpreter,
                 intent_processor=self.intent_processor,
+                history_provider=self.history_provider,
                 wake_word=self.wake_word,
             )
         return self._assistant_service
