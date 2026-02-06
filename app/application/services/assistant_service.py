@@ -4,9 +4,9 @@
 import logging
 from collections import deque
 from datetime import datetime
-from typing import Any, Deque, Dict, List
+from typing import Any, Deque, Dict, List, Optional
 
-from app.application.ports import ActionProvider, VoiceProvider, WebProvider
+from app.application.ports import ActionProvider, HistoryProvider, VoiceProvider, WebProvider
 from app.domain.models import CommandType, Response
 from app.domain.services import CommandInterpreter, IntentProcessor
 
@@ -26,6 +26,7 @@ class AssistantService:
         web_provider: WebProvider,
         command_interpreter: CommandInterpreter,
         intent_processor: IntentProcessor,
+        history_provider: Optional[HistoryProvider] = None,
         wake_word: str = "xerife",
     ):
         """
@@ -37,6 +38,7 @@ class AssistantService:
             web_provider: Web navigation adapter
             command_interpreter: Domain service for command interpretation
             intent_processor: Domain service for intent processing
+            history_provider: Optional history persistence adapter
             wake_word: Wake word for activation
         """
         self.voice = voice_provider
@@ -44,6 +46,7 @@ class AssistantService:
         self.web = web_provider
         self.interpreter = command_interpreter
         self.processor = intent_processor
+        self.history = history_provider
         self.wake_word = wake_word
         self.is_running = False
         # Command history tracking (max 100 commands)
@@ -95,6 +98,11 @@ class AssistantService:
         validation = self.processor.validate_intent(intent)
         if not validation.success:
             logger.warning(f"Invalid intent: {validation.message}")
+            # Add command metadata even for failed validations
+            if validation.data is None:
+                validation.data = {}
+            validation.data["command_type"] = intent.command_type.value
+            validation.data["parameters"] = intent.parameters
             self._add_to_history(user_input, validation)
             return validation
 
@@ -103,6 +111,11 @@ class AssistantService:
 
         # Execute the command
         response = self._execute_command(command.intent.command_type, command.intent.parameters)
+        # Add command metadata to response for history tracking
+        if response.data is None:
+            response.data = {}
+        response.data["command_type"] = command.intent.command_type.value
+        response.data["parameters"] = command.intent.parameters
         self._add_to_history(user_input, response)
         return response
 
@@ -218,3 +231,20 @@ class AssistantService:
         }
         self._command_history.append(history_item)
         logger.debug(f"Added to history: {command}")
+
+        # Save to persistent storage if history provider is available
+        if self.history:
+            # Extract command type from response data if available
+            command_type = "unknown"
+            parameters = {}
+            if hasattr(response, 'data') and response.data:
+                command_type = response.data.get("command_type", "unknown")
+                parameters = response.data.get("parameters", {})
+
+            self.history.save_interaction(
+                user_input=command,
+                command_type=command_type,
+                parameters=parameters,
+                success=response.success,
+                response_text=response.message,
+            )
