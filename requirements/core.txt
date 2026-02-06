@@ -12,3 +12,4 @@ passlib[bcrypt]>=1.7.4
 
 # Database ORM
 sqlmodel>=0.0.14
+psycopg2-binary>=2.9.9

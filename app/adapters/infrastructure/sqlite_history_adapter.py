@@ -1,5 +1,8 @@
 # -*- coding: utf-8 -*-
-"""SQLite History Adapter - SQLModel implementation for command history persistence"""
+"""Database History Adapter - SQLModel implementation for command history persistence
+
+Supports both SQLite (default/fallback) and PostgreSQL based on DATABASE_URL configuration.
+"""
 
 import json
 import logging
@@ -32,23 +35,36 @@ class Interaction(SQLModel, table=True):
 
 class SQLiteHistoryAdapter(HistoryProvider):
     """
-    SQLite implementation of the HistoryProvider port.
-    Uses SQLModel for ORM and SQLite for storage.
+    Database implementation of the HistoryProvider port.
+    Uses SQLModel for ORM and supports both SQLite and PostgreSQL.
+    
+    When DATABASE_URL is set (typically from environment variables), uses PostgreSQL.
+    Otherwise, falls back to SQLite for local development/testing.
     """
 
-    def __init__(self, db_path: str = "jarvis.db"):
+    def __init__(self, db_path: str = "jarvis.db", database_url: Optional[str] = None):
         """
-        Initialize the SQLite history adapter
+        Initialize the database history adapter
 
         Args:
-            db_path: Path to SQLite database file
+            db_path: Path to SQLite database file (used as fallback)
+            database_url: Full database URL (e.g., postgresql://user:pass@host:port/db)
+                         If provided, takes precedence over db_path
         """
-        self.db_path = db_path
-        # Create SQLite engine
-        self.engine = create_engine(f"sqlite:///{db_path}", echo=False)
+        # Determine which database to use
+        if database_url:
+            self.database_url = database_url
+            logger.info(f"Using PostgreSQL database from DATABASE_URL")
+        else:
+            self.database_url = f"sqlite:///{db_path}"
+            logger.info(f"Using SQLite database: {db_path}")
+        
+        # Create database engine
+        self.engine = create_engine(self.database_url, echo=False)
+        
         # Create tables
         SQLModel.metadata.create_all(self.engine)
-        logger.info(f"Initialized SQLiteHistoryAdapter with database: {db_path}")
+        logger.info(f"Database tables initialized successfully")
 
     def save_interaction(
         self,

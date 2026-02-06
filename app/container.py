@@ -9,6 +9,7 @@ from app.adapters.edge import AutomationAdapter, CombinedVoiceProvider, WebAdapt
 from app.adapters.infrastructure import LLMCommandAdapter, SQLiteHistoryAdapter
 from app.application.ports import ActionProvider, HistoryProvider, VoiceProvider, WebProvider
 from app.application.services import AssistantService
+from app.core.config import settings
 from app.domain.services import CommandInterpreter, IntentProcessor
 
 logger = logging.getLogger(__name__)
@@ -103,8 +104,13 @@ class Container:
     def history_provider(self) -> HistoryProvider:
         """Get or create history provider"""
         if self._history_provider is None:
-            logger.info(f"Creating default SQLiteHistoryAdapter with database: {self.db_path}")
-            self._history_provider = SQLiteHistoryAdapter(db_path=self.db_path)
+            logger.info(f"Creating SQLiteHistoryAdapter with database configuration")
+            # Use DATABASE_URL from settings if available, otherwise fallback to db_path
+            database_url = settings.database_url if settings.database_url != f"sqlite:///{self.db_path}" else None
+            self._history_provider = SQLiteHistoryAdapter(
+                db_path=self.db_path,
+                database_url=database_url
+            )
         return self._history_provider
 
     @property
