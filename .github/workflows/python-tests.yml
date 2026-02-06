@@ -7,22 +7,26 @@ on:
     branches: [ main ]
 
 jobs:
-  test-core:
+  test:
     runs-on: ubuntu-latest
-
     steps:
     - uses: actions/checkout@v3
 
-    - name: Set up Python 3.10
+    - name: Set up Python
       uses: actions/setup-python@v4
       with:
         python-version: "3.10"
 
-    - name: Install Dependencies
+    - name: Install All Dependencies
       run: |
         python -m pip install --upgrade pip
-        # Instalação forçada das libs que estão quebrando o build
-        pip install fastapi uvicorn httpx pydantic pydantic-settings python-dotenv
-        # Tenta instalar o que sobrou nos arquivos de requisitos
-        if [ -f requirements/core.txt ]; then pip install -r requirements/core.txt; fi
-        pip install pytest pytest-cov mock
+        # Instalando TUDO explicitamente para garantir a coleta dos testes
+        pip install fastapi uvicorn httpx pydantic pydantic-settings python-dotenv google-generativeai pytest pytest-cov mock
+        # Se houver arquivos de requisitos, instala também
+        if [ -d requirements ]; then pip install -r requirements/core.txt || true; fi
+
+    - name: Run Tests
+      run: |
+        # Forçamos o PYTHONPATH para a raiz para evitar erros de import
+        export PYTHONPATH=$PYTHONPATH:$(pwd)
+        pytest --cov=app tests/
