@@ -9,7 +9,20 @@ A professional, modular voice assistant built with Python, featuring **Hexagonal
 
 ## 🚀 Quick Start
 
-Começar com o Jarvis nunca foi tão fácil! Apenas **3 passos simples**:
+### Instalação Instantânea (Recomendada) ⚡
+
+**A forma mais rápida de começar - sem instalar Python!**
+
+1. Acesse a aba [**Releases**](../../releases) deste repositório
+2. Baixe o arquivo `Jarvis_Installer.exe` mais recente
+3. Execute o arquivo baixado
+4. O **Setup Wizard** fará tudo automaticamente! ✨
+
+**Pronto!** Não precisa instalar Python, pip ou bibliotecas. O executável já contém tudo!
+
+### Instalação via Python (Desenvolvedores)
+
+Se você já tem Python instalado, pode usar em **3 passos simples**:
 
 ```bash
 # 1. Clone e configure o ambiente
@@ -31,20 +44,19 @@ O **Setup Wizard interativo** irá guiá-lo através de:
 
 Pronto! Seu assistente personalizado está configurado e pronto para uso. Veja a [seção de Instalação](#installation) para mais opções.
 
-## 🎁 Instalação Simplificada (Usuário Final)
+## 📦 O que vem no Instalador?
 
-**Quer usar o Jarvis sem instalar Python ou bibliotecas?** É simples:
+O arquivo `Jarvis_Installer.exe` é um **executável standalone completo** que inclui:
 
-1. Acesse a aba [**Releases**](../../releases) deste repositório
-2. Baixe o arquivo executável mais recente para Windows (`.exe`)
-3. Dê dois cliques no arquivo baixado
-4. Siga as instruções na tela do assistente de instalação
+- ✅ Python 3.11+ embedado
+- ✅ Todas as bibliotecas necessárias (PyAutoGUI, pyttsx3, Google Gemini AI, etc.)
+- ✅ Setup Wizard interativo
+- ✅ Suporte completo a voz em português brasileiro
+- ✅ Interface de linha de comando amigável
 
-**Não é necessário instalar Python, pip ou qualquer biblioteca!** O executável já contém tudo que você precisa para começar a usar o Jarvis imediatamente.
-
-> **💡 Nota**: O executável foi criado com PyInstaller e inclui todas as dependências necessárias em um único arquivo. Basta baixar e executar!
+> **💡 Tecnologia**: Criado com PyInstaller em modo **onefile** - tudo em um único executável!
 > 
-> **🖥️ Plataforma**: Atualmente disponível apenas para Windows. Para Linux/Mac, use a [instalação manual](#installation).
+> **🖥️ Plataforma**: Atualmente disponível apenas para Windows. Para Linux/Mac, use a [instalação via Python](#instalação-via-python-desenvolvedores).
 
 ## 🏗️ Architecture
 
@@ -115,7 +127,17 @@ See [ARCHITECTURE.md](ARCHITECTURE.md) for detailed architecture documentation.
 
 ## Installation
 
-### 🚀 Quick Start (Recomendado)
+### 🚀 Opção 1: Instalador Executável (Recomendado para Usuários)
+
+**A forma mais fácil - sem instalar nada!**
+
+1. Vá em [**Releases**](../../releases) e baixe `Jarvis_Installer.exe`
+2. Execute o arquivo
+3. Siga o Setup Wizard interativo
+
+> **✨ Novidade**: Graças às melhorias recentes no build com PyInstaller, o instalador agora é um único arquivo executável que contém tudo que você precisa!
+
+### 🎯 Opção 2: Instalação via Python (Desenvolvedores)
 
 O Jarvis agora possui um **assistente de instalação interativo** que configura tudo automaticamente!
 
@@ -160,7 +182,7 @@ A personalidade base é definida pelo sistema de IA (Gemini), que atua como um a
 
 > **📝 Nota**: Para customização avançada da personalidade com exemplos de código, veja a seção de [Personalidade do Assistente](INSTALLER_README.md#personalidade-do-assistente-) no INSTALLER_README.md.
 
-### Instalação Manual (Avançada)
+### 🔧 Opção 3: Instalação Manual (Avançada)
 
 Se você preferir configurar manualmente sem o wizard:
 
