@@ -29,6 +29,16 @@ class TestAPIServer:
         app = create_api_server(mock_assistant_service)
         return TestClient(app), mock_assistant_service
 
+    @pytest.fixture
+    def auth_token(self, client):
+        """Get authentication token for protected endpoints"""
+        test_client, _ = client
+        response = test_client.post(
+            "/token",
+            data={"username": "admin", "password": "admin123"},
+        )
+        return response.json()["access_token"]
+
     def test_health_check(self, client):
         """Test health check endpoint"""
         test_client, _ = client
@@ -37,8 +47,70 @@ class TestAPIServer:
         assert response.status_code == 200
         assert response.json() == {"status": "healthy"}
 
-    def test_execute_command_success(self, client):
-        """Test successful command execution"""
+    def test_login_success(self, client):
+        """Test successful login"""
+        test_client, _ = client
+
+        response = test_client.post(
+            "/token",
+            data={"username": "admin", "password": "admin123"},
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        assert "access_token" in data
+        assert data["token_type"] == "bearer"
+
+    def test_login_invalid_password(self, client):
+        """Test login with invalid password"""
+        test_client, _ = client
+
+        response = test_client.post(
+            "/token",
+            data={"username": "admin", "password": "wrongpassword"},
+        )
+
+        assert response.status_code == 401
+        assert "Incorrect username or password" in response.json()["detail"]
+
+    def test_login_invalid_username(self, client):
+        """Test login with invalid username"""
+        test_client, _ = client
+
+        response = test_client.post(
+            "/token",
+            data={"username": "nonexistent", "password": "password"},
+        )
+
+        assert response.status_code == 401
+        assert "Incorrect username or password" in response.json()["detail"]
+
+    def test_execute_command_without_auth(self, client):
+        """Test execute endpoint requires authentication"""
+        test_client, _ = client
+
+        response = test_client.post(
+            "/v1/execute",
+            json={"command": "escreva hello"},
+        )
+
+        assert response.status_code == 401
+        assert "detail" in response.json()
+
+    def test_execute_command_with_invalid_token(self, client):
+        """Test execute endpoint with invalid token"""
+        test_client, _ = client
+
+        response = test_client.post(
+            "/v1/execute",
+            json={"command": "escreva hello"},
+            headers={"Authorization": "Bearer invalid_token"},
+        )
+
+        assert response.status_code == 401
+
+    def test_execute_command_success(self, client, auth_token):
+        """Test successful command execution with authentication"""
         test_client, service = client
 
         # Mock successful response
@@ -51,6 +123,7 @@ class TestAPIServer:
         response = test_client.post(
             "/v1/execute",
             json={"command": "escreva hello"},
+            headers={"Authorization": f"Bearer {auth_token}"},
         )
 
         assert response.status_code == 200
@@ -60,7 +133,7 @@ class TestAPIServer:
         assert data["data"] == {"result": "ok"}
         service.process_command.assert_called_once_with("escreva hello")
 
-    def test_execute_command_failure(self, client):
+    def test_execute_command_failure(self, client, auth_token):
         """Test failed command execution"""
         test_client, service = client
 
@@ -74,6 +147,7 @@ class TestAPIServer:
         response = test_client.post(
             "/v1/execute",
             json={"command": "invalid command"},
+            headers={"Authorization": f"Bearer {auth_token}"},
         )
 
         assert response.status_code == 200
@@ -82,19 +156,20 @@ class TestAPIServer:
         assert data["message"] == "Invalid command"
         assert data["error"] == "UNKNOWN_COMMAND"
 
-    def test_execute_command_empty(self, client):
+    def test_execute_command_empty(self, client, auth_token):
         """Test command execution with empty command"""
         test_client, _ = client
 
         response = test_client.post(
             "/v1/execute",
             json={"command": ""},
+            headers={"Authorization": f"Bearer {auth_token}"},
         )
 
         # Should fail validation (min_length=1)
         assert response.status_code == 422
 
-    def test_execute_command_exception(self, client):
+    def test_execute_command_exception(self, client, auth_token):
         """Test command execution with exception"""
         test_client, service = client
 
@@ -104,6 +179,7 @@ class TestAPIServer:
         response = test_client.post(
             "/v1/execute",
             json={"command": "test"},
+            headers={"Authorization": f"Bearer {auth_token}"},
         )
 
         assert response.status_code == 500
