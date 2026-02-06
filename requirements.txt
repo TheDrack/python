@@ -20,3 +20,7 @@ pyaudio>=0.2.13
 # Additional utilities
 pandas>=2.0.0
 openpyxl>=3.1.0
+
+# API server (for headless control)
+fastapi>=0.104.0
+uvicorn[standard]>=0.24.0

@@ -110,3 +110,54 @@ class TestAssistantService:
         service.stop()
 
         assert service.is_running is False
+
+    def test_command_history_empty(self, service):
+        """Test get_command_history returns empty list initially"""
+        history = service.get_command_history()
+
+        assert history == []
+
+    def test_command_history_tracking(self, service, mock_ports):
+        """Test that commands are added to history"""
+        _, action, _ = mock_ports
+
+        # Execute a command
+        service.process_command("escreva hello")
+
+        # Check history
+        history = service.get_command_history(limit=5)
+
+        assert len(history) == 1
+        assert history[0]["command"] == "escreva hello"
+        assert history[0]["success"] is True
+        assert "timestamp" in history[0]
+        assert "message" in history[0]
+
+    def test_command_history_limit(self, service, mock_ports):
+        """Test that history respects limit parameter"""
+        _, action, _ = mock_ports
+
+        # Execute multiple commands
+        for i in range(10):
+            service.process_command(f"escreva test{i}")
+
+        # Get limited history
+        history = service.get_command_history(limit=3)
+
+        assert len(history) == 3
+        # Most recent should be first
+        assert history[0]["command"] == "escreva test9"
+        assert history[1]["command"] == "escreva test8"
+        assert history[2]["command"] == "escreva test7"
+
+    def test_command_history_failed_commands(self, service):
+        """Test that failed commands are also tracked in history"""
+        # Execute invalid command
+        service.process_command("invalid command")
+
+        # Check history
+        history = service.get_command_history(limit=5)
+
+        assert len(history) == 1
+        assert history[0]["command"] == "invalid command"
+        assert history[0]["success"] is False
