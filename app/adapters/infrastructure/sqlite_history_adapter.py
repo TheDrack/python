@@ -6,7 +6,7 @@ import logging
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
-from sqlalchemy import func
+from sqlalchemy import func, delete
 from sqlmodel import Field, Session, SQLModel, create_engine, select
 
 from app.application.ports.history_provider import HistoryProvider
@@ -152,10 +152,7 @@ class SQLiteHistoryAdapter(HistoryProvider):
         """Clear all command history"""
         try:
             with Session(self.engine) as session:
-                statement = select(Interaction)
-                results = session.exec(statement)
-                for interaction in results:
-                    session.delete(interaction)
+                session.exec(delete(Interaction))
                 session.commit()
                 logger.info("Cleared all command history")
         except Exception as e:
