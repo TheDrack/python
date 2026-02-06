@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
 """Tests for Setup Wizard functionality"""
 
-# CRITICAL: Mock pyperclip BEFORE any imports to prevent ImportError during test collection
-# This must be the FIRST thing in the file, even before standard library imports
+# Mock pyperclip early to ensure consistent test environment across all tests.
+# Even though pyperclip is now imported inside functions in setup_wizard.py,
+# we mock it here to control its behavior during tests.
 import sys
 from unittest.mock import Mock
 
@@ -180,10 +181,10 @@ DATABASE_URL=sqlite:///jarvis.db
         """Test API key capture with automatic clipboard detection"""
         # Mock the pyperclip module that gets imported inside the function
         mock_pyperclip = Mock()
-        # Simulate clipboard behavior:
-        # First call (initial check): successful paste
-        # Second call (initial state): empty clipboard before user copies API key
-        # Third call (after user copies): API key is now in clipboard
+        # Simulate clipboard behavior with three paste() calls:
+        # 1. First call: initial clipboard check to verify pyperclip is available (returns "")
+        # 2. Second call: initial state before user copies API key (returns "")
+        # 3. Third call: after user copies API key to clipboard (returns the actual key)
         mock_pyperclip.paste.side_effect = ["", "", "AIzaSyB38zXj77_eNGKb2nB5NfrQKl1s7XwIpIc"]
         
         with patch.dict('sys.modules', {'pyperclip': mock_pyperclip}):
