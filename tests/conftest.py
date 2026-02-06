@@ -14,6 +14,12 @@ sys.modules["pynput.keyboard"] = MagicMock()
 sys.modules["speech_recognition"] = MagicMock()
 sys.modules["pyttsx3"] = MagicMock()
 
+# Mock Google Generative AI for testing without API key
+sys.modules["google"] = MagicMock()
+sys.modules["google.generativeai"] = MagicMock()
+sys.modules["google.ai"] = MagicMock()
+sys.modules["google.ai.generativelanguage"] = MagicMock()
+
 
 @pytest.fixture
 def mock_engine():

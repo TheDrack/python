@@ -22,6 +22,7 @@ See [ARCHITECTURE.md](ARCHITECTURE.md) for detailed architecture documentation.
 
 - **Voice Recognition**: Brazilian Portuguese (pt-BR) voice commands using Google Speech Recognition
 - **Text-to-Speech**: Natural voice synthesis with pyttsx3
+- **Smart Command Interpretation**: Supports both rule-based patterns and optional Gemini AI integration (see [LLM_INTEGRATION.md](LLM_INTEGRATION.md))
 - **System Automation**: Interface control using PyAutoGUI and Keyboard
 - **Web Navigation**: Browser automation and URL handling
 - **Hexagonal Architecture**: Clean separation with Domain, Application, and Adapters layers
@@ -30,7 +31,7 @@ See [ARCHITECTURE.md](ARCHITECTURE.md) for detailed architecture documentation.
 - **Docker Support**: Containerized deployment with Docker and Docker Compose
 - **Airflow Integration**: Example DAGs for scheduled automation tasks
 - **Type Safety**: Full type hinting throughout the codebase
-- **Testing**: Comprehensive test suite with 39 tests (30 domain + 9 application, all passing)
+- **Testing**: Comprehensive test suite with 60+ passing tests, including original domain tests and additional LLM integration tests (all green)
 
 ## Project Structure
 
