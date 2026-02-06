@@ -1,6 +1,24 @@
-version: '3.8'
-
 services:
+  db:
+    image: postgres:15
+    container_name: jarvis-postgres
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER:-jarvis}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-jarvis_secure_password}
+      - POSTGRES_DB=${POSTGRES_DB:-jarvis_db}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - jarvis-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U jarvis"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   jarvis-assistant:
     build:
       context: .
@@ -11,6 +29,7 @@ services:
       - APP_NAME=Jarvis Assistant
       - LANGUAGE=pt-BR
       - WAKE_WORD=xerife
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-jarvis}:${POSTGRES_PASSWORD:-jarvis_secure_password}@db:5432/${POSTGRES_DB:-jarvis_db}
     volumes:
       - ./data:/app/data
       - ./logs:/app/logs
@@ -18,6 +37,9 @@ services:
     # devices:
     #   - /dev/snd:/dev/snd
     # privileged: true
+    depends_on:
+      db:
+        condition: service_healthy
     restart: unless-stopped
     networks:
       - jarvis-network
@@ -25,3 +47,6 @@ services:
 networks:
   jarvis-network:
     driver: bridge
+
+volumes:
+  postgres_data:

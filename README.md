@@ -107,16 +107,47 @@ pip install -r requirements.txt
 
 ### Docker Setup
 
+The project now uses **PostgreSQL** as the default database when running with Docker Compose.
+
 1. Build and run with Docker Compose:
 ```bash
 docker-compose up --build
 ```
 
-2. Or build manually:
+This will:
+- Start a PostgreSQL 15 database container
+- Start the Jarvis assistant container
+- Automatically configure the assistant to use PostgreSQL
+- Create a persistent volume for database data
+
+2. **Customize database credentials (optional)**:
+
+Create a `.env` file in the project root with your own credentials:
+```bash
+POSTGRES_USER=your_user
+POSTGRES_PASSWORD=your_secure_password
+POSTGRES_DB=your_database
+```
+
+The docker-compose.yml will automatically use these values.
+
+3. Stop the services:
+```bash
+docker-compose down
+```
+
+4. Stop and remove volumes (⚠️ this will delete all data):
+```bash
+docker-compose down -v
+```
+
+For manual Docker build (without PostgreSQL):
 ```bash
 docker build -t jarvis-assistant .
 docker run -it jarvis-assistant
 ```
+
+**Note**: When running with Docker Compose, the application uses PostgreSQL. For local development without Docker, SQLite is used by default.
 
 ## Configuration
 
@@ -130,6 +161,9 @@ Available settings:
 - `APP_NAME`: Application name (default: "Jarvis Assistant")
 - `LANGUAGE`: Recognition language (default: "pt-BR")
 - `WAKE_WORD`: Activation phrase (default: "xerife")
+- `DATABASE_URL`: Database connection string
+  - SQLite (default for local): `sqlite:///jarvis.db`
+  - PostgreSQL (Docker Compose): `postgresql://user:password@host:port/database`
 
 ## Usage
 
