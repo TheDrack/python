@@ -274,11 +274,17 @@ class AssistantService:
 
         Returns:
             Name of required capability, or None if no special capability is needed
+
+        Note:
+            This is currently a placeholder that returns None for all commands.
+            In the future, this can be extended to check params for things like:
+            - "analyze data" -> "pandas"
+            - "web automation" -> "playwright"
+            - "image processing" -> "opencv"
+            
+            The infrastructure is in place to automatically install dependencies
+            when needed once specific command types require them.
         """
         # This can be extended based on command parameters or types
         # For now, we return None for standard commands
-        # In the future, this could check params for things like:
-        # - "analyze data" -> "pandas"
-        # - "web automation" -> "playwright"
-        # - "image processing" -> "opencv"
         return None

@@ -16,6 +16,9 @@ class DependencyManager:
     Checks if required libraries are available and installs them if needed.
     """
 
+    # Installation timeout in seconds (5 minutes)
+    INSTALL_TIMEOUT = 300
+
     # Mapping of capability names to their package installation names
     CAPABILITY_PACKAGES: Dict[str, str] = {
         "pandas": "pandas",
@@ -111,7 +114,7 @@ class DependencyManager:
                 capture_output=True,
                 text=True,
                 check=False,
-                timeout=300,  # 5 minute timeout
+                timeout=self.INSTALL_TIMEOUT,
             )
 
             if result.returncode == 0:
