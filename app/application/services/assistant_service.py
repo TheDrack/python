@@ -4,7 +4,7 @@
 import logging
 from collections import deque
 from datetime import datetime
-from typing import Deque, Dict, Any
+from typing import Any, Deque, Dict, List
 
 from app.application.ports import ActionProvider, VoiceProvider, WebProvider
 from app.domain.models import CommandType, Response
@@ -188,7 +188,7 @@ class AssistantService:
         self.is_running = False
         logger.info("Assistant stop requested")
 
-    def get_command_history(self, limit: int = 5) -> list[Dict[str, Any]]:
+    def get_command_history(self, limit: int = 5) -> List[Dict[str, Any]]:
         """
         Get recent command history
 
