@@ -1,5 +1,7 @@
 # Jarvis Universal Installer
 
+> **✨ Atualizado**: O processo de build foi significativamente simplificado! Agora com configuração automática via `build_config.py` e compilação em um único comando.
+
 ## Visão Geral
 
 O Jarvis Universal Installer é um assistente de configuração interativo que guia o usuário através da instalação inicial do Jarvis Assistant. Ele automatiza a coleta de credenciais, validação de conexões e persistência de configurações.
@@ -34,9 +36,19 @@ O Jarvis Universal Installer é um assistente de configuração interativo que g
 
 ## Uso
 
-### Primeira Execução
+### Para Usuários Finais (Instalação Instantânea) ⚡
 
-Simplesmente execute o aplicativo:
+**A forma mais fácil - sem instalar Python!**
+
+1. Baixe `Jarvis_Installer.exe` da aba [Releases](../../releases)
+2. Execute o arquivo (duplo clique)
+3. O Setup Wizard inicia automaticamente e guia você através da configuração
+
+> **💡 Simples assim!** Não precisa instalar Python, pip, ou qualquer biblioteca. O executável standalone contém tudo!
+
+### Para Desenvolvedores (Primeira Execução)
+
+Simplesmente execute o aplicativo via Python:
 
 ```bash
 python main.py
@@ -81,34 +93,66 @@ python -m app.adapters.infrastructure.setup_wizard
 
 ### Pré-requisitos
 
+Certifique-se de ter Python 3.9+ e as dependências instaladas:
+
 ```bash
-pip install pyinstaller
 pip install -r requirements.txt
+pip install pyinstaller
 ```
 
-### Compilar
+### Compilar o Executável
+
+**Agora ficou muito mais fácil!** Com as melhorias recentes, basta executar:
 
 ```bash
 python build_config.py
 ```
 
+Este comando único irá:
+- ✅ Criar automaticamente o arquivo `.spec` com todas as configurações
+- ✅ Limpar builds antigos
+- ✅ Compilar o executável completo em modo **onefile**
+- ✅ Gerar `dist/Jarvis_Installer.exe` pronto para distribuição
+
+> **💡 Tecnologia**: Usamos PyInstaller em modo **onefile** - todas as dependências, binários e dados são empacotados em um único executável standalone!
+
 O executável será gerado em `dist/Jarvis_Installer.exe`.
+
+### Build Avançado (Opcional)
+
+Se você preferir usar o PyInstaller diretamente:
+
+```bash
+# O build_config.py já criou o arquivo .spec
+pyinstaller --clean jarvis_installer.spec
+```
 
 ### Build Automático via GitHub Actions
 
-O workflow de CI/CD (`.github/workflows/release.yml`) compila automaticamente o executável:
+O workflow de CI/CD (`.github/workflows/release.yml`) **compila automaticamente** o executável quando você cria uma release:
 
-- **Trigger**: Push para `main` ou criação de tag `v*`
-- **Plataforma**: Windows
-- **Artefato**: `Jarvis_Installer.exe`
-- **Retenção**: 30 dias
-
-Para criar uma release:
+**Como criar uma release:**
 
 ```bash
 git tag v1.0.0
 git push origin v1.0.0
 ```
+
+**O que acontece automaticamente:**
+- ✅ GitHub Actions inicia o build em ambiente Windows
+- ✅ Instala todas as dependências
+- ✅ Executa `python build_config.py`
+- ✅ Testa o executável gerado
+- ✅ Publica como artefato da release
+
+**Configurações do workflow:**
+- **Trigger**: Push para `main` ou criação de tag `v*`
+- **Plataforma**: Windows (usando `windows-latest`)
+- **Artefato**: `Jarvis_Installer.exe` (pronto para distribuição)
+- **Retenção de artefatos**: 30 dias (para pushes regulares)
+- **Releases permanentes**: Criadas automaticamente quando você publica uma tag `v*`
+
+> **💡 Dica**: Isso significa que você nunca precisa compilar manualmente para releases - apenas crie uma tag e o GitHub faz o resto!
 
 ## Estrutura de Arquivos
 
@@ -178,15 +222,42 @@ Se `pyperclip` não estiver disponível, o wizard oferece entrada manual da chav
 
 O wizard automaticamente faz fallback para SQLite local se a conexão com PostgreSQL falhar.
 
-### Build falha
+### Build falha ou executável não é gerado
 
-Certifique-se de que todas as dependências estão instaladas:
+**Solução 1 - Reinstalar dependências:**
 
 ```bash
 pip install --upgrade pip
 pip install -r requirements.txt
 pip install pyinstaller
 ```
+
+**Solução 2 - Limpar build anterior:**
+
+```bash
+# Windows
+rmdir /s build dist
+del jarvis_installer.spec
+
+# Linux/Mac
+rm -rf build dist jarvis_installer.spec
+```
+
+Depois execute novamente:
+
+```bash
+python build_config.py
+```
+
+**Solução 3 - Verificar versão do Python:**
+
+Certifique-se de estar usando Python 3.9 ou superior:
+
+```bash
+python --version
+```
+
+> **💡 Nota**: Com as melhorias recentes, o `build_config.py` automaticamente limpa builds antigos antes de compilar, reduzindo problemas de cache.
 
 ## Personalização
 
