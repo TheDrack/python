@@ -54,9 +54,13 @@ python -m app.adapters.infrastructure.setup_wizard
 
 ## Fluxo de Configuração
 
-1. **Informações do Assistente**
-   - Nome do assistente (ex: "Jarvis", "Ultron", "Friday")
-   - ID de usuário único
+1. **Informações do Assistente** 🎭
+   - **Nome do assistente**: Escolha qualquer nome que você gostar! 
+     - Exemplos populares: "Jarvis", "Ultron", "Friday", "Karen", "Vision"
+     - Ou crie seu próprio nome único!
+   - **ID de usuário único**: Identificador pessoal para suas interações
+   
+   > **💡 Personalidade Selecionável**: O nome escolhido será usado pelo assistente para se identificar. Embora a personalidade base seja definida pela IA (focada em produtividade e automação), você pode customizar o comportamento editando `app/domain/services/agent_service.py` e modificando o método `get_system_instruction()`. Isso permite criar diferentes estilos de interação - desde um assistente formal e técnico até um mais casual e divertido!
 
 2. **Chave API do Google Gemini**
    - O navegador abre automaticamente em https://aistudio.google.com/app/apikey
@@ -71,7 +75,7 @@ python -m app.adapters.infrastructure.setup_wizard
 
 4. **Primeiro Contato**
    - Registro da primeira interação no banco
-   - Mensagem de boas-vindas personalizada
+   - Mensagem de boas-vindas personalizada usando o nome escolhido
 
 ## Build do Executável
 
@@ -185,6 +189,89 @@ pip install pyinstaller
 ```
 
 ## Personalização
+
+### Personalidade do Assistente 🎭
+
+O Jarvis permite que você personalize completamente a "personalidade" do seu assistente:
+
+#### Nome do Assistente
+
+Durante o Setup Wizard, você escolhe o nome que seu assistente usará para se identificar. Este nome é salvo na configuração `ASSISTANT_NAME` no arquivo `.env`.
+
+Exemplos de nomes populares:
+- **Jarvis** - O clássico assistente da Marvel (Tony Stark)
+- **Friday** - A sucessora do Jarvis nos filmes
+- **Ultron** - Para quem gosta de um toque mais sombrio
+- **Karen** - A IA do traje do Homem-Aranha
+- **Vision** - Sabedoria e calma
+- Ou **crie seu próprio nome**!
+
+#### Comportamento e Estilo
+
+A personalidade base do assistente é definida pelo sistema de instruções da IA Gemini. O comportamento padrão inclui:
+
+- ✅ **Conciso e Eficiente**: Respostas diretas sem "enrolação"
+- ✅ **Foco em Ação**: Prioriza executar comandos em vez de explicar
+- ✅ **Português Brasileiro**: Comunicação natural em pt-BR
+- ✅ **Tom Profissional**: Amigável mas focado em produtividade
+
+#### Customização Avançada
+
+Para desenvolvedores que desejam criar personalidades completamente customizadas:
+
+1. **Edite o arquivo** `app/domain/services/agent_service.py`
+
+2. **Modifique o método** `get_system_instruction()` (linha ~112):
+
+```python
+@staticmethod
+def get_system_instruction() -> str:
+    """Define a personalidade do assistente"""
+    return """Você é o [SEU_NOME], um assistente virtual [DESCRIÇÃO].
+    
+Características:
+- [Sua característica 1]
+- [Sua característica 2]
+- [Sua característica 3]
+
+[Suas instruções de comportamento...]
+"""
+```
+
+3. **Exemplos de personalidades customizadas**:
+
+**Assistente Técnico e Formal:**
+```python
+return """Você é o Protocol, um assistente de alto nível de precisão.
+Características:
+- Extremamente formal e técnico
+- Usa terminologia específica
+- Fornece explicações detalhadas quando solicitado
+"""
+```
+
+**Assistente Casual e Divertido:**
+```python
+return """Você é o Buddy, seu companheiro virtual descontraído!
+Características:
+- Use gírias e expressões brasileiras
+- Seja animado e entusiasmado
+- Adicione emojis quando apropriado
+- Mantenha o clima leve e divertido
+"""
+```
+
+**Assistente Minimalista:**
+```python
+return """Você é o Echo, eficiência máxima.
+Características:
+- Respostas de uma palavra quando possível
+- Zero explicações desnecessárias  
+- Execução silenciosa de comandos
+"""
+```
+
+> **⚠️ Importante**: Após modificar a personalidade, reinicie o assistente para que as mudanças tenham efeito.
 
 ### Cores da Interface
 
