@@ -7,6 +7,30 @@ A professional, modular voice assistant built with Python, featuring **Hexagonal
 
 > **✨ Latest Update**: Successfully refactored to Hexagonal Architecture with 39 passing tests, 97-100% domain coverage, and full cloud-ready deployment support. See [REFACTORING_SUMMARY.md](REFACTORING_SUMMARY.md) for complete details.
 
+## 🚀 Quick Start
+
+Começar com o Jarvis nunca foi tão fácil! Apenas **3 passos simples**:
+
+```bash
+# 1. Clone e configure o ambiente
+git clone <repository-url> && cd python
+python -m venv venv && source venv/bin/activate  # Windows: venv\Scripts\activate
+
+# 2. Instale as dependências
+pip install -r requirements.txt
+
+# 3. Execute - o Setup Wizard fará o resto! ✨
+python main.py
+```
+
+O **Setup Wizard interativo** irá guiá-lo através de:
+- 🎭 Escolha o nome do seu assistente (Jarvis, Friday, Ultron, ou crie o seu!)
+- 🔑 Configuração automática da API do Gemini (com captura via clipboard)
+- 🗄️ Configuração do banco de dados (SQLite ou PostgreSQL)
+- 💾 Geração automática do arquivo `.env` com criptografia
+
+Pronto! Seu assistente personalizado está configurado e pronto para uso. Veja a [seção de Instalação](#installation) para mais opções.
+
 ## 🏗️ Architecture
 
 This project follows **Hexagonal Architecture** (Ports and Adapters) pattern:
@@ -20,6 +44,8 @@ See [ARCHITECTURE.md](ARCHITECTURE.md) for detailed architecture documentation.
 
 ## Features
 
+- **🎭 Personalidade Selecionável**: Escolha o nome e customize o comportamento do seu assistente durante a instalação
+- **🚀 Setup Wizard Interativo**: Instalação guiada com captura automática de credenciais e validação
 - **Voice Recognition**: Brazilian Portuguese (pt-BR) voice commands using Google Speech Recognition
 - **Text-to-Speech**: Natural voice synthesis with pyttsx3
 - **Dual Command Interpretation**: 
@@ -74,37 +100,90 @@ See [ARCHITECTURE.md](ARCHITECTURE.md) for detailed architecture documentation.
 
 ## Installation
 
-### Local Setup (Edge Deployment)
+### 🚀 Quick Start (Recomendado)
 
-1. Clone the repository:
+O Jarvis agora possui um **assistente de instalação interativo** que configura tudo automaticamente!
+
+1. Clone o repositório:
 ```bash
 git clone <repository-url>
 cd python
 ```
 
-2. Create a virtual environment:
+2. Crie um ambiente virtual e instale as dependências:
 ```bash
 python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
+source venv/bin/activate  # No Windows: venv\Scripts\activate
+pip install -r requirements.txt
 ```
 
-3. Install dependencies:
+3. Execute o assistente - o **Setup Wizard será iniciado automaticamente**:
+```bash
+python main.py
+```
 
-**Option A - Full Edge deployment (hardware support):**
+O Setup Wizard irá guiá-lo através de:
+- ✨ **Personalização do Assistente**: Escolha o nome do seu assistente (Jarvis, Ultron, Friday, ou qualquer outro!)
+- 🔑 **Configuração da API do Gemini**: Captura automática da chave API via clipboard
+- 🗄️ **Configuração do Banco de Dados**: SQLite local (padrão) ou PostgreSQL/Supabase
+- 💾 **Persistência Automática**: Gera arquivo `.env` com todas as configurações
+
+> **💡 Dica**: Veja o [INSTALLER_README.md](INSTALLER_README.md) para detalhes completos sobre o assistente de instalação.
+
+### Personalização do Assistente 🎭
+
+Um dos recursos mais legais do Jarvis é a **personalidade selecionável**! Durante a instalação, você pode:
+
+- **Escolher o nome do assistente**: Não precisa ser "Jarvis" - pode ser "Ultron", "Friday", "Karen", ou qualquer nome que você preferir!
+- **Personalizar o comportamento**: O assistente usa a configuração `ASSISTANT_NAME` no arquivo `.env` para se identificar.
+
+A personalidade base é definida pelo sistema de IA (Gemini), que atua como um assistente focado em produtividade e automação. O comportamento padrão inclui:
+- Respostas concisas e eficientes
+- Foco em ações, não em explicações longas
+- Comunicação em português brasileiro
+- Tom profissional mas amigável
+
+> **📝 Nota**: Para customização avançada da personalidade com exemplos de código, veja a seção de [Personalidade do Assistente](INSTALLER_README.md#personalidade-do-assistente-) no INSTALLER_README.md.
+
+### Instalação Manual (Avançada)
+
+Se você preferir configurar manualmente sem o wizard:
+
+1. Clone o repositório:
+```bash
+git clone <repository-url>
+cd python
+```
+
+2. Crie um ambiente virtual:
+```bash
+python -m venv venv
+source venv/bin/activate  # No Windows: venv\Scripts\activate
+```
+
+3. Instale as dependências:
+
+**Opção A - Deployment Edge completo (suporte a hardware):**
 ```bash
 pip install -r requirements.txt
-# OR use modular requirements:
+# OU use requirements modulares:
 pip install -r requirements/edge.txt
 ```
 
-**Option B - Development (with testing tools):**
+**Opção B - Desenvolvimento (com ferramentas de teste):**
 ```bash
 pip install -r requirements/dev.txt
 ```
 
-> **Note**: The project now supports modular requirements files for different deployment scenarios. See [requirements/README.md](requirements/README.md) for details on core.txt, edge.txt, dev.txt, prod-edge.txt, and prod-cloud.txt.
+> **Nota**: O projeto agora suporta arquivos de requirements modulares para diferentes cenários de deployment. Veja [requirements/README.md](requirements/README.md) para detalhes sobre core.txt, edge.txt, dev.txt, prod-edge.txt, e prod-cloud.txt.
 
-4. Run the assistant:
+4. Copie o arquivo de exemplo e configure manualmente:
+```bash
+cp .env.example .env
+# Edite o .env e preencha: USER_ID, ASSISTANT_NAME, GEMINI_API_KEY, DATABASE_URL
+```
+
+5. Execute o assistente:
 ```bash
 python main.py
 ```
@@ -169,19 +248,24 @@ docker run -it jarvis-assistant
 
 ## Configuration
 
-Configuration is managed via `app/core/config.py` using pydantic-settings. You can customize settings by:
+O Setup Wizard configura automaticamente todas as opções necessárias. Para configuração manual ou ajustes, o gerenciamento de configuração é feito via `app/core/config.py` usando pydantic-settings. Você pode customizar as configurações:
 
-1. Creating a `.env` file in the project root
-2. Setting environment variables
-3. Modifying the Settings class defaults
+1. Criando um arquivo `.env` na raiz do projeto (recomendado)
+2. Definindo variáveis de ambiente
+3. Modificando os valores padrão da classe Settings
 
-Available settings:
-- `APP_NAME`: Application name (default: "Jarvis Assistant")
-- `LANGUAGE`: Recognition language (default: "pt-BR")
-- `WAKE_WORD`: Activation phrase (default: "xerife")
-- `DATABASE_URL`: Database connection string
-  - SQLite (default for local): `sqlite:///jarvis.db`
+Configurações disponíveis:
+- `APP_NAME`: Nome da aplicação (padrão: "Jarvis Assistant")
+- `USER_ID`: ID único do usuário (configurado pelo wizard)
+- `ASSISTANT_NAME`: Nome personalizado do assistente (ex: "Jarvis", "Friday", "Ultron") 🎭
+- `LANGUAGE`: Idioma de reconhecimento (padrão: "pt-BR")
+- `WAKE_WORD`: Palavra de ativação (padrão: "xerife")
+- `GEMINI_API_KEY`: Chave da API do Google Gemini (configurada pelo wizard)
+- `DATABASE_URL`: String de conexão com o banco de dados
+  - SQLite (padrão local): `sqlite:///jarvis.db`
   - PostgreSQL (Docker Compose): `postgresql://user:password@host:port/database`
+
+> **🔒 Segurança**: O Setup Wizard criptografa automaticamente valores sensíveis (`GEMINI_API_KEY` e `DATABASE_URL`) usando uma chave baseada em hardware. Isso significa que o arquivo `.env` só funcionará na máquina onde foi criado.
 
 ## Usage
 
