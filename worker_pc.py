@@ -59,6 +59,9 @@ def main() -> None:
     logger.info("Polling for pending commands...")
 
     # Main worker loop
+    poll_interval = float(os.getenv("WORKER_POLL_INTERVAL", "2"))
+    logger.info(f"Using poll interval: {poll_interval} seconds")
+    
     try:
         while True:
             try:
@@ -105,7 +108,7 @@ def main() -> None:
                     pass
                 
                 # Sleep to avoid overloading the database
-                time.sleep(2)
+                time.sleep(poll_interval)
                 
             except KeyboardInterrupt:
                 logger.info("Received keyboard interrupt - shutting down worker")

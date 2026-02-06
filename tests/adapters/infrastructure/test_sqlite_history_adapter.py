@@ -247,21 +247,42 @@ class TestSQLiteHistoryAdapter:
 
     def test_get_next_pending_command_oldest_first(self, adapter):
         """Test that oldest pending command is returned first"""
-        # Save multiple pending commands
-        import time
+        # Save multiple pending commands with explicit timestamps
+        from datetime import datetime, timedelta
         
+        base_time = datetime(2024, 1, 1, 12, 0, 0)
+        
+        # Create first command with earlier timestamp
         task_id_1 = adapter.save_pending_command(
             user_input="comando 1",
             command_type="test_type",
             parameters={},
         )
-        time.sleep(0.01)  # Ensure different timestamps
+        # Manually update timestamp to be earlier
+        from sqlmodel import Session, select
+        with Session(adapter.engine) as session:
+            from app.adapters.infrastructure.sqlite_history_adapter import Interaction
+            stmt = select(Interaction).where(Interaction.id == task_id_1)
+            interaction = session.exec(stmt).first()
+            if interaction:
+                interaction.timestamp = base_time
+                session.add(interaction)
+                session.commit()
         
+        # Create second command with later timestamp
         task_id_2 = adapter.save_pending_command(
             user_input="comando 2",
             command_type="test_type",
             parameters={},
         )
+        # Manually update timestamp to be later
+        with Session(adapter.engine) as session:
+            stmt = select(Interaction).where(Interaction.id == task_id_2)
+            interaction = session.exec(stmt).first()
+            if interaction:
+                interaction.timestamp = base_time + timedelta(seconds=1)
+                session.add(interaction)
+                session.commit()
 
         # Get next pending - should be the oldest one
         pending = adapter.get_next_pending_command()
