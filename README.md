@@ -31,7 +31,7 @@ See [ARCHITECTURE.md](ARCHITECTURE.md) for detailed architecture documentation.
 - **Docker Support**: Containerized deployment with Docker and Docker Compose
 - **Airflow Integration**: Example DAGs for scheduled automation tasks
 - **Type Safety**: Full type hinting throughout the codebase
-- **Testing**: Comprehensive test suite with 88 tests passing (62 original + 25 new LLM tests, all green)
+- **Testing**: Comprehensive test suite with 60+ passing tests, including original domain tests and additional LLM integration tests (all green)
 
 ## Project Structure
 
