@@ -106,9 +106,10 @@ class Container:
         if self._history_provider is None:
             logger.info(f"Creating SQLiteHistoryAdapter with database configuration")
             # Use DATABASE_URL from settings if it's not the default SQLite
-            # Pass the full URL if it's PostgreSQL or a custom database URL
+            # Only use SQLite fallback (db_path) if the URL is the exact default
             database_url = None
-            if settings.database_url and not settings.database_url.startswith("sqlite:///jarvis.db"):
+            if settings.database_url and settings.database_url != "sqlite:///jarvis.db":
+                # Custom database URL (could be PostgreSQL, another SQLite path, etc.)
                 database_url = settings.database_url
             
             self._history_provider = SQLiteHistoryAdapter(

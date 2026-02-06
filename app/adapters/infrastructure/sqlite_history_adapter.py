@@ -36,10 +36,13 @@ class Interaction(SQLModel, table=True):
 class SQLiteHistoryAdapter(HistoryProvider):
     """
     Database implementation of the HistoryProvider port.
-    Uses SQLModel for ORM and supports both SQLite and PostgreSQL.
+    Uses SQLModel for ORM and supports multiple database backends (SQLite, PostgreSQL, etc.).
     
-    When DATABASE_URL is set (typically from environment variables), uses PostgreSQL.
-    Otherwise, falls back to SQLite for local development/testing.
+    When database_url is provided (typically PostgreSQL from environment variables),
+    uses that database. Otherwise, falls back to SQLite for local development/testing.
+    
+    Note: While the class is named SQLiteHistoryAdapter for backward compatibility,
+    it supports any SQLAlchemy-compatible database URL.
     """
 
     def __init__(self, db_path: str = "jarvis.db", database_url: Optional[str] = None):
@@ -47,14 +50,16 @@ class SQLiteHistoryAdapter(HistoryProvider):
         Initialize the database history adapter
 
         Args:
-            db_path: Path to SQLite database file (used as fallback)
+            db_path: Path to SQLite database file (used as fallback when database_url is None)
             database_url: Full database URL (e.g., postgresql://user:pass@host:port/db)
-                         If provided, takes precedence over db_path
+                         If provided, takes precedence over db_path.
+                         Supports any SQLAlchemy-compatible URL (PostgreSQL, MySQL, etc.)
         """
         # Determine which database to use
         if database_url:
             self.database_url = database_url
-            logger.info(f"Using PostgreSQL database from DATABASE_URL")
+            db_type = database_url.split(':')[0]
+            logger.info(f"Using {db_type} database from DATABASE_URL")
         else:
             self.database_url = f"sqlite:///{db_path}"
             logger.info(f"Using SQLite database: {db_path}")

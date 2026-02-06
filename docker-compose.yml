@@ -14,7 +14,7 @@ services:
       - jarvis-network
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER:-jarvis}"]
+      test: ["CMD-SHELL", "pg_isready -U jarvis"]
       interval: 10s
       timeout: 5s
       retries: 5
