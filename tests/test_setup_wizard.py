@@ -1,20 +1,21 @@
 # -*- coding: utf-8 -*-
 """Tests for Setup Wizard functionality"""
 
-import os
+# CRITICAL: Mock pyperclip BEFORE any imports to prevent ImportError during test collection
+# This must be the FIRST thing in the file, even before standard library imports
 import sys
-import tempfile
-from pathlib import Path
-from unittest.mock import MagicMock, Mock, patch
+from unittest.mock import Mock
 
-import pytest
-
-# CRITICAL: Mock pyperclip BEFORE any project imports to prevent ImportError
-# This must be at module level because pytest imports the module before fixtures run
-# The setup_wizard module imports pyperclip at the top level, so we must mock it early
 _original_pyperclip = sys.modules.get('pyperclip')
 if 'pyperclip' not in sys.modules:
     sys.modules['pyperclip'] = Mock()
+
+import os
+import tempfile
+from pathlib import Path
+from unittest.mock import MagicMock, patch
+
+import pytest
 
 
 @pytest.fixture(scope="module", autouse=True)

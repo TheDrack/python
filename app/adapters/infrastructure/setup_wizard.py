@@ -18,22 +18,7 @@ import webbrowser
 from pathlib import Path
 from typing import Optional, Tuple
 
-# Resilient import: pyperclip may not be available in all environments
-try:
-    import pyperclip
-except ImportError:
-    pyperclip = None
-
 from sqlmodel import Session, create_engine, text
-
-# Check if clipboard is available (may fail in headless environments)
-CLIPBOARD_AVAILABLE = False
-if pyperclip is not None:
-    try:
-        pyperclip.paste()
-        CLIPBOARD_AVAILABLE = True
-    except Exception:
-        CLIPBOARD_AVAILABLE = False
 
 logger = logging.getLogger(__name__)
 
@@ -113,7 +98,18 @@ def get_api_key_with_clipboard() -> Optional[str]:
     """Get API key using automated clipboard monitoring"""
     print_header("Configuração da Chave API do Google Gemini")
     
-    if not CLIPBOARD_AVAILABLE:
+    # Import pyperclip only when needed (avoids import errors during test collection)
+    clipboard_available = False
+    pyperclip = None
+    try:
+        import pyperclip
+        # Check if clipboard is available (may fail in headless environments)
+        pyperclip.paste()
+        clipboard_available = True
+    except (ImportError, Exception):
+        clipboard_available = False
+    
+    if not clipboard_available:
         print_warning("pyperclip não está disponível. Você precisará colar a chave manualmente.")
         api_key = get_user_input("Cole sua chave API do Google Gemini aqui")
         return api_key
