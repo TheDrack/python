@@ -1,16 +1,24 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-"""
-Jarvis Voice Assistant - Main Entry Point
+import os
+import uvicorn
+from app.adapters.infrastructure.api_server import create_api_server
+from app.application.services import AssistantService
 
-A modular voice assistant with Hexagonal Architecture:
-- Clean separation between Domain, Application, and Adapters
-- Hardware-independent core logic (cloud-ready)
-- Dependency injection for all external dependencies
-- Support for Edge (local hardware) and Cloud deployments
-"""
-
-from app.bootstrap_edge import main
+def start_cloud():
+    """Inicializa o Jarvis em modo API para o Render/Nuvem"""
+    # Inicializa o serviço principal
+    assistant_service = AssistantService() 
+    # Cria o servidor usando a Factory que você já tem
+    app = create_api_server(assistant_service)
+    
+    port = int(os.getenv("PORT", 8000))
+    print(f"🚀 Jarvis Online na Nuvem - Porta {port}")
+    uvicorn.run(app, host="0.0.0.0", port=port)
 
 if __name__ == "__main__":
-    main()
+    # Se houver uma porta definida, estamos no Render (Cloud)
+    if os.getenv("PORT"):
+        start_cloud()
+    else:
+        # Se não, roda o modo voz local que você já tinha
+        from app.bootstrap_edge import main
+        main()
