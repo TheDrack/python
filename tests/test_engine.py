@@ -26,15 +26,25 @@ class TestJarvisEngine:
         assert engine.recognizer is not None
         assert engine.is_running is False
 
-    @patch("pyttsx3.init")
-    def test_speak(self, mock_tts_init):
+    def test_speak(self):
         """Test speak method"""
+        # Since pyttsx3 is already mocked in conftest.py, we need to configure it properly
+        from unittest.mock import Mock, MagicMock
+        import pyttsx3
+        
+        # Create a mock engine
         mock_engine = Mock()
-        mock_tts_init.return_value = mock_engine
-
+        mock_engine.say = Mock()
+        mock_engine.runAndWait = Mock()
+        
+        # Configure the mocked pyttsx3.init to return our mock engine
+        pyttsx3.init = Mock(return_value=mock_engine)
+        
+        # Create engine and test speak
         engine = JarvisEngine()
         engine.speak("Olá")
-
+        
+        # Verify the calls
         mock_engine.say.assert_called_once_with("Olá")
         mock_engine.runAndWait.assert_called_once()
 
