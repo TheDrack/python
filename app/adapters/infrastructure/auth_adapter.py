@@ -220,7 +220,7 @@ class AuthAdapter(SecurityProvider):
                     session.add(admin_user)
                     session.commit()
                     
-                    logger.info("✓ Default admin user created successfully (username: admin, password: admin123)")
+                    logger.info("✓ Default admin user created successfully (username: admin)")
                 else:
                     logger.info(f"Database already has {len(users)} user(s)")
         except Exception as e:
