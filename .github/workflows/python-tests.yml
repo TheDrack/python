@@ -20,6 +20,9 @@ jobs:
 
     - name: Install All Dependencies
       run: |
+        # Criar ambiente virtual
+        uv venv
+        
         # 1. Fix de Segurança: Ordem específica para evitar erro de backend do bcrypt
         uv pip install bcrypt==4.0.1
         uv pip install passlib[bcrypt]==1.7.4
@@ -44,6 +47,9 @@ jobs:
       run: |
         # Define a raiz como caminho de importação do Python
         export PYTHONPATH=$PYTHONPATH:$(pwd)
+        
+        # Ativa o ambiente virtual e executa os testes
+        source .venv/bin/activate
         
         # Executa os testes e gera o relatório de cobertura
         # Ignora avisos de deprecation do passlib no log para clareza
