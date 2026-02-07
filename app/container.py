@@ -3,16 +3,42 @@
 
 import logging
 import os
+import sys
 from typing import Optional
 
 from app.adapters.edge import AutomationAdapter, CombinedVoiceProvider, WebAdapter
-from app.adapters.infrastructure import LLMCommandAdapter, SQLiteHistoryAdapter
+from app.adapters.infrastructure import DummyVoiceProvider, LLMCommandAdapter, SQLiteHistoryAdapter
 from app.application.ports import ActionProvider, HistoryProvider, VoiceProvider, WebProvider
 from app.application.services import AssistantService, DependencyManager
 from app.core.config import settings
 from app.domain.services import CommandInterpreter, IntentProcessor
 
 logger = logging.getLogger(__name__)
+
+
+def _is_headless_environment() -> bool:
+    """
+    Detect if we're running in a headless environment (tests, CI/CD, cloud).
+    
+    Returns:
+        True if running in headless environment, False otherwise
+    """
+    # Check if running in pytest
+    if "pytest" in sys.modules:
+        return True
+    
+    # Check if running in CI/CD (common CI environment variables)
+    ci_vars = ["CI", "GITHUB_ACTIONS", "GITLAB_CI", "TRAVIS", "CIRCLECI"]
+    if any(os.getenv(var) for var in ci_vars):
+        return True
+    
+    # Check if running on cloud platform (Render, Heroku, etc.)
+    # Render sets both PORT and RENDER environment variables
+    # Heroku sets both PORT and DYNO environment variables
+    if os.getenv("PORT") and (os.getenv("RENDER") or os.getenv("DYNO") or os.getenv("RENDER_SERVICE_NAME")):
+        return True
+    
+    return False
 
 
 class Container:
@@ -75,11 +101,16 @@ class Container:
     def voice_provider(self) -> VoiceProvider:
         """Get or create voice provider"""
         if self._voice_provider is None:
-            logger.info("Creating default CombinedVoiceProvider")
-            self._voice_provider = CombinedVoiceProvider(
-                language=self.language,
-                ambient_noise_adjustment=True,
-            )
+            # Use DummyVoiceProvider in headless environments
+            if _is_headless_environment():
+                logger.info("Detected headless environment, using DummyVoiceProvider")
+                self._voice_provider = DummyVoiceProvider()
+            else:
+                logger.info("Creating default CombinedVoiceProvider")
+                self._voice_provider = CombinedVoiceProvider(
+                    language=self.language,
+                    ambient_noise_adjustment=True,
+                )
         return self._voice_provider
 
     @property

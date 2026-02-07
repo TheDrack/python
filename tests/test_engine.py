@@ -26,17 +26,22 @@ class TestJarvisEngine:
         assert engine.recognizer is not None
         assert engine.is_running is False
 
-    @patch("pyttsx3.init")
-    def test_speak(self, mock_tts_init):
+    def test_speak(self):
         """Test speak method"""
+        # Create a mock engine with say and runAndWait methods
         mock_engine = Mock()
-        mock_tts_init.return_value = mock_engine
-
-        engine = JarvisEngine()
-        engine.speak("Olá")
-
-        mock_engine.say.assert_called_once_with("Olá")
-        mock_engine.runAndWait.assert_called_once()
+        
+        # Patch pyttsx3.init at the point where JarvisEngine imports and uses it
+        with patch("app.core.engine.pyttsx3.init", return_value=mock_engine):
+            # Create engine with the patched pyttsx3.init
+            engine = JarvisEngine()
+            
+            # Call speak
+            engine.speak("Olá")
+            
+            # Verify the calls
+            mock_engine.say.assert_called_once_with("Olá")
+            mock_engine.runAndWait.assert_called_once()
 
     @patch("speech_recognition.Microphone")
     @patch("pyttsx3.init")

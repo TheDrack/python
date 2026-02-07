@@ -4,6 +4,9 @@
 # Import SQLiteHistoryAdapter (always available with core dependencies)
 from .sqlite_history_adapter import SQLiteHistoryAdapter
 
+# Import DummyVoiceProvider (always available, no dependencies)
+from .dummy_voice_provider import DummyVoiceProvider
+
 # Optional imports that require additional dependencies
 try:
     from .gemini_adapter import LLMCommandAdapter
@@ -15,7 +18,7 @@ try:
 except ImportError:
     create_api_server = None
 
-__all__ = ["SQLiteHistoryAdapter"]
+__all__ = ["SQLiteHistoryAdapter", "DummyVoiceProvider"]
 
 # Add optional exports if available
 if LLMCommandAdapter is not None:
