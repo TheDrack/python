@@ -1,11 +1,14 @@
 # -*- coding: utf-8 -*-
 """System commands and automation actions for Jarvis Assistant"""
 
+import logging
 import time
 import webbrowser as wb
 from typing import Optional
 
 from app.core.config import settings
+
+logger = logging.getLogger(__name__)
 
 
 class SystemCommands:
@@ -39,8 +42,8 @@ class SystemCommands:
         Args:
             text: Text to type
         """
-        if not self._pynput_available or self.keyboard is None:
-            print(f"pynput not available, would type: {text}")
+        if not self._pynput_available:
+            logger.warning(f"pynput not available, would type: {text}")
             return
         self.keyboard.type(text)
 
@@ -51,8 +54,8 @@ class SystemCommands:
         Args:
             key: Key name to press
         """
-        if not self._pyautogui_available or self._pyautogui is None:
-            print(f"PyAutoGUI not available, would press key: {key}")
+        if not self._pyautogui_available:
+            logger.warning(f"PyAutoGUI not available, would press key: {key}")
             return
         self._pyautogui.press(key)
 
@@ -63,8 +66,8 @@ class SystemCommands:
         Args:
             keys: List of key names to press
         """
-        if not self._pyautogui_available or self._pyautogui is None:
-            print(f"PyAutoGUI not available, would press keys: {keys}")
+        if not self._pyautogui_available:
+            logger.warning(f"PyAutoGUI not available, would press keys: {keys}")
             return
         for key in keys:
             self._pyautogui.press(key)
@@ -76,8 +79,8 @@ class SystemCommands:
         Args:
             keys: Keys to press together
         """
-        if not self._pyautogui_available or self._pyautogui is None:
-            print(f"PyAutoGUI not available, would press hotkey: {keys}")
+        if not self._pyautogui_available:
+            logger.warning(f"PyAutoGUI not available, would press hotkey: {keys}")
             return
         self._pyautogui.hotkey(*keys)
 
@@ -91,8 +94,8 @@ class SystemCommands:
             button: Mouse button ('left', 'right', 'middle')
             clicks: Number of clicks
         """
-        if not self._pyautogui_available or self._pyautogui is None:
-            print(f"PyAutoGUI not available, would click at ({x}, {y})")
+        if not self._pyautogui_available:
+            logger.warning(f"PyAutoGUI not available, would click at ({x}, {y})")
             return
         self._pyautogui.click(x, y, button=button, clicks=clicks)
 
@@ -109,8 +112,8 @@ class SystemCommands:
         Returns:
             Tuple of (x, y) coordinates if found, None otherwise
         """
-        if not self._pyautogui_available or self._pyautogui is None:
-            print(f"PyAutoGUI not available, would search for image: {image_path}")
+        if not self._pyautogui_available:
+            logger.warning(f"PyAutoGUI not available, would search for image: {image_path}")
             return None
         
         search_timeout = timeout or settings.search_timeout
