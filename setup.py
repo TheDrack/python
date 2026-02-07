@@ -27,7 +27,7 @@ setup(
         "fastapi>=0.104.0",
         "uvicorn[standard]>=0.24.0",
         "python-multipart>=0.0.6",
-        "bcrypt==4.0.1",
+        "bcrypt>=4.0.1,<5.0.0",
         "python-jose[cryptography]>=3.3.0",
         "passlib[bcrypt]>=1.7.4",
         "cryptography>=41.0.0",
