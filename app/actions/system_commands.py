@@ -5,9 +5,6 @@ import time
 import webbrowser as wb
 from typing import Optional
 
-import pyautogui
-from pynput.keyboard import Controller
-
 from app.core.config import settings
 
 
@@ -16,8 +13,24 @@ class SystemCommands:
 
     def __init__(self) -> None:
         """Initialize system commands handler"""
-        self.keyboard: Controller = Controller()
-        pyautogui.PAUSE = settings.pyautogui_pause
+        # Lazy import of pyautogui to reduce startup memory usage
+        try:
+            import pyautogui
+            self._pyautogui = pyautogui
+            self._pyautogui_available = True
+            pyautogui.PAUSE = settings.pyautogui_pause
+        except ImportError:
+            self._pyautogui = None
+            self._pyautogui_available = False
+        
+        # Lazy import of pynput to reduce startup memory usage
+        try:
+            from pynput.keyboard import Controller
+            self.keyboard = Controller()
+            self._pynput_available = True
+        except ImportError:
+            self.keyboard = None
+            self._pynput_available = False
 
     def type_text(self, text: str) -> None:
         """
@@ -26,6 +39,9 @@ class SystemCommands:
         Args:
             text: Text to type
         """
+        if not self._pynput_available or self.keyboard is None:
+            print(f"pynput not available, would type: {text}")
+            return
         self.keyboard.type(text)
 
     def press_key(self, key: str) -> None:
@@ -35,7 +51,10 @@ class SystemCommands:
         Args:
             key: Key name to press
         """
-        pyautogui.press(key)
+        if not self._pyautogui_available or self._pyautogui is None:
+            print(f"PyAutoGUI not available, would press key: {key}")
+            return
+        self._pyautogui.press(key)
 
     def press_keys(self, keys: list[str]) -> None:
         """
@@ -44,8 +63,11 @@ class SystemCommands:
         Args:
             keys: List of key names to press
         """
+        if not self._pyautogui_available or self._pyautogui is None:
+            print(f"PyAutoGUI not available, would press keys: {keys}")
+            return
         for key in keys:
-            pyautogui.press(key)
+            self._pyautogui.press(key)
 
     def hotkey(self, *keys: str) -> None:
         """
@@ -54,7 +76,10 @@ class SystemCommands:
         Args:
             keys: Keys to press together
         """
-        pyautogui.hotkey(*keys)
+        if not self._pyautogui_available or self._pyautogui is None:
+            print(f"PyAutoGUI not available, would press hotkey: {keys}")
+            return
+        self._pyautogui.hotkey(*keys)
 
     def click(self, x: int, y: int, button: str = "left", clicks: int = 1) -> None:
         """
@@ -66,7 +91,10 @@ class SystemCommands:
             button: Mouse button ('left', 'right', 'middle')
             clicks: Number of clicks
         """
-        pyautogui.click(x, y, button=button, clicks=clicks)
+        if not self._pyautogui_available or self._pyautogui is None:
+            print(f"PyAutoGUI not available, would click at ({x}, {y})")
+            return
+        self._pyautogui.click(x, y, button=button, clicks=clicks)
 
     def locate_on_screen(
         self, image_path: str, timeout: Optional[float] = None
@@ -81,15 +109,19 @@ class SystemCommands:
         Returns:
             Tuple of (x, y) coordinates if found, None otherwise
         """
+        if not self._pyautogui_available or self._pyautogui is None:
+            print(f"PyAutoGUI not available, would search for image: {image_path}")
+            return None
+        
         search_timeout = timeout or settings.search_timeout
         attempts = 0
         max_attempts = int(search_timeout * 4)  # Check every 0.25 seconds
 
         while attempts < max_attempts:
             try:
-                location = pyautogui.locateCenterOnScreen(image_path)
+                location = self._pyautogui.locateCenterOnScreen(image_path)
                 if location:
-                    pyautogui.moveTo(location)
+                    self._pyautogui.moveTo(location)
                     print(f"Image {image_path} found at position: {location}")
                     return location
             except Exception as e:
