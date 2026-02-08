@@ -62,13 +62,13 @@ Obtain a Gemini API key from Google AI Studio, then configure via environment:
 
 ```bash
 export GEMINI_API_KEY="your-actual-key-here"
-export GEMINI_MODEL="gemini-1.5-flash"  # optional, this is default
+export GEMINI_MODEL="gemini-pro"  # optional, this is default
 ```
 
 Or add to `.env` file (recommended for local development):
 ```env
 GEMINI_API_KEY=your-actual-key-here
-GEMINI_MODEL=gemini-1.5-flash
+GEMINI_MODEL=gemini-pro
 ```
 
 ### Activation

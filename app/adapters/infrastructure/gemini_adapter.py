@@ -25,7 +25,7 @@ class LLMCommandAdapter:
     def __init__(
         self,
         api_key: Optional[str] = None,
-        model_name: str = "gemini-1.5-flash",
+        model_name: str = "gemini-pro",
         voice_provider: Optional[VoiceProvider] = None,
         wake_word: str = "xerife",
         history_provider: Optional["HistoryProvider"] = None,
