@@ -14,20 +14,23 @@ class TestLLMCommandAdapter:
 
     @pytest.fixture
     def mock_genai(self):
-        """Mock google.generativeai module"""
+        """Mock google.genai module for new SDK"""
         with patch("app.adapters.infrastructure.gemini_adapter.genai") as mock:
-            # Mock the configure method
-            mock.configure = Mock()
+            # Mock the Client class
+            mock_client = Mock()
+            mock.Client = Mock(return_value=mock_client)
+            
+            # Mock the types module
+            mock_types = Mock()
+            mock.types = mock_types
+            mock_types.Tool = Mock()
+            mock_types.GenerateContentConfig = Mock()
+            
+            # Mock the client's models.generate_content method
+            mock_client.models = Mock()
+            mock_client.models.generate_content = Mock()
 
-            # Mock the GenerativeModel
-            mock_model = Mock()
-            mock.GenerativeModel = Mock(return_value=mock_model)
-
-            # Mock the chat
-            mock_chat = Mock()
-            mock_model.start_chat = Mock(return_value=mock_chat)
-
-            yield mock, mock_model, mock_chat
+            yield mock, mock_client
 
     @pytest.fixture
     def mock_voice_provider(self):
@@ -40,20 +43,20 @@ class TestLLMCommandAdapter:
         """Test LLMCommandAdapter initialization with API key"""
         from app.adapters.infrastructure import LLMCommandAdapter
 
-        mock_genai_module, mock_model, mock_chat = mock_genai
+        mock_genai_module, mock_client = mock_genai
 
         adapter = LLMCommandAdapter(api_key="test_api_key", wake_word="xerife")
 
         assert adapter.api_key == "test_api_key"
         assert adapter.wake_word == "xerife"
-        assert adapter.model_name == "gemini-1.5-flash"
-        mock_genai_module.configure.assert_called_once_with(api_key="test_api_key", transport='rest')
+        assert adapter.model_name == "gemini-2.0-flash"
+        mock_genai_module.Client.assert_called_once_with(api_key="test_api_key")
 
     def test_initialization_from_env(self, mock_genai):
         """Test LLMCommandAdapter initialization from environment variable"""
         from app.adapters.infrastructure import LLMCommandAdapter
 
-        mock_genai_module, _, _ = mock_genai
+        mock_genai_module, _ = mock_genai
 
         with patch.dict(os.environ, {"GEMINI_API_KEY": "env_api_key"}):
             adapter = LLMCommandAdapter(wake_word="xerife")
@@ -63,7 +66,7 @@ class TestLLMCommandAdapter:
         """Test LLMCommandAdapter initialization from GOOGLE_API_KEY environment variable"""
         from app.adapters.infrastructure import LLMCommandAdapter
 
-        mock_genai_module, _, _ = mock_genai
+        mock_genai_module, _ = mock_genai
 
         with patch.dict(os.environ, {"GOOGLE_API_KEY": "google_env_api_key"}, clear=True):
             adapter = LLMCommandAdapter(wake_word="xerife")
@@ -73,7 +76,7 @@ class TestLLMCommandAdapter:
         """Test that GOOGLE_API_KEY takes precedence over GEMINI_API_KEY"""
         from app.adapters.infrastructure import LLMCommandAdapter
 
-        mock_genai_module, _, _ = mock_genai
+        mock_genai_module, _ = mock_genai
 
         with patch.dict(
             os.environ,
@@ -98,31 +101,32 @@ class TestLLMCommandAdapter:
         """Test that wake word is removed from input"""
         from app.adapters.infrastructure import LLMCommandAdapter
 
-        mock_genai_module, mock_model, mock_chat = mock_genai
+        mock_genai_module, mock_client = mock_genai
 
         # Mock the response with a function call
         mock_response = self._create_mock_function_response("type_text", {"text": "hello"})
-        mock_chat.send_message = Mock(return_value=mock_response)
+        mock_client.models.generate_content = Mock(return_value=mock_response)
 
         adapter = LLMCommandAdapter(api_key="test_key", wake_word="xerife")
         adapter._interpret_sync("xerife escreva hello")
 
         # Check that the message sent to the model doesn't include the wake word
-        # The send_message should be called with "escreva hello"
-        mock_chat.send_message.assert_called_once()
-        call_args = mock_chat.send_message.call_args[0][0]
-        assert "xerife" not in call_args.lower()
-        assert "escreva" in call_args.lower()
+        # The generate_content should be called with "escreva hello"
+        mock_client.models.generate_content.assert_called_once()
+        call_args = mock_client.models.generate_content.call_args
+        contents_arg = call_args[1].get('contents') if call_args[1] else call_args[0][1]
+        assert "xerife" not in contents_arg.lower()
+        assert "escreva" in contents_arg.lower()
 
     def test_convert_function_call_type_text(self, mock_genai, mock_voice_provider):
         """Test conversion of type_text function call to Intent"""
         from app.adapters.infrastructure import LLMCommandAdapter
 
-        mock_genai_module, mock_model, mock_chat = mock_genai
+        mock_genai_module, mock_client = mock_genai
 
         # Mock the response
         mock_response = self._create_mock_function_response("type_text", {"text": "hello world"})
-        mock_chat.send_message = Mock(return_value=mock_response)
+        mock_client.models.generate_content = Mock(return_value=mock_response)
 
         adapter = LLMCommandAdapter(
             api_key="test_key",
@@ -139,11 +143,11 @@ class TestLLMCommandAdapter:
         """Test conversion of press_key function call to Intent"""
         from app.adapters.infrastructure import LLMCommandAdapter
 
-        mock_genai_module, mock_model, mock_chat = mock_genai
+        mock_genai_module, mock_client = mock_genai
 
         # Mock the response
         mock_response = self._create_mock_function_response("press_key", {"key": "enter"})
-        mock_chat.send_message = Mock(return_value=mock_response)
+        mock_client.models.generate_content = Mock(return_value=mock_response)
 
         adapter = LLMCommandAdapter(
             api_key="test_key",
@@ -160,11 +164,11 @@ class TestLLMCommandAdapter:
         """Test conversion of open_browser function call to Intent"""
         from app.adapters.infrastructure import LLMCommandAdapter
 
-        mock_genai_module, mock_model, mock_chat = mock_genai
+        mock_genai_module, mock_client = mock_genai
 
         # Mock the response
         mock_response = self._create_mock_function_response("open_browser", {})
-        mock_chat.send_message = Mock(return_value=mock_response)
+        mock_client.models.generate_content = Mock(return_value=mock_response)
 
         adapter = LLMCommandAdapter(
             api_key="test_key",
@@ -181,11 +185,11 @@ class TestLLMCommandAdapter:
         """Test conversion of open_url function call to Intent"""
         from app.adapters.infrastructure import LLMCommandAdapter
 
-        mock_genai_module, mock_model, mock_chat = mock_genai
+        mock_genai_module, mock_client = mock_genai
 
         # Mock the response
         mock_response = self._create_mock_function_response("open_url", {"url": "google.com"})
-        mock_chat.send_message = Mock(return_value=mock_response)
+        mock_client.models.generate_content = Mock(return_value=mock_response)
 
         adapter = LLMCommandAdapter(
             api_key="test_key",
@@ -202,13 +206,13 @@ class TestLLMCommandAdapter:
         """Test conversion of search_on_page function call to Intent"""
         from app.adapters.infrastructure import LLMCommandAdapter
 
-        mock_genai_module, mock_model, mock_chat = mock_genai
+        mock_genai_module, mock_client = mock_genai
 
         # Mock the response
         mock_response = self._create_mock_function_response(
             "search_on_page", {"search_text": "login"}
         )
-        mock_chat.send_message = Mock(return_value=mock_response)
+        mock_client.models.generate_content = Mock(return_value=mock_response)
 
         adapter = LLMCommandAdapter(
             api_key="test_key",
@@ -225,11 +229,11 @@ class TestLLMCommandAdapter:
         """Test handling of clarification requests from LLM"""
         from app.adapters.infrastructure import LLMCommandAdapter
 
-        mock_genai_module, mock_model, mock_chat = mock_genai
+        mock_genai_module, mock_client = mock_genai
 
         # Mock the response with text (clarification)
         mock_response = self._create_mock_text_response("O que você gostaria que eu fizesse?")
-        mock_chat.send_message = Mock(return_value=mock_response)
+        mock_client.models.generate_content = Mock(return_value=mock_response)
 
         adapter = LLMCommandAdapter(
             api_key="test_key",
@@ -247,12 +251,12 @@ class TestLLMCommandAdapter:
         """Test handling of unknown commands"""
         from app.adapters.infrastructure import LLMCommandAdapter
 
-        mock_genai_module, mock_model, mock_chat = mock_genai
+        mock_genai_module, mock_client = mock_genai
 
         # Mock the response with no function call
         mock_response = Mock()
         mock_response.candidates = []
-        mock_chat.send_message = Mock(return_value=mock_response)
+        mock_client.models.generate_content = Mock(return_value=mock_response)
 
         adapter = LLMCommandAdapter(
             api_key="test_key",
@@ -268,10 +272,10 @@ class TestLLMCommandAdapter:
         """Test error handling during interpretation"""
         from app.adapters.infrastructure import LLMCommandAdapter
 
-        mock_genai_module, mock_model, mock_chat = mock_genai
+        mock_genai_module, mock_client = mock_genai
 
         # Mock an exception
-        mock_chat.send_message = Mock(side_effect=Exception("API Error"))
+        mock_client.models.generate_content = Mock(side_effect=Exception("API Error"))
 
         adapter = LLMCommandAdapter(
             api_key="test_key",
@@ -346,13 +350,13 @@ class TestLLMCommandAdapter:
         """Test generating conversational responses for greetings/unknown commands"""
         from app.adapters.infrastructure import LLMCommandAdapter
 
-        mock_genai_module, mock_model, mock_chat = mock_genai
+        mock_genai_module, mock_client = mock_genai
 
         # Mock the response with conversational text
         mock_response = self._create_mock_text_response(
             "Olá! Como posso ajudar você hoje?"
         )
-        mock_chat.send_message = Mock(return_value=mock_response)
+        mock_client.models.generate_content = Mock(return_value=mock_response)
 
         adapter = LLMCommandAdapter(
             api_key="test_key",
@@ -362,7 +366,7 @@ class TestLLMCommandAdapter:
         response = adapter.generate_conversational_response("olá")
 
         assert response == "Olá! Como posso ajudar você hoje?"
-        mock_chat.send_message.assert_called_once()
+        mock_client.models.generate_content.assert_called_once()
 
     def test_generate_conversational_response_removes_wake_word(
         self, mock_genai, mock_voice_provider
@@ -370,11 +374,11 @@ class TestLLMCommandAdapter:
         """Test that conversational response removes wake word from input"""
         from app.adapters.infrastructure import LLMCommandAdapter
 
-        mock_genai_module, mock_model, mock_chat = mock_genai
+        mock_genai_module, mock_client = mock_genai
 
         # Mock the response
         mock_response = self._create_mock_text_response("Oi! Tudo bem?")
-        mock_chat.send_message = Mock(return_value=mock_response)
+        mock_client.models.generate_content = Mock(return_value=mock_response)
 
         adapter = LLMCommandAdapter(
             api_key="test_key",
@@ -385,8 +389,9 @@ class TestLLMCommandAdapter:
 
         assert response == "Oi! Tudo bem?"
         # Check that wake word was removed from the prompt
-        call_args = mock_chat.send_message.call_args[0][0]
-        assert "xerife" not in call_args.lower()
+        call_args = mock_client.models.generate_content.call_args
+        contents_arg = call_args[1].get('contents') if call_args[1] else call_args[0][1]
+        assert "xerife" not in contents_arg.lower()
 
     def test_generate_conversational_response_empty_input(
         self, mock_genai, mock_voice_provider
@@ -409,10 +414,10 @@ class TestLLMCommandAdapter:
         """Test error handling in conversational response generation"""
         from app.adapters.infrastructure import LLMCommandAdapter
 
-        mock_genai_module, mock_model, mock_chat = mock_genai
+        mock_genai_module, mock_client = mock_genai
 
         # Mock an exception
-        mock_chat.send_message = Mock(side_effect=Exception("API Error"))
+        mock_client.models.generate_content = Mock(side_effect=Exception("API Error"))
 
         adapter = LLMCommandAdapter(
             api_key="test_key",
