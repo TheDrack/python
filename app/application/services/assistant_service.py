@@ -98,6 +98,36 @@ class AssistantService:
         intent = self.interpreter.interpret(user_input)
         logger.info(f"Interpreted intent: {intent.command_type} with params: {intent.parameters}")
 
+        # Handle unknown commands with conversational AI if available
+        if intent.command_type == CommandType.UNKNOWN:
+            # Check if interpreter has conversational capability (LLMCommandAdapter)
+            if hasattr(self.interpreter, 'generate_conversational_response'):
+                logger.info("Unknown command detected, using conversational AI")
+                try:
+                    conversational_response = self.interpreter.generate_conversational_response(user_input)
+                    response = Response(
+                        success=True,
+                        message=conversational_response,
+                        data={
+                            "command_type": CommandType.CHAT.value,
+                            "parameters": {"user_input": user_input},
+                        }
+                    )
+                    self._add_to_history(user_input, response)
+                    return response
+                except Exception as e:
+                    logger.error(f"Error generating conversational response: {e}")
+                    # Fall through to validation error
+            
+            # Fallback to validation error if no conversational AI or error occurred
+            validation = self.processor.validate_intent(intent)
+            if validation.data is None:
+                validation.data = {}
+            validation.data["command_type"] = intent.command_type.value
+            validation.data["parameters"] = intent.parameters
+            self._add_to_history(user_input, validation)
+            return validation
+
         # Validate the intent
         validation = self.processor.validate_intent(intent)
         if not validation.success:
@@ -138,7 +168,10 @@ class AssistantService:
         if command_text:
             # Process the command immediately
             response = self.process_command(command_text)
-            if not response.success and response.error == "UNKNOWN_COMMAND":
+            # Speak the response message if it's a chat/conversation
+            if response.success and response.data and response.data.get("command_type") == CommandType.CHAT.value:
+                self.voice.speak(response.message)
+            elif not response.success and response.error == "UNKNOWN_COMMAND":
                 logger.warning(f"Unknown command: {command_text}")
         else:
             # Ask for a new command
@@ -199,6 +232,12 @@ class AssistantService:
                 search_text = params.get("search_text", "")
                 self.web.search_on_page(search_text)
                 return Response(success=True, message=f"Searched: {search_text}")
+
+            elif command_type == CommandType.CHAT:
+                # Chat responses are already handled in process_command
+                # This case should not normally be reached, but return success
+                message = params.get("response", "")
+                return Response(success=True, message=message)
 
             else:
                 return Response(
