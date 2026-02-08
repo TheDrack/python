@@ -13,7 +13,7 @@ class TestAgentService:
         functions = AgentService.get_function_declarations()
 
         assert isinstance(functions, list)
-        assert len(functions) == 5  # type_text, press_key, open_browser, open_url, search_on_page
+        assert len(functions) == 6  # type_text, press_key, open_browser, open_url, search_on_page, report_issue
 
         # Check that all expected functions are present
         function_names = [f["name"] for f in functions]
@@ -22,6 +22,7 @@ class TestAgentService:
         assert "open_browser" in function_names
         assert "open_url" in function_names
         assert "search_on_page" in function_names
+        assert "report_issue" in function_names
 
     def test_type_text_function_declaration(self):
         """Test type_text function declaration structure"""
@@ -74,6 +75,16 @@ class TestAgentService:
         assert "search_text" in search_func["parameters"]["properties"]
         assert "search_text" in search_func["parameters"]["required"]
 
+    def test_report_issue_function_declaration(self):
+        """Test report_issue function declaration structure"""
+        functions = AgentService.get_function_declarations()
+        report_func = next(f for f in functions if f["name"] == "report_issue")
+
+        assert "description" in report_func
+        assert "parameters" in report_func
+        assert "issue_description" in report_func["parameters"]["properties"]
+        assert "issue_description" in report_func["parameters"]["required"]
+
     def test_map_function_to_command_type(self):
         """Test mapping function names to command types"""
         assert AgentService.map_function_to_command_type("type_text") == CommandType.TYPE_TEXT
@@ -81,6 +92,7 @@ class TestAgentService:
         assert AgentService.map_function_to_command_type("open_browser") == CommandType.OPEN_BROWSER
         assert AgentService.map_function_to_command_type("open_url") == CommandType.OPEN_URL
         assert AgentService.map_function_to_command_type("search_on_page") == CommandType.SEARCH_ON_PAGE
+        assert AgentService.map_function_to_command_type("report_issue") == CommandType.REPORT_ISSUE
 
     def test_map_unknown_function(self):
         """Test mapping unknown function name returns UNKNOWN"""
@@ -93,19 +105,20 @@ class TestAgentService:
         assert isinstance(instruction, str)
         assert len(instruction) > 0
         # Check that it mentions Xerife
-        assert "Xerife" in instruction or "xerife" in instruction
-        # Check that it mentions productivity/automation
-        assert "produtividade" in instruction.lower() or "automação" in instruction.lower()
-        # Check that it mentions being concise
-        assert "conciso" in instruction.lower() or "eficiente" in instruction.lower()
+        assert "Xerife" in instruction
+        # Check that it mentions Engenheiro (Field Engineer personality)
+        assert "Engenheiro" in instruction
+        # Check that it prohibits fluff
+        assert "fluff" in instruction.lower()
 
     def test_system_instruction_has_examples(self):
         """Test that system instruction includes examples"""
         instruction = AgentService.get_system_instruction()
 
-        # Should have examples of commands
-        assert "type_text" in instruction or "escreva" in instruction.lower()
-        assert "press_key" in instruction or "aperte" in instruction.lower()
+        # Should have examples of commands matching the new concise style
+        assert "tire selfie" in instruction.lower() or "tire" in instruction.lower()
+        assert "ligue TV" in instruction or "ligue" in instruction.lower()
+        assert "reporte" in instruction.lower()
 
     def test_function_descriptions_in_portuguese(self):
         """Test that function descriptions are in Portuguese"""

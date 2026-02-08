@@ -8,6 +8,7 @@ from typing import Optional
 
 from app.adapters.edge import AutomationAdapter, CombinedVoiceProvider, WebAdapter
 from app.adapters.infrastructure import DummyVoiceProvider, LLMCommandAdapter, SQLiteHistoryAdapter
+from app.adapters.infrastructure.github_adapter import GitHubAdapter
 try:
     from app.adapters.infrastructure import GatewayLLMCommandAdapter
 except ImportError:
@@ -133,6 +134,7 @@ class Container:
         self._intent_processor: Optional[IntentProcessor] = None
         self._dependency_manager: Optional[DependencyManager] = None
         self._extension_manager: Optional[ExtensionManager] = None
+        self._github_adapter: Optional[GitHubAdapter] = None
 
         # Application service
         self._assistant_service: Optional[AssistantService] = None
@@ -262,6 +264,19 @@ class Container:
         return self._extension_manager
 
     @property
+    def github_adapter(self) -> Optional[GitHubAdapter]:
+        """Get or create GitHub adapter"""
+        if self._github_adapter is None:
+            # Only create if GITHUB_TOKEN is available
+            github_token = os.getenv("GITHUB_TOKEN")
+            if github_token:
+                logger.info("Creating GitHubAdapter")
+                self._github_adapter = GitHubAdapter()
+            else:
+                logger.debug("GitHubAdapter not created - GITHUB_TOKEN not available")
+        return self._github_adapter
+
+    @property
     def assistant_service(self) -> AssistantService:
         """Get or create assistant service with all dependencies injected"""
         if self._assistant_service is None:
@@ -295,6 +310,7 @@ class Container:
                 dependency_manager=self.dependency_manager,
                 wake_word=self.wake_word,
                 gemini_adapter=gemini_adapter,
+                github_adapter=self.github_adapter,
             )
         return self._assistant_service
 
