@@ -88,6 +88,9 @@ class AIGateway:
     # Token threshold for context-based escalation
     TOKEN_THRESHOLD = 10000
     
+    # Recommended Groq model (updated as models are upgraded)
+    RECOMMENDED_GROQ_MODEL = "llama-3.3-70b-versatile"
+    
     def __init__(
         self,
         groq_api_key: Optional[str] = None,
@@ -272,15 +275,15 @@ class AIGateway:
             # Check if it's a model decommissioned error
             if self._is_model_decommissioned_error(e):
                 error_msg = (
-                    f"⚠️ ATENÇÃO: O modelo '{self.groq_model}' foi desativado pelo Groq!\n"
+                    f"⚠️ ATENÇÃO: O modelo '{self.groq_model}' foi descomissionado pelo Groq!\n"
                     f"Por favor, atualize o modelo no seu arquivo .env:\n"
-                    f"  GROQ_MODEL=llama-3.3-70b-versatile\n"
+                    f"  GROQ_MODEL={self.RECOMMENDED_GROQ_MODEL}\n"
                     f"Erro original: {e}"
                 )
                 logger.error(error_msg)
                 # Try to fallback to Gemini if available
                 if provider == LLMProvider.GROQ and self.gemini_client:
-                    logger.warning("Tentando fallback para Gemini devido a modelo desativado")
+                    logger.warning("Tentando fallback para Gemini devido a modelo descomissionado")
                     return self._handle_rate_limit_fallback(provider, messages, functions)
                 raise ValueError(error_msg) from e
             # Check if it's a rate limit error

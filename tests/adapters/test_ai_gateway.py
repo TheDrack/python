@@ -392,6 +392,6 @@ class TestAIGatewayFallback:
         # Check that the error message contains helpful information
         error_message = str(exc_info.value)
         assert "llama-3.1-70b-versatile" in error_message
-        assert "desativado" in error_message
+        assert "descomissionado" in error_message
         assert ".env" in error_message
         assert "llama-3.3-70b-versatile" in error_message
