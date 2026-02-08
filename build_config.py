@@ -38,7 +38,7 @@ HIDDEN_IMPORTS = [
     'pydantic.deprecated.decorator',
     'pydantic.json_schema',
     'dotenv',
-    'google.generativeai',
+    'google.genai',
     
     # Package management for on-demand installation
     'ensurepip',
@@ -129,7 +129,7 @@ binaries = []
 hiddenimports = {HIDDEN_IMPORTS}
 
 # Use collect_all for packages that require all their submodules and data
-for package in ['pyautogui', 'pyperclip', 'google.generativeai', 'pyttsx3']:
+for package in ['pyautogui', 'pyperclip', 'google.genai', 'pyttsx3']:
     package_datas, package_binaries, package_hiddenimports = collect_all(package)
     datas += package_datas
     binaries += package_binaries

@@ -16,7 +16,8 @@ sys.modules["pyttsx3"] = MagicMock()
 
 # Mock Google Generative AI for testing without API key
 sys.modules["google"] = MagicMock()
-sys.modules["google.generativeai"] = MagicMock()
+sys.modules["google.genai"] = MagicMock()
+sys.modules["google.genai.types"] = MagicMock()
 sys.modules["google.ai"] = MagicMock()
 sys.modules["google.ai.generativelanguage"] = MagicMock()
 

@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 """Gemini LLM Adapter - Google Generative AI integration for command interpretation
 
-Note: This adapter uses google.generativeai library (version 0.3.0+).
-The library internally uses the Google AI Generative Language API.
-Default model is 'gemini-1.5-flash' for stability and wide availability.
+Note: This adapter uses the new google-genai library.
+The library uses the latest Google Generative AI API.
+Default model is 'gemini-2.0-flash' for improved performance.
 """
 
 import asyncio
@@ -11,7 +11,7 @@ import logging
 import os
 from typing import Optional
 
-import google.generativeai as genai
+from google import genai
 
 from app.application.ports import VoiceProvider
 from app.domain.models import CommandType, Intent
@@ -30,7 +30,7 @@ class LLMCommandAdapter:
     def __init__(
         self,
         api_key: Optional[str] = None,
-        model_name: str = "gemini-1.5-flash",
+        model_name: str = "gemini-2.0-flash",
         voice_provider: Optional[VoiceProvider] = None,
         wake_word: str = "xerife",
         history_provider: Optional["HistoryProvider"] = None,
@@ -58,22 +58,19 @@ class LLMCommandAdapter:
                 "GOOGLE_API_KEY or GEMINI_API_KEY must be provided or set in environment variables"
             )
 
-        # Configure Gemini with REST transport to avoid gRPC issues
-        genai.configure(api_key=self.api_key, transport='rest')
+        # Initialize the new Gemini client
+        try:
+            self.client = genai.Client(api_key=self.api_key)
+        except Exception as e:
+            logger.error(f"Failed to initialize Gemini client: {e}")
+            raise ValueError(f"Failed to initialize Gemini client: {e}")
 
         # Get function declarations from AgentService
         self.functions = AgentService.get_function_declarations()
         self.system_instruction = AgentService.get_system_instruction()
 
-        # Initialize the model with function calling
-        self.model = genai.GenerativeModel(
-            model_name=self.model_name,
-            tools=[{"function_declarations": self.functions}],
-            system_instruction=self.system_instruction,
-        )
-
-        # Start a chat session
-        self.chat = self.model.start_chat(enable_automatic_function_calling=False)
+        # Store chat history for conversational context
+        self.chat_history = []
 
         logger.info(f"Initialized LLMCommandAdapter with model {self.model_name}")
 
@@ -128,35 +125,44 @@ class LLMCommandAdapter:
             context_message = self._build_context_message()
             full_message = f"{context_message}\n\n{command}" if context_message else command
 
-            # Send message to Gemini in a separate thread to avoid blocking
+            # Build tools for function calling
+            tools = [genai.types.Tool(function_declarations=self.functions)]
+
+            # Send message to Gemini using the new client API
             response = await asyncio.to_thread(
-                self.chat.send_message, full_message
+                self.client.models.generate_content,
+                model=self.model_name,
+                contents=full_message,
+                config=genai.types.GenerateContentConfig(
+                    system_instruction=self.system_instruction,
+                    tools=tools,
+                )
             )
 
             # Check if the model used a function call
-            if response.candidates and response.candidates[0].content.parts:
-                part = response.candidates[0].content.parts[0]
+            if response.candidates and len(response.candidates) > 0:
+                candidate = response.candidates[0]
+                if candidate.content and candidate.content.parts:
+                    for part in candidate.content.parts:
+                        # Check for function call
+                        if hasattr(part, "function_call") and part.function_call:
+                            return self._convert_function_call_to_intent(
+                                part.function_call, raw_input
+                            )
 
-                # Check for function call
-                if hasattr(part, "function_call") and part.function_call:
-                    function_call = part.function_call
-                    return self._convert_function_call_to_intent(
-                        function_call, raw_input
-                    )
-
-                # Check for text response (model asking for clarification)
-                elif hasattr(part, "text") and part.text:
-                    # Model is asking for clarification
-                    self._ask_for_clarification(part.text)
-                    return Intent(
-                        command_type=CommandType.UNKNOWN,
-                        parameters={
-                            "raw_command": command,
-                            "clarification": part.text,
-                        },
-                        raw_input=raw_input,
-                        confidence=0.3,
-                    )
+                        # Check for text response (model asking for clarification)
+                        elif hasattr(part, "text") and part.text:
+                            # Model is asking for clarification
+                            self._ask_for_clarification(part.text)
+                            return Intent(
+                                command_type=CommandType.UNKNOWN,
+                                parameters={
+                                    "raw_command": command,
+                                    "clarification": part.text,
+                                },
+                                raw_input=raw_input,
+                                confidence=0.3,
+                            )
 
             # No function call or text, treat as unknown
             logger.warning(f"No function call or text in response for: {command}")
@@ -168,7 +174,7 @@ class LLMCommandAdapter:
             )
 
         except Exception as e:
-            logger.error(f"Error during LLM interpretation: {e}")
+            logger.error(f"Error during LLM interpretation: {e}", exc_info=True)
             return Intent(
                 command_type=CommandType.UNKNOWN,
                 parameters={"raw_command": command, "error": str(e)},
@@ -206,33 +212,43 @@ class LLMCommandAdapter:
             context_message = self._build_context_message()
             full_message = f"{context_message}\n\n{command}" if context_message else command
 
-            # Send message to Gemini
-            response = self.chat.send_message(full_message)
+            # Build tools for function calling
+            tools = [genai.types.Tool(function_declarations=self.functions)]
+
+            # Send message to Gemini using the new client API
+            response = self.client.models.generate_content(
+                model=self.model_name,
+                contents=full_message,
+                config=genai.types.GenerateContentConfig(
+                    system_instruction=self.system_instruction,
+                    tools=tools,
+                )
+            )
 
             # Check if the model used a function call
-            if response.candidates and response.candidates[0].content.parts:
-                part = response.candidates[0].content.parts[0]
+            if response.candidates and len(response.candidates) > 0:
+                candidate = response.candidates[0]
+                if candidate.content and candidate.content.parts:
+                    for part in candidate.content.parts:
+                        # Check for function call
+                        if hasattr(part, "function_call") and part.function_call:
+                            return self._convert_function_call_to_intent(
+                                part.function_call, raw_input
+                            )
 
-                # Check for function call
-                if hasattr(part, "function_call") and part.function_call:
-                    function_call = part.function_call
-                    return self._convert_function_call_to_intent(
-                        function_call, raw_input
-                    )
-
-                # Check for text response (model asking for clarification)
-                elif hasattr(part, "text") and part.text:
-                    # Model is asking for clarification
-                    self._ask_for_clarification(part.text)
-                    return Intent(
-                        command_type=CommandType.UNKNOWN,
-                        parameters={
-                            "raw_command": command,
-                            "clarification": part.text,
-                        },
-                        raw_input=raw_input,
-                        confidence=0.3,
-                    )
+                        # Check for text response (model asking for clarification)
+                        elif hasattr(part, "text") and part.text:
+                            # Model is asking for clarification
+                            self._ask_for_clarification(part.text)
+                            return Intent(
+                                command_type=CommandType.UNKNOWN,
+                                parameters={
+                                    "raw_command": command,
+                                    "clarification": part.text,
+                                },
+                                raw_input=raw_input,
+                                confidence=0.3,
+                            )
 
             # No function call or text, treat as unknown
             logger.warning(f"No function call or text in response for: {command}")
@@ -244,7 +260,7 @@ class LLMCommandAdapter:
             )
 
         except Exception as e:
-            logger.error(f"Error during LLM interpretation: {e}")
+            logger.error(f"Error during LLM interpretation: {e}", exc_info=True)
             return Intent(
                 command_type=CommandType.UNKNOWN,
                 parameters={"raw_command": command, "error": str(e)},
@@ -414,17 +430,25 @@ class LLMCommandAdapter:
             # Create a conversational prompt
             prompt = f"Responda de forma amigável e conversacional em português brasileiro: {command}"
             
-            # Send to Gemini
-            response = self.chat.send_message(prompt)
+            # Send to Gemini using the new client API
+            response = self.client.models.generate_content(
+                model=self.model_name,
+                contents=prompt,
+                config=genai.types.GenerateContentConfig(
+                    system_instruction=self.system_instruction,
+                )
+            )
             
             # Extract text response
-            if response.candidates and response.candidates[0].content.parts:
-                part = response.candidates[0].content.parts[0]
-                if hasattr(part, "text") and part.text:
-                    return part.text.strip()
+            if response.candidates and len(response.candidates) > 0:
+                candidate = response.candidates[0]
+                if candidate.content and candidate.content.parts:
+                    for part in candidate.content.parts:
+                        if hasattr(part, "text") and part.text:
+                            return part.text.strip()
             
             return "Desculpe, não entendi. Pode repetir?"
             
         except Exception as e:
-            logger.error(f"Error generating conversational response: {e}")
+            logger.error(f"Error generating conversational response: {e}", exc_info=True)
             return "Desculpe, ocorreu um erro. Pode tentar novamente?"
