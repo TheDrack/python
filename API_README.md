@@ -391,3 +391,300 @@ Start recording browser automation with Playwright codegen.
 ```
 
 For detailed examples and advanced usage, see [TASK_EXECUTOR.md](TASK_EXECUTOR.md).
+
+## Self-Healing Orchestrator API
+
+The Self-Healing Orchestrator enables Jarvis to manage its own development lifecycle and automatically fix issues.
+
+### ThoughtLog Management
+
+ThoughtLogs store Jarvis's internal reasoning and problem-solving process, separate from user interactions.
+
+#### Create ThoughtLog
+
+Create a new thought log entry to track internal reasoning.
+
+```
+POST /v1/thoughts
+```
+
+**Request Body:**
+
+```json
+{
+  "mission_id": "fix_ci_build_123",
+  "session_id": "session_abc",
+  "status": "internal_monologue",
+  "thought_process": "Analyzing CI build failure. Logs show dependency conflict.",
+  "problem_description": "CI build failed due to version mismatch",
+  "solution_attempt": "Updating requirements.txt to use compatible versions",
+  "success": false,
+  "error_message": "Build still failing after dependency update",
+  "context_data": {
+    "build_log_url": "https://github.com/...",
+    "error_type": "ImportError"
+  }
+}
+```
+
+**Response:**
+
+```json
+{
+  "id": 42,
+  "mission_id": "fix_ci_build_123",
+  "session_id": "session_abc",
+  "status": "internal_monologue",
+  "thought_process": "Analyzing CI build failure...",
+  "problem_description": "CI build failed due to version mismatch",
+  "solution_attempt": "Updating requirements.txt...",
+  "success": false,
+  "error_message": "Build still failing...",
+  "retry_count": 1,
+  "requires_human": false,
+  "escalation_reason": "",
+  "created_at": "2024-01-01T12:00:00Z"
+}
+```
+
+#### Get Mission ThoughtLogs
+
+Retrieve all thought logs for a specific mission.
+
+```
+GET /v1/thoughts/mission/{mission_id}
+```
+
+**Response:**
+
+```json
+{
+  "logs": [
+    {
+      "id": 40,
+      "mission_id": "fix_ci_build_123",
+      "session_id": "session_abc",
+      "status": "internal_monologue",
+      "thought_process": "First attempt: checking logs",
+      "success": false,
+      "retry_count": 0,
+      "created_at": "2024-01-01T11:00:00Z"
+    },
+    {
+      "id": 41,
+      "mission_id": "fix_ci_build_123",
+      "session_id": "session_abc",
+      "thought_process": "Second attempt: updating dependencies",
+      "success": false,
+      "retry_count": 1,
+      "created_at": "2024-01-01T11:30:00Z"
+    }
+  ],
+  "total": 2
+}
+```
+
+#### Get Pending Escalations
+
+Retrieve missions that require human intervention (failed 3+ times).
+
+```
+GET /v1/thoughts/escalations
+```
+
+**Response:**
+
+```json
+{
+  "logs": [
+    {
+      "id": 43,
+      "mission_id": "fix_ci_build_456",
+      "retry_count": 3,
+      "requires_human": true,
+      "escalation_reason": "Auto-correction failed 3 times. Human intervention required.",
+      "created_at": "2024-01-01T13:00:00Z"
+    }
+  ],
+  "total": 1
+}
+```
+
+#### Get Consolidated Log
+
+Generate a consolidated log of all attempts for a mission.
+
+```
+GET /v1/thoughts/mission/{mission_id}/consolidated
+```
+
+**Response:**
+
+```json
+{
+  "mission_id": "fix_ci_build_123",
+  "consolidated_log": "=== Consolidated Log for Mission: fix_ci_build_123 ===\nTotal Attempts: 3\nStatus: ESCALATED TO HUMAN\n\n--- Attempt 1 (2024-01-01T11:00:00Z) ---\nProblem: CI build failed...\nReasoning: Checking logs...\nResult: FAILED\n..."
+}
+```
+
+### GitHub Worker Operations
+
+GitHub Worker provides auto-evolution capabilities through GitHub CLI integration.
+
+#### Execute GitHub Operation
+
+Perform GitHub operations like creating branches, submitting PRs, or checking CI status.
+
+```
+POST /v1/github/worker
+```
+
+**Request Body (Create Branch):**
+
+```json
+{
+  "operation": "create_branch",
+  "branch_name": "feature/auto-fix-ci-123"
+}
+```
+
+**Request Body (Submit PR):**
+
+```json
+{
+  "operation": "submit_pr",
+  "pr_title": "Auto-fix: Resolve CI dependency conflict",
+  "pr_body": "This PR was automatically generated to fix CI build failure #123.\n\nChanges:\n- Updated requirements.txt\n- Fixed version conflicts"
+}
+```
+
+**Request Body (Fetch CI Status):**
+
+```json
+{
+  "operation": "fetch_ci_status",
+  "run_id": 12345
+}
+```
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "message": "CI status: completed, conclusion: failure",
+  "data": {
+    "status": "completed",
+    "conclusion": "failure",
+    "failed": true,
+    "run_id": 12345
+  }
+}
+```
+
+#### Auto-Heal CI Failure
+
+Automatically attempt to fix a CI failure by analyzing logs and applying patches.
+
+```
+POST /v1/github/ci-heal/{run_id}?mission_id={mission_id}
+```
+
+**Response (Success):**
+
+```json
+{
+  "success": true,
+  "message": "Fix applied successfully",
+  "logs_analyzed": 5432
+}
+```
+
+**Response (Escalation Required):**
+
+```json
+{
+  "success": false,
+  "requires_human": true,
+  "message": "Auto-correction failed 3 times. Escalating to Commander.",
+  "consolidated_log": "=== Consolidated Log for Mission... ==="
+}
+```
+
+### Self-Healing Workflow Example
+
+Here's how the self-healing orchestrator works in practice:
+
+1. **CI Failure Detection**: GitHub Actions workflow fails
+2. **Auto-Heal Trigger**: Call `/v1/github/ci-heal/{run_id}`
+3. **Log Analysis**: System downloads and analyzes CI logs
+4. **Internal Reasoning**: Creates ThoughtLog with analysis (INTERNAL_MONOLOGUE)
+5. **Solution Generation**: Generates fix based on error patterns
+6. **Patch Application**: Uses `file_write` to apply code changes
+7. **Retry**: Commits, pushes, and triggers new CI run
+8. **Escalation**: After 3 failures, escalates to human via `/v1/thoughts/escalations`
+
+### Python Example: Self-Healing Integration
+
+```python
+import requests
+
+class JarvisSelfHealing:
+    def __init__(self, api_base_url, token):
+        self.base_url = api_base_url
+        self.headers = {"Authorization": f"Bearer {token}"}
+    
+    def monitor_and_heal_ci(self, run_id, mission_id):
+        """Monitor CI run and auto-heal if it fails"""
+        
+        # Check CI status
+        response = requests.post(
+            f"{self.base_url}/v1/github/worker",
+            json={"operation": "fetch_ci_status", "run_id": run_id},
+            headers=self.headers
+        )
+        
+        status_data = response.json()
+        
+        if status_data["data"]["failed"]:
+            print(f"CI run {run_id} failed. Attempting auto-heal...")
+            
+            # Attempt auto-heal
+            heal_response = requests.post(
+                f"{self.base_url}/v1/github/ci-heal/{run_id}",
+                params={"mission_id": mission_id},
+                headers=self.headers
+            )
+            
+            heal_data = heal_response.json()
+            
+            if heal_data.get("requires_human"):
+                print("❌ Auto-heal failed after 3 attempts")
+                print("📋 Consolidated log:")
+                print(heal_data["consolidated_log"])
+                
+                # Notify commander
+                self.notify_commander(mission_id)
+            else:
+                print("✅ Auto-heal applied successfully")
+        else:
+            print(f"✅ CI run {run_id} passed")
+    
+    def notify_commander(self, mission_id):
+        """Notify human commander about escalation"""
+        # Get consolidated log
+        response = requests.get(
+            f"{self.base_url}/v1/thoughts/mission/{mission_id}/consolidated",
+            headers=self.headers
+        )
+        
+        log_data = response.json()
+        
+        # Send notification (Slack, email, etc.)
+        print(f"🚨 COMMANDER ALERT: Mission {mission_id} requires intervention")
+        print(log_data["consolidated_log"])
+
+# Usage
+jarvis = JarvisSelfHealing("http://localhost:8000", "your-token")
+jarvis.monitor_and_heal_ci(run_id=12345, mission_id="fix_build_123")
+```
