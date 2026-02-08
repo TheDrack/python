@@ -12,6 +12,24 @@ from app.adapters.infrastructure import api_models
 from app.adapters.infrastructure.api_models import (
     Token,
     User,
+    ExecuteRequest,
+    ExecuteResponse,
+    TaskResponse,
+    StatusResponse,
+    HistoryResponse,
+    CommandHistoryItem,
+    InstallPackageRequest,
+    InstallPackageResponse,
+    PackageStatusResponse,
+    PrewarmResponse,
+    DeviceRegistrationRequest,
+    DeviceRegistrationResponse,
+    DeviceResponse,
+    DeviceListResponse,
+    CommandResultRequest,
+    CommandResultResponse,
+    DeviceStatusUpdate,
+    CapabilityModel,
 )
 from app.adapters.infrastructure.auth_adapter import AuthAdapter
 from app.adapters.infrastructure.sqlite_history_adapter import SQLiteHistoryAdapter
