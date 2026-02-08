@@ -22,7 +22,20 @@ class ExecuteRequest(BaseModel):
 
 
 class ExecutionPayload(BaseModel):
-    """Execution payload containing code and execution configuration"""
+    """
+    Execution payload containing code and execution configuration.
+    
+    Used by mission execution endpoints to specify Python code to run
+    in ephemeral environments with specific dependencies and lifecycle settings.
+    
+    Example:
+        {
+            "code": "import requests\\nresponse = requests.get('https://api.example.com')\\nprint(response.json())",
+            "dependencies": ["requests==2.31.0"],
+            "keep_alive": false,
+            "browser_required": false
+        }
+    """
 
     code: str = Field(..., description="Python code to execute", min_length=1)
     dependencies: List[str] = Field(default_factory=list, description="List of Python package dependencies")

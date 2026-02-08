@@ -252,7 +252,7 @@ class ThoughtLogService:
                 try:
                     context = json.loads(thought.context_data)
                     log_lines.append(f"Context: {json.dumps(context, indent=2)}")
-                except:
+                except json.JSONDecodeError:
                     log_lines.append(f"Context: {thought.context_data}")
             
             log_lines.append("")

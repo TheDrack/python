@@ -41,7 +41,7 @@ class ThoughtLog(SQLModel, table=True):
     
     # Metadata
     context_data: str = Field(default="{}", nullable=False)  # JSON string for additional context (logs, stack traces, etc.)
-    created_at: datetime = Field(default_factory=datetime.now, nullable=False)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(), nullable=False)
     
     # Auto-healing tracking
     requires_human: bool = Field(default=False, nullable=False)  # Escalated to human after 3 failures
