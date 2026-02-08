@@ -266,8 +266,8 @@ class TaskRunner:
         except subprocess.TimeoutExpired as e:
             logger.error(f"Script execution timeout after {timeout}s")
             return {
-                "stdout": e.stdout.decode() if e.stdout else "",
-                "stderr": e.stderr.decode() if e.stderr else "",
+                "stdout": e.stdout if e.stdout else "",
+                "stderr": e.stderr if e.stderr else "",
                 "exit_code": 124,  # Standard timeout exit code
                 "error": f"Execution timeout after {timeout} seconds",
             }

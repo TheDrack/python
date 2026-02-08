@@ -9,10 +9,6 @@ from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from fastapi.openapi.docs import get_swagger_ui_html
 
 from app.adapters.infrastructure import api_models
-from app.adapters.infrastructure.api_models import (
-    Token,
-    User,
-)
 from app.adapters.infrastructure.auth_adapter import AuthAdapter
 from app.adapters.infrastructure.sqlite_history_adapter import SQLiteHistoryAdapter
 from app.application.services import AssistantService, ExtensionManager
@@ -28,7 +24,7 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 auth_adapter = AuthAdapter()
 
 
-async def get_current_user(token: str = Depends(oauth2_scheme)) -> User:
+async def get_current_user(token: str = Depends(oauth2_scheme)) -> api_models.User:
     """
     Dependency to get the current authenticated user from JWT token
 
@@ -57,7 +53,7 @@ async def get_current_user(token: str = Depends(oauth2_scheme)) -> User:
     
     # In production, fetch user from database
     # For now, we'll construct user from token data
-    user = User(
+    user = api_models.User(
         username=username,
         email=payload.get("email"),
         full_name=payload.get("full_name"),
@@ -107,8 +103,8 @@ def create_api_server(assistant_service: AssistantService, extension_manager: Ex
     # Initialize device service for distributed orchestration
     device_service = DeviceService(engine=db_adapter.engine)
 
-    @app.post("/token", response_model=Token)
-    async def login(form_data: OAuth2PasswordRequestForm = Depends()) -> Token:
+    @app.post("/token", response_model=api_models.Token)
+    async def login(form_data: OAuth2PasswordRequestForm = Depends()) -> api_models.Token:
         """
         OAuth2 compatible token login endpoint
 
@@ -137,12 +133,12 @@ def create_api_server(assistant_service: AssistantService, extension_manager: Ex
             }
         )
         
-        return Token(access_token=access_token, token_type="bearer")
+        return api_models.Token(access_token=access_token, token_type="bearer")
 
     @app.post("/v1/execute", response_model=ExecuteResponse)
     async def execute_command(
         request: ExecuteRequest,
-        current_user: User = Depends(get_current_user),
+        current_user: api_models.User = Depends(get_current_user),
     ) -> ExecuteResponse:
         """
         Execute a command and return the result (Protected endpoint)
@@ -181,7 +177,7 @@ def create_api_server(assistant_service: AssistantService, extension_manager: Ex
     @app.post("/v1/task", response_model=TaskResponse)
     async def create_task(
         request: ExecuteRequest,
-        current_user: User = Depends(get_current_user),
+        current_user: api_models.User = Depends(get_current_user),
     ) -> TaskResponse:
         """
         Create a task for distributed execution (Protected endpoint)
@@ -294,7 +290,7 @@ def create_api_server(assistant_service: AssistantService, extension_manager: Ex
     async def install_package(
         request: InstallPackageRequest,
         background_tasks: BackgroundTasks,
-        current_user: User = Depends(get_current_user),
+        current_user: api_models.User = Depends(get_current_user),
     ) -> InstallPackageResponse:
         """
         Install a package using uv (Protected endpoint)
@@ -339,7 +335,7 @@ def create_api_server(assistant_service: AssistantService, extension_manager: Ex
     @app.get("/v1/extensions/status/{package_name}", response_model=PackageStatusResponse)
     async def get_package_status(
         package_name: str,
-        current_user: User = Depends(get_current_user),
+        current_user: api_models.User = Depends(get_current_user),
     ) -> PackageStatusResponse:
         """
         Check if a package is installed (Protected endpoint)
@@ -366,7 +362,7 @@ def create_api_server(assistant_service: AssistantService, extension_manager: Ex
     @app.post("/v1/extensions/prewarm", response_model=PrewarmResponse)
     async def prewarm_libraries(
         background_tasks: BackgroundTasks,
-        current_user: User = Depends(get_current_user),
+        current_user: api_models.User = Depends(get_current_user),
     ) -> PrewarmResponse:
         """
         Pre-warm recommended libraries for data tasks (Protected endpoint)
@@ -420,7 +416,7 @@ def create_api_server(assistant_service: AssistantService, extension_manager: Ex
     @app.post("/v1/devices/register", response_model=DeviceRegistrationResponse)
     async def register_device(
         request: DeviceRegistrationRequest,
-        current_user: User = Depends(get_current_user),
+        current_user: api_models.User = Depends(get_current_user),
     ) -> DeviceRegistrationResponse:
         """
         Register a new device or update an existing one (Protected endpoint)
@@ -478,7 +474,7 @@ def create_api_server(assistant_service: AssistantService, extension_manager: Ex
     @app.get("/v1/devices", response_model=DeviceListResponse)
     async def list_devices(
         status: str = None,
-        current_user: User = Depends(get_current_user),
+        current_user: api_models.User = Depends(get_current_user),
     ) -> DeviceListResponse:
         """
         List all registered devices (Protected endpoint)
@@ -526,7 +522,7 @@ def create_api_server(assistant_service: AssistantService, extension_manager: Ex
     @app.get("/v1/devices/{device_id}", response_model=DeviceResponse)
     async def get_device(
         device_id: int,
-        current_user: User = Depends(get_current_user),
+        current_user: api_models.User = Depends(get_current_user),
     ) -> DeviceResponse:
         """
         Get details of a specific device (Protected endpoint)
@@ -577,7 +573,7 @@ def create_api_server(assistant_service: AssistantService, extension_manager: Ex
     async def device_heartbeat(
         device_id: int,
         status_update: DeviceStatusUpdate,
-        current_user: User = Depends(get_current_user),
+        current_user: api_models.User = Depends(get_current_user),
     ) -> DeviceResponse:
         """
         Update device status and last_seen timestamp (Protected endpoint)
@@ -642,7 +638,7 @@ def create_api_server(assistant_service: AssistantService, extension_manager: Ex
     async def submit_command_result(
         command_id: int,
         result: CommandResultRequest,
-        current_user: User = Depends(get_current_user),
+        current_user: api_models.User = Depends(get_current_user),
     ) -> CommandResultResponse:
         """
         Submit command execution result from a device (Protected endpoint)
@@ -781,7 +777,7 @@ def create_api_server(assistant_service: AssistantService, extension_manager: Ex
     async def execute_mission(
         request: api_models.MissionRequest,
         background_tasks: BackgroundTasks,
-        current_user: User = Depends(get_current_user),
+        current_user: api_models.User = Depends(get_current_user),
     ) -> api_models.MissionResponse:
         """
         Execute a serverless task mission on the Worker (Protected endpoint)
@@ -839,7 +835,7 @@ def create_api_server(assistant_service: AssistantService, extension_manager: Ex
     @app.post("/v1/browser/control", response_model=api_models.BrowserControlResponse)
     async def control_browser(
         request: api_models.BrowserControlRequest,
-        current_user: User = Depends(get_current_user),
+        current_user: api_models.User = Depends(get_current_user),
     ) -> api_models.BrowserControlResponse:
         """
         Control the persistent browser instance (Protected endpoint)
@@ -861,7 +857,9 @@ def create_api_server(assistant_service: AssistantService, extension_manager: Ex
             
             logger.info(f"User '{current_user.username}' performing browser operation: {request.operation}")
             
-            # Initialize browser manager (singleton pattern would be better in production)
+            # TODO: Implement singleton pattern or FastAPI dependency injection for browser manager
+            # Currently creates new instance per request which is inefficient for state management
+            # For production, use: app.state.browser_manager or a proper DI container
             browser_manager = PersistentBrowserManager()
             
             if request.operation == "start":
@@ -916,7 +914,7 @@ def create_api_server(assistant_service: AssistantService, extension_manager: Ex
     async def record_automation(
         request: api_models.RecordAutomationRequest,
         background_tasks: BackgroundTasks,
-        current_user: User = Depends(get_current_user),
+        current_user: api_models.User = Depends(get_current_user),
     ) -> api_models.RecordAutomationResponse:
         """
         Start recording browser automation with Playwright codegen (Protected endpoint)
