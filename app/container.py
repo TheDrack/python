@@ -81,6 +81,9 @@ class Container:
         self.gemini_model = gemini_model or os.getenv("GEMINI_MODEL", "gemini-1.5-flash")
         self.db_path = db_path
         
+        # Debug logging for gemini_api_key
+        print(f"DEBUG: Valor de self.gemini_api_key: {self.gemini_api_key[:5]}***" if self.gemini_api_key else "DEBUG: self.gemini_api_key está VAZIO")
+        
         # Log API key detection during boot
         if self.gemini_api_key:
             logger.info("✓ Chave de API do Gemini detectada pelo sistema de configurações")
@@ -164,10 +167,10 @@ class Container:
     def command_interpreter(self) -> CommandInterpreter:
         """Get or create command interpreter"""
         if self._command_interpreter is None:
-            if self.use_llm:
-                # Use LLM-based adapter
-                logger.info("Using LLMCommandAdapter for command interpretation")
-                if self._llm_command_adapter is None:
+            # Always try to create LLMCommandAdapter first if we have an API key
+            if self.gemini_api_key:
+                logger.info("Tentando criar LLMCommandAdapter para interpretação de comandos")
+                try:
                     self._llm_command_adapter = LLMCommandAdapter(
                         api_key=self.gemini_api_key,
                         model_name=self.gemini_model,
@@ -175,11 +178,16 @@ class Container:
                         wake_word=self.wake_word,
                         history_provider=self.history_provider,
                     )
-                return self._llm_command_adapter
-            else:
-                # Use rule-based interpreter
-                logger.info("Using rule-based CommandInterpreter")
-                self._command_interpreter = CommandInterpreter(wake_word=self.wake_word)
+                    logger.info("✓ LLMCommandAdapter criado com sucesso")
+                    return self._llm_command_adapter
+                except Exception as e:
+                    logger.error(f"✗ ERRO ao criar LLMCommandAdapter: {type(e).__name__}: {str(e)}")
+                    print(f"ERRO DETALHADO ao criar GeminiAdapter: {type(e).__name__}: {str(e)}")
+                    # Fall through to create rule-based interpreter
+            
+            # Use rule-based interpreter as fallback
+            logger.info("Using rule-based CommandInterpreter")
+            self._command_interpreter = CommandInterpreter(wake_word=self.wake_word)
         return self._command_interpreter
 
     @property

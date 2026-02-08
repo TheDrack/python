@@ -57,6 +57,8 @@ class Settings(BaseSettings):
         env_file=".env",
         env_file_encoding="utf-8",
         case_sensitive=False,
+        # System environment variables automatically override .env file values
+        # This is the default behavior in pydantic-settings (env vars have higher priority)
     )
 
     @field_validator('gemini_api_key', mode='before')
