@@ -48,7 +48,11 @@ def main() -> None:
 
     # Create container with edge adapters
     # Note: use_llm can be controlled via environment variable
-    use_llm = os.getenv("USE_LLM", "false").lower() in ("true", "1", "yes")
+    # If USE_LLM is not set but API key is available, it will be auto-enabled
+    use_llm = os.getenv("USE_LLM", "").lower() in ("true", "1", "yes")
+    if not use_llm and settings.gemini_api_key:
+        logger.info("USE_LLM not set but API key available - LLM will be auto-enabled")
+    
     container = create_edge_container(
         wake_word=settings.wake_word,
         language=settings.language,
