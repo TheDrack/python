@@ -16,6 +16,13 @@ jobs:
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 
+
+      - name: Configure Git User
+        run: |
+          git config --global user.name "Jarvis-Auto-Fixer"
+          git config --global user.email "jarvis@bot.com"
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -24,18 +31,18 @@ jobs:
 
       - name: Install Dependencies
         run: |
-          pip install httpx openai  # Necessário para falar com o cérebro da IA
+          pip install httpx openai 
 
       - name: Run Auto-Fix Script
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }} # Ou GEMINI_API_KEY
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }} 
           ISSUE_BODY: ${{ github.event.issue.body }}
           ISSUE_NUMBER: ${{ github.event.issue.number }}
         run: python scripts/auto_fixer_logic.py
 
       - name: Report Failure to Jarvis
-        if: failure() # Só executa se qualquer passo anterior falhar
+        if: failure() 
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
