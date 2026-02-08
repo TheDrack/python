@@ -57,6 +57,7 @@ class Settings(BaseSettings):
         env_file=".env",
         env_file_encoding="utf-8",
         case_sensitive=False,
+        extra='allow',
         # System environment variables automatically override .env file values
         # This is the default behavior in pydantic-settings (env vars have higher priority)
     )

@@ -15,6 +15,10 @@ from app.domain.services import CommandInterpreter, IntentProcessor
 
 logger = logging.getLogger(__name__)
 
+# Direct OS environment variable reading for Gemini API Key
+render_key = os.environ.get('GOOGLE_API_KEY') or os.environ.get('GEMINI_API_KEY')
+print(f"DEBUG SISTEMA: Chave encontrada no OS? {'Sim' if render_key else 'Não'}")
+
 
 def _is_headless_environment() -> bool:
     """
@@ -78,6 +82,8 @@ class Container:
         self.wake_word = wake_word
         self.language = language
         self.gemini_api_key = gemini_api_key or os.getenv("GEMINI_API_KEY")
+        # Force the value from direct OS reading
+        self.gemini_api_key = self.gemini_api_key or render_key
         self.gemini_model = gemini_model or os.getenv("GEMINI_MODEL", "gemini-1.5-flash")
         self.db_path = db_path
         
@@ -219,21 +225,23 @@ class Container:
         if self._assistant_service is None:
             logger.info("Creating AssistantService with injected dependencies")
             
-            # Determine if we have a gemini_adapter
+            # Determine if we have a gemini_adapter - force creation if we have API key
             gemini_adapter = None
-            if self.use_llm and self._llm_command_adapter is not None:
-                gemini_adapter = self._llm_command_adapter
-                logger.info("✓ Adaptador de IA Gemini será injetado no AssistantService")
-            elif self.use_llm:
-                # Trigger creation of LLM adapter by accessing command_interpreter
-                _ = self.command_interpreter
-                gemini_adapter = self._llm_command_adapter
-                if gemini_adapter:
-                    logger.info("✓ Adaptador de IA Gemini criado e será injetado no AssistantService")
+            if self.gemini_api_key:
+                # If we have an API key, force creation of LLM adapter
+                if self._llm_command_adapter is not None:
+                    gemini_adapter = self._llm_command_adapter
+                    logger.info("✓ Adaptador de IA Gemini será injetado no AssistantService")
                 else:
-                    logger.error("✗ Falha ao criar adaptador de IA Gemini")
+                    # Trigger creation of LLM adapter by accessing command_interpreter
+                    _ = self.command_interpreter
+                    gemini_adapter = self._llm_command_adapter
+                    if gemini_adapter:
+                        logger.info("✓ Adaptador de IA Gemini criado e será injetado no AssistantService")
+                    else:
+                        logger.error("✗ Falha ao criar adaptador de IA Gemini")
             else:
-                logger.warning("⚠ AssistantService será criado SEM adaptador de IA (use_llm=False ou API key não disponível)")
+                logger.warning("⚠ AssistantService será criado SEM adaptador de IA (API key não disponível)")
             
             self._assistant_service = AssistantService(
                 voice_provider=self.voice_provider,
