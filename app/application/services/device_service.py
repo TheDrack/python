@@ -88,7 +88,7 @@ class DeviceService:
                         device_id=device_id,
                         name=cap_data.get("name", ""),
                         description=cap_data.get("description", ""),
-                        metadata=json.dumps(cap_data.get("metadata", {})),
+                        meta_data=json.dumps(cap_data.get("metadata", {})),
                     )
                     session.add(capability)
 
