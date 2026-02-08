@@ -3,7 +3,7 @@
 
 Note: This adapter uses the new google-genai library.
 The library uses the latest Google Generative AI API.
-Default model is 'gemini-2.0-flash' for improved performance.
+Default model is 'gemini-flash-latest' for improved performance.
 """
 
 import asyncio
@@ -30,7 +30,7 @@ class LLMCommandAdapter:
     def __init__(
         self,
         api_key: Optional[str] = None,
-        model_name: str = "gemini-2.0-flash",
+        model_name: str = "gemini-flash-latest",
         voice_provider: Optional[VoiceProvider] = None,
         wake_word: str = "xerife",
         history_provider: Optional["HistoryProvider"] = None,

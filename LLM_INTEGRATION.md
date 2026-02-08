@@ -62,13 +62,13 @@ Obtain a Gemini API key from Google AI Studio, then configure via environment:
 
 ```bash
 export GOOGLE_API_KEY="your-actual-key-here"
-export GEMINI_MODEL="gemini-2.0-flash"  # optional, this is default
+export GEMINI_MODEL="gemini-flash-latest"  # optional, this is default
 ```
 
 Or add to `.env` file (recommended for local development):
 ```env
 GOOGLE_API_KEY=your-actual-key-here
-GEMINI_MODEL=gemini-2.0-flash
+GEMINI_MODEL=gemini-flash-latest
 ```
 
 **Note:** The adapter supports both `GOOGLE_API_KEY` and `GEMINI_API_KEY` environment variables for backward compatibility. `GOOGLE_API_KEY` takes precedence if both are set.
@@ -242,8 +242,8 @@ Install SDK: `pip install google-genai`
 ### Slow responses
 - Check network connectivity
 - Verify API quota hasn't been exceeded
-- Consider using gemini-2.0-flash for improved performance
-- gemini-1.5-flash is also available as a more stable alternative
+- The default gemini-flash-latest provides fast performance
+- Alternative models: gemini-2.0-flash or gemini-1.5-flash for different trade-offs
 
 ### Incorrect function calls
 - Review AgentService system instruction

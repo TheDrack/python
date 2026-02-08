@@ -49,7 +49,7 @@ class TestLLMCommandAdapter:
 
         assert adapter.api_key == "test_api_key"
         assert adapter.wake_word == "xerife"
-        assert adapter.model_name == "gemini-2.0-flash"
+        assert adapter.model_name == "gemini-flash-latest"
         mock_genai_module.Client.assert_called_once_with(api_key="test_api_key")
 
     def test_initialization_from_env(self, mock_genai):
