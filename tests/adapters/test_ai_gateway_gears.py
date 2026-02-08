@@ -104,7 +104,7 @@ class TestGroqGearsSystem:
         assert gateway.current_groq_gear == GroqGear.HIGH_GEAR
         assert gateway._get_current_groq_model() == "llama-3.3-70b-versatile"
 
-    @pytest.mark.asyncio
+    @pytest.mark.anyio
     async def test_high_gear_used_by_default(self, gateway_with_gears):
         """Test that High Gear is used by default for completions"""
         gateway = gateway_with_gears
@@ -116,7 +116,7 @@ class TestGroqGearsSystem:
         assert result["model"] == "llama-3.3-70b-versatile"
         assert result["gear"] == GroqGear.HIGH_GEAR.value
 
-    @pytest.mark.asyncio
+    @pytest.mark.anyio
     async def test_low_gear_used_after_shift(self, gateway_with_gears):
         """Test that Low Gear is used after shifting"""
         gateway = gateway_with_gears
@@ -131,7 +131,7 @@ class TestGroqGearsSystem:
         assert result["model"] == "llama-3.1-8b-instant"
         assert result["gear"] == GroqGear.HIGH_GEAR.value  # Shifts back after success
 
-    @pytest.mark.asyncio
+    @pytest.mark.anyio
     async def test_auto_shift_back_to_high_gear_after_success(self, gateway_with_gears):
         """Test that gateway automatically shifts back to High Gear after successful Low Gear completion"""
         gateway = gateway_with_gears
@@ -147,7 +147,7 @@ class TestGroqGearsSystem:
         # Should have shifted back to High Gear
         assert gateway.current_groq_gear == GroqGear.HIGH_GEAR
 
-    @pytest.mark.asyncio
+    @pytest.mark.anyio
     async def test_rate_limit_triggers_low_gear(self, gateway_with_gears):
         """Test that rate limit in High Gear triggers Low Gear"""
         gateway = gateway_with_gears
@@ -180,7 +180,7 @@ class TestGroqGearsSystem:
         # Should have shifted back to High Gear after success
         assert gateway.current_groq_gear == GroqGear.HIGH_GEAR
 
-    @pytest.mark.asyncio
+    @pytest.mark.anyio
     async def test_rate_limit_in_both_gears_triggers_gemini(self, gateway_with_gears):
         """Test that rate limit in both gears triggers Gemini (Cannon Shot)"""
         gateway = gateway_with_gears
@@ -234,7 +234,7 @@ class TestAutoRepairSystem:
         )
         assert gateway.enable_auto_repair is False
 
-    @pytest.mark.asyncio
+    @pytest.mark.anyio
     async def test_auto_repair_not_triggered_for_non_critical_errors(self, gateway_with_auto_repair):
         """Test that auto-repair is not triggered for non-critical errors"""
         gateway = gateway_with_auto_repair
@@ -254,7 +254,7 @@ class TestAutoRepairSystem:
         # Verify dispatch was not called
         gateway.github_adapter.dispatch_auto_fix.assert_not_called()
 
-    @pytest.mark.asyncio
+    @pytest.mark.anyio
     async def test_auto_repair_triggered_for_import_error(self, gateway_with_auto_repair):
         """Test that auto-repair is triggered for import errors"""
         gateway = gateway_with_auto_repair
@@ -274,7 +274,7 @@ class TestAutoRepairSystem:
         # In current implementation, we just log the error
         # Real implementation would call dispatch_auto_fix
 
-    @pytest.mark.asyncio
+    @pytest.mark.anyio
     async def test_auto_repair_disabled_when_no_github_adapter(self):
         """Test that auto-repair gracefully handles missing GitHub adapter"""
         gateway = AIGateway(
@@ -294,7 +294,7 @@ class TestAutoRepairSystem:
             file_path="test_file.py"
         )
 
-    @pytest.mark.asyncio
+    @pytest.mark.anyio
     async def test_generate_completion_captures_traceback_on_error(self):
         """Test that generate_completion captures full traceback on errors"""
         mock_github_adapter = Mock()
