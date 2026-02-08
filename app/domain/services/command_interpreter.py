@@ -29,6 +29,9 @@ class CommandInterpreter:
             "abrir": CommandType.OPEN_URL,
             "clicar em": CommandType.SEARCH_ON_PAGE,
             "procurar": CommandType.SEARCH_ON_PAGE,
+            "report": CommandType.REPORT_ISSUE,
+            "reportar": CommandType.REPORT_ISSUE,
+            "issue": CommandType.REPORT_ISSUE,
         }
 
     def interpret(self, raw_input: str) -> Intent:
@@ -102,6 +105,10 @@ class CommandInterpreter:
 
         elif command_type == CommandType.SEARCH_ON_PAGE:
             return {"search_text": param}
+
+        elif command_type == CommandType.REPORT_ISSUE:
+            # Extract context from the command
+            return {"issue_description": param, "context": full_command}
 
         return {"param": param}
 
