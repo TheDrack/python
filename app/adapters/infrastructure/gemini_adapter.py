@@ -1,5 +1,10 @@
 # -*- coding: utf-8 -*-
-"""Gemini LLM Adapter - Google Generative AI integration for command interpretation"""
+"""Gemini LLM Adapter - Google Generative AI integration for command interpretation
+
+Note: This adapter uses google.generativeai library (version 0.3.0+).
+The library internally uses the Google AI Generative Language API.
+Default model is 'gemini-pro' for stability and wide availability.
+"""
 
 import asyncio
 import logging
