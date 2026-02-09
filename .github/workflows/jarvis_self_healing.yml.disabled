@@ -1,4 +1,25 @@
-name: Jarvis Self-Healing Auto-Code 🤖
+# ============================================================================
+# WORKFLOW DESABILITADO - NÃO USAR
+# ============================================================================
+# 
+# Este workflow foi desabilitado para evitar redundâncias e loops de falhas.
+# 
+# MOTIVO: Substituído pelo Self-Healing State Machine (jarvis_code_fixer.yml)
+# 
+# O novo sistema usa uma máquina de estados determinística que:
+# - Identifica tipos de erro automaticamente
+# - Aplica até 3 tentativas de correção
+# - Escala para revisão humana quando necessário
+# - Evita loops infinitos de falhas
+# 
+# Este arquivo foi mantido como .disabled para referência histórica.
+# Para usar o sistema de auto-correção, utilize o workflow:
+# .github/workflows/jarvis_code_fixer.yml
+# 
+# Data de desabilitação: 2026-02-09
+# ============================================================================
+
+name: Jarvis Self-Healing Auto-Code 🤖 [DISABLED]
 
 # Triggered by Jarvis API via repository_dispatch
 # Receives intent (create/fix) and instruction from Jarvis
