@@ -352,3 +352,120 @@ def test_auto_heal_log_download_failure(github_worker, mock_subprocess):
     
     assert result["success"] is False
     assert "Failed to download CI logs" in result["message"]
+
+
+def test_trigger_repository_dispatch_success(github_worker, mock_subprocess, monkeypatch):
+    """Test triggering repository_dispatch successfully"""
+    # Mock environment variable
+    monkeypatch.setenv("GITHUB_PAT", "test_token_123")
+    
+    # Mock subprocess calls
+    mock_subprocess.side_effect = [
+        # gh repo view --json nameWithOwner
+        Mock(
+            returncode=0,
+            stdout='{"nameWithOwner": "user/repo"}',
+            stderr=""
+        ),
+        # curl API call
+        Mock(returncode=0, stdout="", stderr=""),
+    ]
+    
+    client_payload = {
+        "intent": "create",
+        "instruction": "Add a new feature",
+        "context": "In the main.py file",
+    }
+    
+    result = github_worker.trigger_repository_dispatch(
+        event_type="jarvis_order",
+        client_payload=client_payload,
+    )
+    
+    assert result["success"] is True
+    assert "jarvis_order" in result["message"]
+    assert result["workflow_url"] == "https://github.com/user/repo/actions"
+    assert result["event_type"] == "jarvis_order"
+    assert result["payload"] == client_payload
+
+
+def test_trigger_repository_dispatch_no_token(github_worker, mock_subprocess, monkeypatch):
+    """Test triggering repository_dispatch without GITHUB_PAT"""
+    # Remove token from environment
+    monkeypatch.delenv("GITHUB_PAT", raising=False)
+    
+    result = github_worker.trigger_repository_dispatch(
+        event_type="jarvis_order",
+        client_payload={"test": "data"},
+    )
+    
+    assert result["success"] is False
+    assert "GITHUB_PAT" in result["message"]
+
+
+def test_trigger_repository_dispatch_repo_info_failure(github_worker, mock_subprocess, monkeypatch):
+    """Test triggering repository_dispatch when getting repo info fails"""
+    monkeypatch.setenv("GITHUB_PAT", "test_token_123")
+    
+    mock_subprocess.return_value = Mock(
+        returncode=1,
+        stdout="",
+        stderr="Not a git repository"
+    )
+    
+    result = github_worker.trigger_repository_dispatch(
+        event_type="jarvis_order",
+        client_payload={"test": "data"},
+    )
+    
+    assert result["success"] is False
+    assert "Failed to get repository info" in result["message"]
+
+
+def test_trigger_repository_dispatch_api_failure(github_worker, mock_subprocess, monkeypatch):
+    """Test triggering repository_dispatch when API call fails"""
+    monkeypatch.setenv("GITHUB_PAT", "test_token_123")
+    
+    mock_subprocess.side_effect = [
+        # gh repo view
+        Mock(
+            returncode=0,
+            stdout='{"nameWithOwner": "user/repo"}',
+            stderr=""
+        ),
+        # curl API call fails
+        Mock(returncode=1, stdout="", stderr="API error: Unauthorized"),
+    ]
+    
+    result = github_worker.trigger_repository_dispatch(
+        event_type="jarvis_order",
+        client_payload={"test": "data"},
+    )
+    
+    assert result["success"] is False
+    assert "Failed to trigger event" in result["message"]
+
+
+def test_trigger_repository_dispatch_with_custom_token(github_worker, mock_subprocess):
+    """Test triggering repository_dispatch with custom token"""
+    # Mock subprocess calls
+    mock_subprocess.side_effect = [
+        Mock(
+            returncode=0,
+            stdout='{"nameWithOwner": "user/repo"}',
+            stderr=""
+        ),
+        Mock(returncode=0, stdout="", stderr=""),
+    ]
+    
+    result = github_worker.trigger_repository_dispatch(
+        event_type="jarvis_order",
+        client_payload={"test": "data"},
+        github_token="custom_token_456",
+    )
+    
+    assert result["success"] is True
+    
+    # Verify curl was called with custom token
+    curl_call = mock_subprocess.call_args_list[1]
+    assert "custom_token_456" in str(curl_call)

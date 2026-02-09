@@ -393,3 +393,19 @@ class GitHubWorkerResponse(BaseModel):
     success: bool = Field(..., description="Whether operation succeeded")
     message: str = Field(..., description="Result message")
     data: Optional[Dict[str, Any]] = Field(None, description="Operation-specific data")
+
+
+class JarvisDispatchRequest(BaseModel):
+    """Request model for Jarvis repository dispatch"""
+
+    intent: str = Field(..., description="User intent: 'create' or 'fix'", pattern="^(create|fix)$")
+    instruction: str = Field(..., description="Detailed instruction for the code change", min_length=1)
+    context: Optional[str] = Field(None, description="Additional context or file paths")
+
+
+class JarvisDispatchResponse(BaseModel):
+    """Response model for Jarvis repository dispatch"""
+
+    success: bool = Field(..., description="Whether dispatch was triggered")
+    message: str = Field(..., description="Result message")
+    workflow_url: Optional[str] = Field(None, description="URL to monitor workflow execution")
