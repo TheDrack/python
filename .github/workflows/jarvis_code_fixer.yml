@@ -1,5 +1,10 @@
 name: Jarvis Self-Healing Workshop 🔧
 
+# DIRECT GITHUB ISSUES → AI INTEGRATION (Bypasses Jarvis Identifier)
+# When issues are created with 'jarvis-auto-report' label, they are processed
+# directly by the AI without going through Jarvis intent identification.
+# User requests through Jarvis API still require intent identification.
+
 on:
   issues:
     types: [opened]
@@ -39,7 +44,6 @@ jobs:
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }} 
           ISSUE_BODY: ${{ github.event.issue.body }}
           ISSUE_NUMBER: ${{ github.event.issue.number }}
-          AUTO_FIXER_SOURCE: github_actions
         run: python scripts/auto_fixer_logic.py
 
       - name: Report Failure to Jarvis

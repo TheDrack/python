@@ -1,9 +1,19 @@
 # -*- coding: utf-8 -*-
 """Pydantic models for API request/response validation"""
 
+from enum import Enum
 from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel, Field
+
+
+class RequestSource(str, Enum):
+    """Enumeration of request sources"""
+    
+    GITHUB_ACTIONS = "github_actions"  # Request from GitHub Actions workflow
+    GITHUB_ISSUE = "github_issue"      # Request from GitHub Issue
+    USER_API = "user_api"              # User request through API
+    JARVIS_INTERNAL = "jarvis_internal" # Internal Jarvis request
 
 
 class RequestMetadata(BaseModel):
@@ -12,6 +22,10 @@ class RequestMetadata(BaseModel):
     source_device_id: Optional[int] = Field(None, description="ID of the device that sent the command")
     network_id: Optional[str] = Field(None, description="Network identifier (SSID or public IP)")
     network_type: Optional[str] = Field(None, description="Network type (wifi, 4g, 5g, ethernet)")
+    request_source: Optional[RequestSource] = Field(
+        RequestSource.USER_API,
+        description="Source of the request (github_actions, github_issue, user_api, jarvis_internal)"
+    )
 
 
 class ExecuteRequest(BaseModel):

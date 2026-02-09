@@ -1,10 +1,15 @@
 name: Auto-Heal CI Failures
 
 # This workflow automatically attempts to fix CI/CD failures using AI
+# DIRECT GITHUB ACTIONS → AI INTEGRATION (Bypasses Jarvis Identifier)
+# 
 # When a CI workflow fails, this workflow:
 # 1. Downloads the failure logs
-# 2. Uses Groq/Gemini AI to analyze and generate fixes
-# 3. Creates a Pull Request with the proposed fix
+# 2. Sends logs directly to Groq/Gemini AI (no Jarvis identifier needed)
+# 3. Uses AI to analyze and generate fixes
+# 4. Creates a Pull Request with the proposed fix
+#
+# Note: User requests through Jarvis API still require intent identification
 
 on:
   workflow_run:
@@ -74,9 +79,6 @@ jobs:
           
           # GitHub token for creating PR
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          
-          # Source: GitHub Actions (skip Jarvis identifiers)
-          AUTO_FIXER_SOURCE: github_actions
         run: |
           echo "Running auto-fixer..."
           python scripts/auto_fixer_logic.py
