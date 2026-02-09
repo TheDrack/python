@@ -53,5 +53,24 @@ jobs:
         run: |
           gh issue create \
             --title "🔴 Falha Crítica no Auto-Fixer: Workflow Failed" \
-            --body "O workflow de auto-reparo falhou ao processar a Issue #${{ github.event.issue.number }}. Verifique os logs do GitHub Actions." \
+            --body "O workflow de auto-reparo falhou ao processar a Issue #${{ github.event.issue.number }}. 
+
+## Logs do Workflow
+Verifique os logs em: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
+
+## Possíveis Causas
+1. **Arquivo não identificado**: A issue pode não mencionar o arquivo específico a ser modificado.
+   - Solução: Inclua o caminho do arquivo na descrição (ex: \`scripts/auto_fixer_logic.py\`)
+2. **Falta de contexto**: A descrição pode ser muito vaga.
+   - Solução: Seja específico sobre o que precisa ser alterado
+3. **Problema de API**: As chaves de API podem estar expiradas ou os serviços indisponíveis.
+
+## Como Ajudar o Auto-Reparo
+Para que o auto-reparo funcione melhor, inclua na issue:
+- ✅ O caminho do arquivo a ser modificado
+- ✅ Palavras-chave relacionadas (ex: 'self-healing', 'github actions', 'api')
+- ✅ Uma descrição clara e específica do problema ou melhoria
+
+---
+*Issue criada automaticamente pelo sistema de auto-reparo*" \
             --label "bug,jarvis-auto-report"
