@@ -14,6 +14,8 @@ from app.adapters.infrastructure.api_models import (
     User,
     ExecuteRequest,
     ExecuteResponse,
+    MessageRequest,
+    MessageResponse,
     TaskResponse,
     StatusResponse,
     HistoryResponse,
@@ -201,6 +203,50 @@ def create_api_server(assistant_service: AssistantService, extension_manager: Ex
         except Exception as e:
             logger.error(f"Error executing command: {e}", exc_info=True)
             raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
+
+    @app.post("/v1/message", response_model=MessageResponse)
+    async def send_message(
+        request: MessageRequest,
+        current_user: User = Depends(get_current_user),
+    ) -> MessageResponse:
+        """
+        Send a simple message to the assistant (Protected endpoint)
+        
+        This is a simplified endpoint that accepts natural language messages
+        without requiring users to format complex JSON payloads or specify
+        command structures. Perfect for chat-like interactions.
+
+        Args:
+            request: Message request with text
+            current_user: Current authenticated user
+
+        Returns:
+            Message response with the assistant's reply
+            
+        Example:
+            POST /v1/message
+            {
+                "text": "What's the weather like today?"
+            }
+        """
+        try:
+            logger.info(f"User '{current_user.username}' sending message via API: {request.text}")
+            
+            # Process the message using the assistant service
+            response = await assistant_service.async_process_command(request.text)
+
+            return MessageResponse(
+                success=response.success,
+                response=response.message,
+                error=response.error,
+            )
+        except Exception as e:
+            logger.error(f"Error processing message: {e}", exc_info=True)
+            return MessageResponse(
+                success=False,
+                response="",
+                error=f"Internal server error: {str(e)}"
+            )
 
     @app.post("/v1/task", response_model=TaskResponse)
     async def create_task(
