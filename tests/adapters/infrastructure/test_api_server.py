@@ -377,3 +377,193 @@ class TestAPIServer:
         assert response.status_code == 500
         assert "Internal server error" in response.json()["detail"]
 
+
+class TestJarvisDispatchEndpoint:
+    """Test cases for Jarvis repository_dispatch endpoint"""
+
+    @pytest.fixture
+    def mock_assistant_service(self):
+        """Create a mocked AssistantService"""
+        service = Mock(spec=AssistantService)
+        service.wake_word = "xerife"
+        service.is_running = False
+        service._command_history = []
+        service.interpreter = Mock()
+        return service
+
+    @pytest.fixture
+    def mock_github_worker(self):
+        """Create a mocked GitHubWorker"""
+        from unittest.mock import Mock
+        worker = Mock()
+        worker.trigger_repository_dispatch = Mock()
+        return worker
+
+    @pytest.fixture
+    def client(self, mock_assistant_service, mock_github_worker):
+        """Create a test client with mocked service"""
+        from unittest.mock import patch
+        
+        # Patch GitHubWorker at the import location
+        with patch('app.application.services.github_worker.GitHubWorker', return_value=mock_github_worker):
+            app = create_api_server(mock_assistant_service)
+            test_client = TestClient(app)
+            yield test_client, mock_assistant_service, mock_github_worker
+
+    @pytest.fixture
+    def auth_token(self, client):
+        """Get authentication token for protected endpoints"""
+        test_client, _, _ = client
+        response = test_client.post(
+            "/token",
+            data={"username": "admin", "password": "admin123"},
+        )
+        return response.json()["access_token"]
+
+    def test_jarvis_dispatch_create_success(self, client, auth_token):
+        """Test Jarvis dispatch with create intent"""
+        test_client, _, mock_worker = client
+
+        mock_worker.trigger_repository_dispatch.return_value = {
+            "success": True,
+            "message": "Dispatch triggered successfully",
+            "workflow_url": "https://github.com/user/repo/actions",
+        }
+
+        response = test_client.post(
+            "/v1/jarvis/dispatch",
+            json={
+                "intent": "create",
+                "instruction": "Add a new feature for user authentication",
+                "context": "In the auth module",
+            },
+            headers={"Authorization": f"Bearer {auth_token}"},
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["success"] is True
+        assert "triggered successfully" in data["message"]
+        assert data["workflow_url"] == "https://github.com/user/repo/actions"
+
+    def test_jarvis_dispatch_fix_success(self, client, auth_token):
+        """Test Jarvis dispatch with fix intent"""
+        test_client, _, mock_worker = client
+
+        mock_worker.trigger_repository_dispatch.return_value = {
+            "success": True,
+            "message": "Dispatch triggered successfully",
+            "workflow_url": "https://github.com/user/repo/actions",
+        }
+
+        response = test_client.post(
+            "/v1/jarvis/dispatch",
+            json={
+                "intent": "fix",
+                "instruction": "Fix the bug in the login endpoint",
+                "context": "Tests are failing",
+            },
+            headers={"Authorization": f"Bearer {auth_token}"},
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["success"] is True
+
+    def test_jarvis_dispatch_invalid_intent(self, client, auth_token):
+        """Test Jarvis dispatch with invalid intent"""
+        test_client, _, _ = client
+
+        response = test_client.post(
+            "/v1/jarvis/dispatch",
+            json={
+                "intent": "invalid",
+                "instruction": "Do something",
+            },
+            headers={"Authorization": f"Bearer {auth_token}"},
+        )
+
+        # Should fail validation
+        assert response.status_code == 422
+
+    def test_jarvis_dispatch_missing_instruction(self, client, auth_token):
+        """Test Jarvis dispatch without instruction"""
+        test_client, _, _ = client
+
+        response = test_client.post(
+            "/v1/jarvis/dispatch",
+            json={
+                "intent": "create",
+            },
+            headers={"Authorization": f"Bearer {auth_token}"},
+        )
+
+        # Should fail validation
+        assert response.status_code == 422
+
+    def test_jarvis_dispatch_without_auth(self, client):
+        """Test Jarvis dispatch requires authentication"""
+        test_client, _, _ = client
+
+        response = test_client.post(
+            "/v1/jarvis/dispatch",
+            json={
+                "intent": "create",
+                "instruction": "Add a new feature",
+            },
+        )
+
+        assert response.status_code == 401
+
+    def test_jarvis_dispatch_github_worker_failure(self, client, auth_token):
+        """Test Jarvis dispatch when GitHub worker fails"""
+        test_client, _, mock_worker = client
+
+        mock_worker.trigger_repository_dispatch.return_value = {
+            "success": False,
+            "message": "GITHUB_PAT not configured",
+        }
+
+        response = test_client.post(
+            "/v1/jarvis/dispatch",
+            json={
+                "intent": "create",
+                "instruction": "Add a new feature",
+            },
+            headers={"Authorization": f"Bearer {auth_token}"},
+        )
+
+        assert response.status_code == 500
+        assert "GITHUB_PAT" in response.json()["detail"]
+
+    def test_jarvis_dispatch_with_context(self, client, auth_token):
+        """Test Jarvis dispatch with context"""
+        test_client, _, mock_worker = client
+
+        mock_worker.trigger_repository_dispatch.return_value = {
+            "success": True,
+            "message": "Dispatch triggered successfully",
+            "workflow_url": "https://github.com/user/repo/actions",
+        }
+
+        response = test_client.post(
+            "/v1/jarvis/dispatch",
+            json={
+                "intent": "create",
+                "instruction": "Add logging to all endpoints",
+                "context": "Use structured logging with timestamps",
+            },
+            headers={"Authorization": f"Bearer {auth_token}"},
+        )
+
+        assert response.status_code == 200
+        
+        # Verify the payload sent to GitHub worker
+        call_args = mock_worker.trigger_repository_dispatch.call_args
+        assert call_args[1]["event_type"] == "jarvis_order"
+        payload = call_args[1]["client_payload"]
+        assert payload["intent"] == "create"
+        assert payload["instruction"] == "Add logging to all endpoints"
+        assert payload["context"] == "Use structured logging with timestamps"
+        assert payload["triggered_by"] == "admin"
+
