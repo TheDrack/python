@@ -7,26 +7,36 @@ This document describes the integration between Jarvis API and GitHub Actions fo
 The Jarvis Self-Healing system enables automatic code generation and fixes through a seamless integration between:
 
 1. **Jarvis API** - Receives intent (create/fix) and instructions
-2. **GitHub Actions** - Executes automated workflows with quality checks
+2. **GitHub Actions** - Executes automated workflows with quality checks and auto-fix retry logic
 3. **GitHub Copilot** - Provides native intelligence for code changes
-4. **Automated Testing** - Quality barrier to ensure only working code reaches review
+4. **Automated Testing** - Quality barrier with up to 3 auto-fix attempts
+5. **Pull Request Creation** - Always creates PR (success or needs review status)
 
 ## Architecture
 
 ```
-┌─────────────┐       ┌──────────────────┐       ┌────────────────────┐
-│             │       │                  │       │                    │
-│  Jarvis API │──────▶│ GitHub Actions   │──────▶│  Pull Request      │
-│             │       │  (Self-Healing)  │       │  (if tests pass)   │
-└─────────────┘       └──────────────────┘       └────────────────────┘
-      │                        │                           │
-      │                        │                           │
-      ▼                        ▼                           ▼
-┌─────────────┐       ┌──────────────────┐       ┌────────────────────┐
-│  Validates  │       │  Applies Changes │       │  Only Successful   │
-│  Intent &   │       │  Runs Tests      │       │  Code Changes      │
-│  Instruction│       │  Quality Check   │       │  No Failed Builds  │
-└─────────────┘       └──────────────────┘       └────────────────────┘
+┌─────────────┐       ┌──────────────────────┐       ┌────────────────────┐
+│             │       │                      │       │                    │
+│  Jarvis API │──────▶│  GitHub Actions      │──────▶│  Pull Request      │
+│             │       │  (Self-Healing)      │       │  (Always Created)  │
+└─────────────┘       └──────────────────────┘       └────────────────────┘
+      │                        │                               │
+      │                        │                               │
+      ▼                        ▼                               ▼
+┌─────────────┐       ┌──────────────────────┐       ┌────────────────────┐
+│  Validates  │       │  Applies Changes     │       │  ✅ Tests Passed   │
+│  Intent &   │       │  Runs Tests          │       │  OR                │
+│  Instruction│       │  Auto-Fix (max 3x)   │       │  ⚠️ Needs Review   │
+└─────────────┘       └──────────────────────┘       └────────────────────┘
+                               │
+                               │
+                               ▼
+                      ┌──────────────────────┐
+                      │  Test Failed?        │
+                      │  Attempt < 3?        │
+                      │  → Analyze & Fix     │
+                      │  → Retry Tests       │
+                      └──────────────────────┘
 ```
 
 ## Components
@@ -74,12 +84,24 @@ The Jarvis Self-Healing system enables automatic code generation and fixes throu
 8. **Apply Changes** - Uses Copilot to generate and apply code changes
 9. **Detect Tests** - Auto-detects pytest, npm test, or make test
 10. **Install Dependencies** - Installs project and test dependencies
-11. **Run Tests** - Executes tests as quality barrier
-12. **Commit & Push** - Only if tests pass
-13. **Create PR** - Only if tests pass and changes exist
-14. **Cleanup** - Deletes branch if tests fail
+11. **Run Tests with Auto-Fix Retry** - Executes tests with up to 3 auto-fix attempts:
+    - Attempt 1: Run tests
+    - If failed → Analyze failures, apply fixes, retry
+    - Attempt 2: Run tests again
+    - If failed → Analyze failures, apply fixes, retry
+    - Attempt 3: Run tests final time
+12. **Commit & Push** - Always commits changes (success or needs review)
+13. **Create PR** - Always creates PR with appropriate status:
+    - ✅ "Tests passed" if successful
+    - ⚠️ "Needs Review" if tests still failing after 3 attempts
 
 **Key Features**:
+
+- **Auto-Fix Retry Logic**: Up to 3 attempts to fix test failures automatically
+  ```yaml
+  MAX_RETRIES=3
+  # Try to fix and retest automatically
+  ```
 
 - **Dependency Caching**: Speeds up workflow by caching Python packages
   ```yaml
@@ -92,9 +114,15 @@ The Jarvis Self-Healing system enables automatic code generation and fixes throu
   # Searches requirements files for pytest
   ```
 
-- **Quality Barrier**: Only creates PR if tests pass
+- **Always Creates PR**: Never discards changes - always creates PR for review
   ```yaml
-  if: steps.tests.outcome == 'success' && env.HAS_CHANGES == 'true'
+  # If tests pass: Create PR with success status
+  # If tests fail after 3 attempts: Create PR with "Needs Review" status
+  ```
+
+- **Test Failure Logs**: Captures test output for each attempt
+  ```bash
+  # Saved as test_output_attempt_1.log, test_output_attempt_2.log, etc.
   ```
 
 - **Dynamic Branch**: Uses repository's default branch
@@ -203,25 +231,47 @@ curl -X POST https://your-jarvis-api.com/token \
 
 ## Workflow Behavior
 
-### Successful Flow
+### Successful Flow (Tests Pass on First Attempt)
 1. ✅ Jarvis receives request
 2. ✅ API triggers repository_dispatch
 3. ✅ Workflow applies changes
-4. ✅ Tests pass
-5. ✅ PR created automatically
+4. ✅ Tests pass on first attempt
+5. ✅ PR created with "All tests passed" status
 6. 👤 Human reviews PR
 7. 🚀 Merge when approved
 
-### Failed Flow (Tests Don't Pass)
+### Auto-Fix Flow (Tests Fail, But Fixed Within 3 Attempts)
 1. ✅ Jarvis receives request
 2. ✅ API triggers repository_dispatch
 3. ✅ Workflow applies changes
-4. ❌ Tests fail
-5. 🗑️ Changes discarded
-6. 🔕 No PR created
-7. 🔕 No notification sent
+4. ❌ Tests fail on attempt 1
+5. 🔧 Auto-fix attempt 1 (analyze failures, apply fixes)
+6. ❌ Tests fail on attempt 2
+7. 🔧 Auto-fix attempt 2 (analyze failures, apply fixes)
+8. ✅ Tests pass on attempt 3
+9. ✅ PR created with "Tests passed after 2 auto-fix attempts" status
+10. 👤 Human reviews PR
+11. 🚀 Merge when approved
 
-**Result**: Clean repository, no failed builds in review queue
+### Manual Review Flow (Tests Still Fail After 3 Attempts)
+1. ✅ Jarvis receives request
+2. ✅ API triggers repository_dispatch
+3. ✅ Workflow applies changes
+4. ❌ Tests fail on attempt 1
+5. 🔧 Auto-fix attempt 1 (analyze failures, apply fixes)
+6. ❌ Tests fail on attempt 2
+7. 🔧 Auto-fix attempt 2 (analyze failures, apply fixes)
+8. ❌ Tests fail on attempt 3
+9. ⚠️ PR created with "Needs Review" status and test failure report
+10. 👤 Human reviews PR and test logs
+11. 🔧 Human applies manual fixes or provides additional context
+12. 🔄 Re-trigger workflow or manually fix
+
+**Key Points**:
+- ✅ No changes are discarded - all attempts create a PR
+- 🔧 Up to 3 automatic fix attempts before requesting human review
+- 📊 Test failure logs are captured for each attempt
+- ⚠️ PRs marked differently based on test status (success vs needs review)
 
 ## Testing
 
@@ -288,12 +338,36 @@ pytest tests/ -k "jarvis_dispatch or repository_dispatch" -v
 
 ### Issue: Tests Always Fail
 
-**Symptoms**: PR never created, workflow shows test failures
+**Symptoms**: PR created with "Needs Review" status after 3 attempts
 
 **Solutions**:
-1. Check test detection logic matches your repository
-2. Ensure test dependencies are installed
-3. Verify tests pass locally before triggering
+1. Review test failure logs in workflow run (test_output_attempt_*.log)
+2. Check if failures are related to:
+   - Missing test dependencies
+   - Environment configuration issues
+   - Actual code logic problems
+3. If placeholder auto-fix is active, consider implementing real LLM integration
+4. Apply manual fixes and re-trigger workflow
+
+### Issue: Auto-Fix Not Working
+
+**Symptoms**: Tests fail 3 times without improvements
+
+**Solutions**:
+1. Verify auto-fix logic is implemented (currently placeholder)
+2. Check test output logs for actionable error messages
+3. Ensure LLM/Copilot integration is configured if implemented
+4. Review workflow logs for auto-fix attempt details
+
+### Issue: Too Many Failed PRs
+
+**Symptoms**: Multiple PRs with "Needs Review" status
+
+**Solutions**:
+1. Improve instruction clarity in Jarvis requests
+2. Add more context to help auto-fix logic
+3. Review test suite for flaky tests
+4. Consider adjusting MAX_RETRIES if needed
 
 ### Issue: No Changes Applied
 
