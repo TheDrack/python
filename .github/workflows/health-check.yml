@@ -25,6 +25,12 @@ jobs:
     name: Check Deployment Health
     runs-on: ubuntu-latest
     
+    # Explicit permissions for GITHUB_TOKEN
+    permissions:
+      contents: read       # Read repository content
+      issues: write        # Create issues on failure
+      actions: read        # Read workflow information
+    
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
