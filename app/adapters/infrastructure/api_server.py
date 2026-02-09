@@ -53,6 +53,33 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 auth_adapter = AuthAdapter()
 
 
+def should_bypass_jarvis_identifier(request_source: str = None) -> bool:
+    """
+    Determine if request should bypass Jarvis intent identifier.
+    
+    GitHub Actions and GitHub Issues are processed directly by AI.
+    Only user API requests go through Jarvis intent identification.
+    
+    Args:
+        request_source: Source of the request (from RequestSource enum)
+        
+    Returns:
+        True if should bypass Jarvis identifier, False otherwise
+    """
+    from app.adapters.infrastructure.api_models import RequestSource
+    
+    if not request_source:
+        return False
+    
+    # Bypass Jarvis identifier for GitHub-sourced requests
+    bypass_sources = {
+        RequestSource.GITHUB_ACTIONS.value,
+        RequestSource.GITHUB_ISSUE.value,
+    }
+    
+    return request_source in bypass_sources
+
+
 async def get_current_user(token: str = Depends(oauth2_scheme)) -> User:
     """
     Dependency to get the current authenticated user from JWT token
@@ -171,7 +198,11 @@ def create_api_server(assistant_service: AssistantService, extension_manager: Ex
     ) -> ExecuteResponse:
         """
         Execute a command and return the result (Protected endpoint)
-
+        
+        Supports intelligent routing based on request source:
+        - GitHub Actions/Issues: Bypass Jarvis identifier, process directly with AI
+        - User API requests: Use Jarvis intent identification
+        
         Args:
             request: Command execution request with optional metadata for context-aware routing
             current_user: Current authenticated user
@@ -180,7 +211,20 @@ def create_api_server(assistant_service: AssistantService, extension_manager: Ex
             Command execution response
         """
         try:
-            logger.info(f"User '{current_user.username}' executing command via API: {request.command}")
+            # Determine request source
+            request_source = None
+            if request.metadata and request.metadata.request_source:
+                request_source = request.metadata.request_source.value
+            
+            # Log with source information
+            source_info = f" (source: {request_source})" if request_source else ""
+            logger.info(f"User '{current_user.username}' executing command via API{source_info}: {request.command}")
+            
+            # Check if we should bypass Jarvis identifier
+            bypass_identifier = should_bypass_jarvis_identifier(request_source)
+            
+            if bypass_identifier:
+                logger.info("GitHub-sourced request detected - bypassing Jarvis identifier, processing directly with AI")
             
             # Convert metadata to dict if provided
             metadata_dict = None
@@ -189,6 +233,8 @@ def create_api_server(assistant_service: AssistantService, extension_manager: Ex
                     "source_device_id": request.metadata.source_device_id,
                     "network_id": request.metadata.network_id,
                     "network_type": request.metadata.network_type,
+                    "request_source": request_source,
+                    "bypass_identifier": bypass_identifier,
                 }
             
             # Use async_process_command for proper async handling

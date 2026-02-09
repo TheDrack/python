@@ -7,11 +7,16 @@ This script is part of the self-healing system for Jarvis Assistant.
 It reads errors from GitHub issues, uses AI (Groq/Gemini) to generate fixes,
 and automatically creates pull requests with the corrections.
 
+IMPORTANT: This script operates as a direct GitHub Actions → AI (Copilot) integration.
+When errors/issues come directly from GitHub Actions or GitHub Issues, they bypass
+the Jarvis intent identifier and are processed directly by the AI for fixing.
+Only user requests made through the Jarvis API require the intent identifier.
+
 Features:
 1. Reads error from ISSUE_BODY environment variable
 2. Extracts affected file path from the error message or detects common files
 3. Handles both code bug fixes and documentation updates
-4. Sends error/request and file code to Groq/Gemini API
+4. Sends error/request and file code to Groq/Gemini API (bypassing Jarvis identifier)
 5. Receives corrected/updated content from AI
 6. Applies the fix locally
 7. Creates a Git branch fix/issue-{ID}
@@ -20,6 +25,7 @@ Features:
 10. Closes the original issue using GitHub CLI (gh issue close)
 
 Key Capabilities:
+- Direct GitHub Integration: Bypasses Jarvis identifier for GitHub-sourced requests
 - File Flexibility: If no file path in traceback, searches for common files
   (README.md, requirements.txt, etc.) in issue body with case-insensitive matching
 - Keyword-Based Suggestions: If no file found, searches for keywords like 'interface',
@@ -29,12 +35,12 @@ Key Capabilities:
   provides current file content to AI instead of treating it as a bug
 
 Usage:
-    # For bug fixes:
+    # For bug fixes (GitHub Actions direct):
     export ISSUE_BODY="Error: NameError in file app/main.py line 42..."
     export ISSUE_ID="123"
     python scripts/auto_fixer_logic.py
     
-    # For documentation updates:
+    # For documentation updates (GitHub Issues direct):
     export ISSUE_BODY="Please add a section about installation to README.md"
     export ISSUE_ID="124"
     python scripts/auto_fixer_logic.py

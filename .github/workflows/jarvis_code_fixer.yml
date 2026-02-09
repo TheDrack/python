@@ -1,5 +1,10 @@
 name: Jarvis Self-Healing Workshop 🔧
 
+# DIRECT GITHUB ISSUES → AI INTEGRATION (Bypasses Jarvis Identifier)
+# When issues are created with 'jarvis-auto-report' label, they are processed
+# directly by the AI without going through Jarvis intent identification.
+# User requests through Jarvis API still require intent identification.
+
 on:
   issues:
     types: [opened]
