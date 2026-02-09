@@ -539,8 +539,6 @@ class TestLLMCommandAdapter:
 
         # Clear GITHUB_TOKEN from environment
         with patch.dict(os.environ, {}, clear=True):
-            os.environ.pop("GITHUB_TOKEN", None)
-
             # Should not raise an error, just log a warning
             adapter._create_github_issue_for_infra_failure_sync(
                 Exception("503 error"), "Test error details"
@@ -557,8 +555,6 @@ class TestLLMCommandAdapter:
 
         # Set GITHUB_TOKEN but clear GITHUB_REPOSITORY
         with patch.dict(os.environ, {"GITHUB_TOKEN": "test_token"}, clear=True):
-            os.environ.pop("GITHUB_REPOSITORY", None)
-
             # Should not raise an error, just log a warning
             adapter._create_github_issue_for_infra_failure_sync(
                 Exception("503 error"), "Test error details"

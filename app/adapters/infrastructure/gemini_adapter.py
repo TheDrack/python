@@ -184,12 +184,9 @@ class LLMCommandAdapter:
             error_str = str(e)
             is_503_error = False
 
-            # Check for 503 status code in the error message
+            # Check for 503 status code or UNAVAILABLE in the error message
             if "503" in error_str or "UNAVAILABLE" in error_str.upper():
                 is_503_error = True
-                # Also check if it's specifically from google.genai
-                if hasattr(e, "__module__") and "google.genai" in str(e.__module__):
-                    is_503_error = True
 
             if is_503_error:
                 # Log as INFRA_FAILURE
@@ -301,12 +298,9 @@ class LLMCommandAdapter:
             error_str = str(e)
             is_503_error = False
 
-            # Check for 503 status code in the error message
+            # Check for 503 status code or UNAVAILABLE in the error message
             if "503" in error_str or "UNAVAILABLE" in error_str.upper():
                 is_503_error = True
-                # Also check if it's specifically from google.genai
-                if hasattr(e, "__module__") and "google.genai" in str(e.__module__):
-                    is_503_error = True
 
             if is_503_error:
                 # Log as INFRA_FAILURE
