@@ -287,7 +287,9 @@ class GitHubAdapter:
             
             # Add helpful hint for auto-fixer if description doesn't mention specific files
             # This helps the auto-fixer identify which files to modify
-            has_file_mention = any(ext in description.lower() for ext in ['.py', '.yml', '.yaml', '.md', '.txt', '.json'])
+            # Use regex to detect actual file extensions (e.g., .py, .yml, .md)
+            import re
+            has_file_mention = bool(re.search(r'\.\w{2,4}\b', description))
             if not has_file_mention:
                 body_parts.append("\n## Arquivos Relacionados")
                 body_parts.append("*Nota: Para que o auto-reparo funcione corretamente, mencione os arquivos específicos que devem ser modificados.*")

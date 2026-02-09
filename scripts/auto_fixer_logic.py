@@ -266,11 +266,11 @@ class AutoFixer:
         Returns:
             File path suggestion if keywords match, None otherwise
         """
-        # Convert issue body to lowercase for case-insensitive matching
-        issue_lower = issue_body.lower()
-        
         # First, check for specific phrase combinations for better context awareness
         # This handles cases where multiple keywords are present and we need to prioritize
+        
+        # Convert issue body to lowercase for case-insensitive matching
+        issue_lower = issue_body.lower()
         
         # Check for issue creation/formatting context
         if ('issue' in issue_lower or 'issues' in issue_lower) and \
