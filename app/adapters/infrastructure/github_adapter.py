@@ -271,10 +271,6 @@ class GitHubAdapter:
             ...     title="CI Failure: Python Tests failed",
             ...     description="Test suite failed on main branch"
             ... )
-            ...     source="jarvis_user",
-            ...     mission_id="mission_123",
-            ...     session_id="session_456"
-            ... )
         """
         if not self.token:
             error_msg = "GITHUB_TOKEN not configured. Cannot create issue."
@@ -293,17 +289,6 @@ class GitHubAdapter:
                 body_parts.append("\n## Informações do Sistema")
                 for key, value in system_info.items():
                     body_parts.append(f"- **{key}**: {value}")
-            
-            # Add source and identifier information
-            body_parts.append("\n## Origem da Solicitação")
-            if source == "jarvis_user" and (mission_id or session_id):
-                body_parts.append(f"- **Fonte**: Solicitação do usuário via Jarvis")
-                if mission_id:
-                    body_parts.append(f"- **Mission ID**: {mission_id}")
-                if session_id:
-                    body_parts.append(f"- **Session ID**: {session_id}")
-            else:
-                body_parts.append(f"- **Fonte**: GitHub Actions (automático)")
             
             # Add auto-generated footer
             body_parts.append("\n---\n*Issue criada automaticamente pelo Jarvis*")
