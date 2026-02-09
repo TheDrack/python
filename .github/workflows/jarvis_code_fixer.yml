@@ -116,6 +116,7 @@ jobs:
 
       - name: Run Pytest (The Judge)
         id: tester
+        if: github.event_name != 'repository_dispatch'
         run: |
           pytest --json-report --json-report-file=report.json || echo "TESTS_FAILED=true" >> $GITHUB_ENV
         continue-on-error: true
@@ -138,8 +139,14 @@ jobs:
           git config --global user.name "Jarvis-Auto-Fixer"
           git config --global user.email "jarvis@bot.com"
           
-          # Run auto-fixer with state machine
-          python scripts/auto_fixer_logic.py --state report.json
+          # Run auto-fixer (use standard mode for repository_dispatch, state machine mode for tests)
+          if [[ "${{ github.event_name }}" == "repository_dispatch" ]]; then
+            echo "Running in standard mode (no pytest report)"
+            python scripts/auto_fixer_logic.py
+          else
+            echo "Running in state machine mode with pytest report"
+            python scripts/auto_fixer_logic.py --state report.json
+          fi
 
       - name: Final Validation
         if: always()
