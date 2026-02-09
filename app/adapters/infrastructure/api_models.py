@@ -21,6 +21,33 @@ class ExecuteRequest(BaseModel):
     metadata: Optional[RequestMetadata] = Field(None, description="Context metadata for intelligent routing")
 
 
+class MessageRequest(BaseModel):
+    """
+    Simplified request model for sending messages to the assistant.
+    
+    This provides a more user-friendly alternative to ExecuteRequest,
+    allowing users to send natural language messages without worrying
+    about JSON structure or field names.
+    
+    Example:
+        {
+            "text": "What's the weather like today?"
+        }
+    """
+    text: str = Field(..., description="Message text to send to the assistant", min_length=1)
+
+
+class MessageResponse(BaseModel):
+    """
+    Response model for message requests.
+    
+    Returns the assistant's response in a simple, easy-to-parse format.
+    """
+    success: bool = Field(..., description="Whether the message was processed successfully")
+    response: str = Field(..., description="The assistant's response text")
+    error: Optional[str] = Field(None, description="Error message if processing failed")
+
+
 class ExecutionPayload(BaseModel):
     """
     Execution payload containing code and execution configuration.

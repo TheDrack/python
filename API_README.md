@@ -126,6 +126,57 @@ POST /v1/execute
 }
 ```
 
+### Send Message (Simplified Interface)
+
+Send a simple message to the assistant without complex JSON structures.
+
+This is a user-friendly alternative to `/v1/execute` that accepts natural language messages in a simplified format.
+
+```
+POST /v1/message
+```
+
+**Request Body:**
+
+```json
+{
+  "text": "What's the weather like today?"
+}
+```
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "response": "I apologize, but I don't have access to real-time weather information.",
+  "error": null
+}
+```
+
+**Error Response:**
+
+```json
+{
+  "success": false,
+  "response": "",
+  "error": "Internal server error: Connection timeout"
+}
+```
+
+**Why use `/v1/message` instead of `/v1/execute`?**
+
+- Simpler JSON structure (just `text` instead of `command`)
+- More intuitive for chat-like interactions
+- Returns response text directly without nested data structures
+- Perfect for building conversational interfaces
+
+**When to use `/v1/execute` instead?**
+
+- When you need detailed metadata and execution context
+- When you need the structured `data` field in responses
+- For programmatic command execution with specific error codes
+
 ### Command History
 
 Get recent command execution history.
