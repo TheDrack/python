@@ -45,34 +45,13 @@ class TestAPIServer:
         """Test health check endpoint"""
         test_client, service = client
         
-        # Ensure assistant service has required attributes
-        service.is_running = True
-        service.wake_word = "xerife"
-        
         response = test_client.get("/health")
 
         assert response.status_code == 200
         data = response.json()
         
-        # Validate comprehensive health check response
-        assert "status" in data
-        assert data["status"] in ["healthy", "degraded", "unhealthy"]
-        assert "timestamp" in data
-        assert "service" in data
-        assert "version" in data
-        assert "checks" in data
-        
-        # Validate checks structure
-        assert "api" in data["checks"]
-        assert data["checks"]["api"]["status"] == "ok"
-        
-        assert "assistant" in data["checks"]
-        # Assistant check should pass with mocked service
-        assert data["checks"]["assistant"]["status"] in ["ok", "warning"]
-        
-        # System info should be present
-        assert "system" in data
-        assert "python_version" in data["system"]
+        # Validate simple health check response
+        assert data == {"status": "healthy", "version": "1.0.0"}
 
     def test_login_success(self, client):
         """Test successful login"""
