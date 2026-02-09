@@ -454,3 +454,108 @@ class GitHubWorker:
                 "success": False,
                 "message": str(e),
             }
+    
+    def trigger_repository_dispatch(
+        self,
+        event_type: str,
+        client_payload: Dict[str, Any],
+        github_token: Optional[str] = None
+    ) -> Dict[str, Any]:
+        """
+        Trigger a repository_dispatch event to GitHub Actions
+        
+        Args:
+            event_type: Type of event (e.g., 'jarvis_order')
+            client_payload: Payload data to send to the workflow
+            github_token: GitHub token with repo permissions (defaults to env GITHUB_PAT)
+            
+        Returns:
+            Result dictionary with success status and message
+        """
+        import os
+        
+        try:
+            # Get GitHub token from environment if not provided
+            token = github_token or os.getenv("GITHUB_PAT")
+            if not token:
+                logger.error("GITHUB_PAT not found in environment variables")
+                return {
+                    "success": False,
+                    "message": "GITHUB_PAT not configured. Please set GITHUB_PAT environment variable.",
+                }
+            
+            # Get repository info (owner/repo)
+            result = subprocess.run(
+                ["gh", "repo", "view", "--json", "nameWithOwner"],
+                cwd=self.repo_path,
+                capture_output=True,
+                text=True,
+                timeout=10,
+            )
+            
+            if result.returncode != 0:
+                return {
+                    "success": False,
+                    "message": f"Failed to get repository info: {result.stderr}",
+                }
+            
+            repo_info = json.loads(result.stdout)
+            repo_full_name = repo_info.get("nameWithOwner")
+            
+            if not repo_full_name:
+                return {
+                    "success": False,
+                    "message": "Could not determine repository name",
+                }
+            
+            # Prepare payload
+            payload_json = json.dumps(client_payload)
+            
+            # Trigger repository_dispatch using GitHub API
+            api_url = f"https://api.github.com/repos/{repo_full_name}/dispatches"
+            
+            result = subprocess.run(
+                [
+                    "curl",
+                    "-X", "POST",
+                    "-H", "Accept: application/vnd.github+json",
+                    "-H", f"Authorization: Bearer {token}",
+                    "-H", "X-GitHub-Api-Version: 2022-11-28",
+                    api_url,
+                    "-d", json.dumps({
+                        "event_type": event_type,
+                        "client_payload": client_payload
+                    })
+                ],
+                capture_output=True,
+                text=True,
+                timeout=30,
+            )
+            
+            # GitHub API returns 204 No Content on success
+            if result.returncode == 0:
+                logger.info(f"Successfully triggered {event_type} event for {repo_full_name}")
+                
+                # Get workflow URL
+                workflow_url = f"https://github.com/{repo_full_name}/actions"
+                
+                return {
+                    "success": True,
+                    "message": f"Repository dispatch event '{event_type}' triggered successfully",
+                    "workflow_url": workflow_url,
+                    "event_type": event_type,
+                    "payload": client_payload,
+                }
+            else:
+                logger.error(f"Failed to trigger repository_dispatch: {result.stderr}")
+                return {
+                    "success": False,
+                    "message": f"Failed to trigger event: {result.stderr}",
+                }
+                
+        except Exception as e:
+            logger.error(f"Error triggering repository_dispatch: {e}")
+            return {
+                "success": False,
+                "message": str(e),
+            }

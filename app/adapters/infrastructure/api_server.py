@@ -39,6 +39,8 @@ from app.adapters.infrastructure.api_models import (
     ThoughtLogListResponse,
     GitHubWorkerRequest,
     GitHubWorkerResponse,
+    JarvisDispatchRequest,
+    JarvisDispatchResponse,
 )
 from app.adapters.infrastructure.auth_adapter import AuthAdapter
 from app.adapters.infrastructure.sqlite_history_adapter import SQLiteHistoryAdapter
@@ -1430,5 +1432,61 @@ def create_api_server(assistant_service: AssistantService, extension_manager: Ex
         except Exception as e:
             logger.error(f"Error in auto-heal: {e}", exc_info=True)
             raise HTTPException(status_code=500, detail=f"Auto-heal failed: {str(e)}")
+    
+    @app.post("/v1/jarvis/dispatch", response_model=JarvisDispatchResponse)
+    async def jarvis_dispatch(
+        request: JarvisDispatchRequest,
+        current_user: User = Depends(get_current_user),
+    ) -> JarvisDispatchResponse:
+        """
+        Trigger a repository_dispatch event for Jarvis Self-Healing (Protected endpoint)
+        
+        This endpoint allows Jarvis to trigger GitHub Actions workflows for code creation
+        or fixes. The workflow will use GitHub Copilot to apply changes and run tests.
+        
+        Args:
+            request: Jarvis dispatch request with intent and instruction
+            current_user: Current authenticated user
+            
+        Returns:
+            Dispatch result with workflow URL
+        """
+        try:
+            logger.info(
+                f"User '{current_user.username}' triggering Jarvis dispatch: "
+                f"intent='{request.intent}', instruction='{request.instruction[:100]}...'"
+            )
+            
+            # Prepare client payload
+            client_payload = {
+                "intent": request.intent,
+                "instruction": request.instruction,
+                "context": request.context or "",
+                "triggered_by": current_user.username,
+            }
+            
+            # Trigger repository_dispatch
+            result = github_worker.trigger_repository_dispatch(
+                event_type="jarvis_order",
+                client_payload=client_payload,
+            )
+            
+            if result.get("success"):
+                return JarvisDispatchResponse(
+                    success=True,
+                    message=result.get("message", "Dispatch triggered successfully"),
+                    workflow_url=result.get("workflow_url"),
+                )
+            else:
+                raise HTTPException(
+                    status_code=500,
+                    detail=result.get("message", "Failed to trigger dispatch")
+                )
+                
+        except HTTPException:
+            raise
+        except Exception as e:
+            logger.error(f"Error triggering Jarvis dispatch: {e}", exc_info=True)
+            raise HTTPException(status_code=500, detail=f"Dispatch failed: {str(e)}")
 
     return app

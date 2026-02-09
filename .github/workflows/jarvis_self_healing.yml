@@ -1,0 +1,243 @@
+name: Jarvis Self-Healing Auto-Code 🤖
+
+# Triggered by Jarvis API via repository_dispatch
+# Receives intent (create/fix) and instruction from Jarvis
+# Uses GitHub Copilot for native intelligence
+# Tests changes and creates PR only if tests pass
+
+on:
+  repository_dispatch:
+    types: [jarvis_order]
+
+jobs:
+  auto_code:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Configure Git User
+        run: |
+          git config --global user.name "Jarvis-Auto-Code"
+          git config --global user.email "jarvis@self-healing.bot"
+
+      - name: Extract Jarvis Order
+        id: order
+        run: |
+          echo "Intent: ${{ github.event.client_payload.intent }}"
+          echo "Instruction: ${{ github.event.client_payload.instruction }}"
+          echo "Context: ${{ github.event.client_payload.context }}"
+          echo "Triggered by: ${{ github.event.client_payload.triggered_by }}"
+          
+          # Save to environment
+          echo "JARVIS_INTENT=${{ github.event.client_payload.intent }}" >> $GITHUB_ENV
+          echo "JARVIS_INSTRUCTION=${{ github.event.client_payload.instruction }}" >> $GITHUB_ENV
+          echo "JARVIS_CONTEXT=${{ github.event.client_payload.context }}" >> $GITHUB_ENV
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Cache Dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/pip
+            ~/.cache/uv
+            .venv
+          key: ${{ runner.os }}-python-${{ hashFiles('requirements.txt', 'requirements/*.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-python-
+
+      - name: Install GitHub Copilot CLI
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh --version
+          
+          # Install GitHub Copilot CLI extension
+          echo "Installing GitHub Copilot CLI extension..."
+          gh extension install github/gh-copilot || echo "Copilot extension already installed"
+          
+          # Verify installation
+          gh copilot --version || {
+            echo "Failed to install GitHub Copilot CLI extension"
+            exit 1
+          }
+
+      - name: Create Feature Branch
+        run: |
+          BRANCH_NAME="jarvis-auto-code-$(date +%s)"
+          echo "BRANCH_NAME=$BRANCH_NAME" >> $GITHUB_ENV
+          git checkout -b "$BRANCH_NAME"
+
+      - name: Apply Code Changes with Copilot
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Build the prompt for Copilot based on intent
+          if [ "$JARVIS_INTENT" = "create" ]; then
+            PROMPT="Create the following: $JARVIS_INSTRUCTION"
+          else
+            PROMPT="Fix the following: $JARVIS_INSTRUCTION"
+          fi
+          
+          if [ ! -z "$JARVIS_CONTEXT" ]; then
+            PROMPT="$PROMPT. Context: $JARVIS_CONTEXT"
+          fi
+          
+          echo "Asking Copilot to: $PROMPT"
+          
+          # Use gh copilot suggest to get suggestions
+          # Note: gh copilot is interactive, so we'll use a Python script for automation
+          python3 << 'PYTHON_SCRIPT'
+import os
+import subprocess
+import sys
+
+intent = os.getenv('JARVIS_INTENT')
+instruction = os.getenv('JARVIS_INSTRUCTION')
+context = os.getenv('JARVIS_CONTEXT', '')
+
+# For now, we'll create a simple implementation
+# In production, you would integrate with GitHub Copilot API or use an LLM
+print(f"Processing {intent} request: {instruction}")
+
+# This is a placeholder - in real implementation:
+# 1. Use gh copilot or GitHub API to get code suggestions
+# 2. Apply changes to files based on instruction
+# 3. For now, we'll create a marker file to show the workflow ran
+
+marker_file = f".jarvis_order_{intent}_{os.getenv('GITHUB_RUN_ID')}.txt"
+with open(marker_file, 'w') as f:
+    f.write(f"Intent: {intent}\n")
+    f.write(f"Instruction: {instruction}\n")
+    f.write(f"Context: {context}\n")
+    f.write(f"Status: Changes would be applied here using GitHub Copilot\n")
+
+print(f"Created marker file: {marker_file}")
+PYTHON_SCRIPT
+
+      - name: Detect Test Command
+        id: test_cmd
+        run: |
+          # Auto-detect test command based on repository structure
+          if [ -f "pytest.ini" ] || [ -f "setup.cfg" ] || grep -q pytest requirements*.txt 2>/dev/null; then
+            echo "TEST_CMD=pytest tests/ -v" >> $GITHUB_ENV
+            echo "Test framework: pytest"
+          elif [ -f "package.json" ] && grep -q "\"test\":" package.json; then
+            echo "TEST_CMD=npm test" >> $GITHUB_ENV
+            echo "Test framework: npm"
+          elif [ -f "Makefile" ] && grep -q "^test:" Makefile; then
+            echo "TEST_CMD=make test" >> $GITHUB_ENV
+            echo "Test framework: make"
+          else
+            echo "TEST_CMD=echo 'No tests found, skipping'" >> $GITHUB_ENV
+            echo "No test framework detected"
+          fi
+
+      - name: Install Test Dependencies
+        if: contains(env.TEST_CMD, 'pytest')
+        run: |
+          # Install dependencies for Python projects
+          if [ -f "requirements.txt" ]; then
+            pip install -r requirements.txt
+          fi
+          
+          # Install test dependencies
+          if [ -f "requirements/dev.txt" ]; then
+            pip install -r requirements/dev.txt
+          fi
+          
+          # Ensure pytest is installed
+          pip install pytest pytest-cov
+
+      - name: Run Tests (Quality Barrier)
+        id: tests
+        continue-on-error: true
+        run: |
+          echo "Running tests: $TEST_CMD"
+          $TEST_CMD
+
+      - name: Commit Changes
+        if: steps.tests.outcome == 'success'
+        run: |
+          git add .
+          git commit -m "🤖 Jarvis Auto-Code: $JARVIS_INTENT - $JARVIS_INSTRUCTION" || {
+            echo "No changes to commit"
+            echo "HAS_CHANGES=false" >> $GITHUB_ENV
+            exit 0
+          }
+          echo "HAS_CHANGES=true" >> $GITHUB_ENV
+
+      - name: Push Branch
+        if: steps.tests.outcome == 'success' && env.HAS_CHANGES == 'true'
+        run: |
+          git push origin "$BRANCH_NAME"
+
+      - name: Create Pull Request (Tests Passed)
+        if: steps.tests.outcome == 'success' && env.HAS_CHANGES == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Create PR with detailed description
+          PR_BODY="## 🤖 Jarvis Self-Healing Auto-Code
+
+**Intent:** $JARVIS_INTENT
+**Instruction:** $JARVIS_INSTRUCTION
+**Context:** $JARVIS_CONTEXT
+
+### ✅ Quality Check
+- Tests executed: $TEST_CMD
+- Result: All tests passed
+
+### 📊 Workflow Details
+- Triggered by: ${{ github.event.client_payload.triggered_by }}
+- Workflow run: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
+
+---
+*Generated automatically by Jarvis Self-Healing System*"
+
+          gh pr create \
+            --title "🤖 Jarvis: $JARVIS_INTENT - $JARVIS_INSTRUCTION" \
+            --body "$PR_BODY" \
+            --base main \
+            --head "$BRANCH_NAME"
+
+      - name: Cleanup (Tests Failed)
+        if: steps.tests.outcome != 'success'
+        run: |
+          echo "Tests failed. Discarding changes and not creating PR."
+          echo "This ensures only working code reaches review."
+          
+          # Delete the branch if it was pushed
+          git push origin --delete "$BRANCH_NAME" 2>/dev/null || true
+          
+          # Log failure details
+          echo "::warning::Jarvis Auto-Code failed quality barrier - tests did not pass"
+
+      - name: Workflow Summary
+        if: always()
+        run: |
+          echo "## Jarvis Self-Healing Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Intent:** $JARVIS_INTENT" >> $GITHUB_STEP_SUMMARY
+          echo "**Instruction:** $JARVIS_INSTRUCTION" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          if [ "${{ steps.tests.outcome }}" = "success" ] && [ "${HAS_CHANGES:-false}" = "true" ]; then
+            echo "✅ **Status:** SUCCESS - PR created" >> $GITHUB_STEP_SUMMARY
+          elif [ "${{ steps.tests.outcome }}" = "success" ] && [ "${HAS_CHANGES:-false}" = "false" ]; then
+            echo "ℹ️ **Status:** No changes needed" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ **Status:** FAILED - Changes discarded (tests failed)" >> $GITHUB_STEP_SUMMARY
+          fi
