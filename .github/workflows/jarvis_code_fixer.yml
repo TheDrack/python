@@ -1,98 +1,195 @@
-name: Jarvis Self-Healing Workshop 🔧
+name: Jarvis Autonomous State Machine
 
-# DIRECT GITHUB ISSUES → GITHUB COPILOT INTEGRATION
-# When issues are created with 'auto-code' or 'jarvis-auto-report' label,
-# they are processed using GitHub Copilot CLI for native ecosystem integration.
-#
-# Security: Includes infinite loop prevention with maximum retry limits
+# Self-Healing State Machine Implementation
+# Follows the state machine logic for autonomous error fixing:
+# - CHANGE_REQUESTED: Auto-fixable errors
+# - NEEDS_HUMAN: Infrastructure/unidentified errors
+# - SUCCESS: Fix applied successfully  
+# - FAILED_LIMIT: Maximum attempts reached
 
 on:
+  pull_request:
   issues:
-    types: [opened]
+    types: [opened, edited]
 
 jobs:
-  auto_fix:
-    # Trigger on both 'auto-code' (new label from requirements) and 'jarvis-auto-report' (backward compatibility)
-    if: contains(github.event.issue.labels.*.name, 'auto-code') || contains(github.event.issue.labels.*.name, 'jarvis-auto-report')
+  healing_engine:
+    # Trigger on 'auto-code' or 'jarvis-auto-report' labels for backward compatibility
+    if: github.event_name == 'pull_request' || contains(github.event.issue.labels.*.name, 'auto-code') || contains(github.event.issue.labels.*.name, 'jarvis-auto-report')
     runs-on: ubuntu-latest
     permissions:
       contents: write
       pull-requests: write
       issues: write
+    outputs:
+      final_state: ${{ steps.healing_engine.outputs.final_state }}
 
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0 
-
-      - name: Configure Git User
-        run: |
-          git config --global user.name "Jarvis-Auto-Fixer"
-          git config --global user.email "jarvis@bot.com"
+          fetch-depth: 0
 
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
 
-      - name: Install GitHub CLI and Copilot extension
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Install Dependencies
         run: |
-          # GitHub CLI is pre-installed on ubuntu-latest runners
-          # Verify gh is installed
+          python -m pip install --upgrade pip
+          # Install test dependencies
+          pip install pytest pytest-json-report pytest-cov
+          # Install project dependencies if they exist
+          if [ -f "requirements.txt" ]; then
+            pip install -r requirements.txt || echo "Some dependencies failed, continuing..."
+          fi
+          if [ -f "requirements/core.txt" ]; then
+            pip install -r requirements/core.txt || echo "Some core dependencies failed, continuing..."
+          fi
+          if [ -f "requirements/dev.txt" ]; then
+            pip install -r requirements/dev.txt || echo "Some dev dependencies failed, continuing..."
+          fi
+
+      - name: Run Pytest (The Judge)
+        id: tester
+        run: |
+          pytest --json-report --json-report-file=report.json || echo "TESTS_FAILED=true" >> $GITHUB_ENV
+        continue-on-error: true
+
+      - name: Self-Healing Logic
+        id: healing_engine
+        if: env.TESTS_FAILED == 'true'
+        env:
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ISSUE_BODY: ${{ github.event_name == 'issues' && github.event.issue.body || '' }}
+          ISSUE_NUMBER: ${{ github.event.issue.number || github.event.pull_request.number }}
+        run: |
+          # Install GitHub CLI Copilot extension
           gh --version
-          
-          # Install GitHub Copilot CLI extension
-          echo "Installing GitHub Copilot CLI extension..."
           gh extension install github/gh-copilot || echo "Copilot extension already installed"
           
-          # Verify Copilot extension is installed
-          gh copilot --version || {
-            echo "Failed to install GitHub Copilot CLI extension"
-            echo "This might be due to permissions or network issues"
+          # Configure Git
+          git config --global user.name "Jarvis-Auto-Fixer"
+          git config --global user.email "jarvis@bot.com"
+          
+          # Run auto-fixer with state machine
+          python scripts/auto_fixer_logic.py --state report.json
+
+      - name: Final Validation
+        if: always()
+        run: |
+          echo "Estado Final: ${{ steps.healing_engine.outputs.final_state }}"
+          # If the state is NEEDS_HUMAN or FAILED_LIMIT, the job should fail to notify the owner
+          if [[ "${{ steps.healing_engine.outputs.final_state }}" == "NEEDS_HUMAN" ]] || [[ "${{ steps.healing_engine.outputs.final_state }}" == "FAILED_LIMIT" ]]; then
+            echo "⚠️ Human intervention required"
             exit 1
-          }
+          fi
 
-      - name: Run Auto-Fix Script with GitHub Copilot
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          ISSUE_BODY: ${{ github.event.issue.body }}
-          ISSUE_NUMBER: ${{ github.event.issue.number }}
-        run: python scripts/auto_fixer_logic.py
-
-      - name: Report Failure to Jarvis
-        if: failure() 
+      - name: Request Human Review
+        if: failure() || steps.healing_engine.outputs.final_state == 'NEEDS_HUMAN' || steps.healing_engine.outputs.final_state == 'FAILED_LIMIT'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          ISSUE_BODY="O workflow de auto-reparo falhou ao processar a Issue #${{ github.event.issue.number }}.
+          FINAL_STATE="${{ steps.healing_engine.outputs.final_state }}"
+          ERROR_DETAILS="${{ steps.healing_engine.outputs.error_details }}"
+          ATTEMPTED_FIXES="${{ steps.healing_engine.outputs.attempted_fixes }}"
+          
+          # Create detailed review request based on state
+          if [[ "$FINAL_STATE" == "FAILED_LIMIT" ]]; then
+            TITLE="🔧 Auto-Repair Needs Review: Maximum Attempts Reached"
+            STATUS="⚠️ Revisão Necessária"
+            REASON="O sistema atingiu o limite máximo de 3 tentativas de auto-reparo."
+            LABEL="bug"
+          elif [[ "$FINAL_STATE" == "NEEDS_HUMAN" ]]; then
+            TITLE="🔍 Auto-Repair Needs Review: Human Intervention Required"
+            STATUS="⚠️ Revisão Necessária"
+            REASON="Erro de infraestrutura ou erro não identificado detectado."
+            LABEL="bug"
+          else
+            TITLE="🔍 Auto-Repair Needs Review: Workflow Issue"
+            STATUS="⚠️ Revisão Necessária"
+            REASON="Falha inesperada no workflow de auto-reparo."
+            LABEL="bug"
+          fi
+          
+          # Build detailed review body
+          REVIEW_BODY="## $STATUS - Auto-Repair Review Request
 
-          ## Logs do Workflow
-          Verifique os logs em: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          **Estado Final:** \`$FINAL_STATE\`
+          **Motivo:** $REASON
 
-          ## Possíveis Causas
-          1. **Limite de tentativas excedido**: O sistema pode ter atingido o limite máximo de 3 tentativas de auto-reparo para evitar loops infinitos.
-             - Solução: Revise as tentativas anteriores e faça a correção manualmente
-          2. **GitHub Copilot CLI não disponível**: A extensão do Copilot pode não estar instalada ou autenticada.
-             - Solução: Verifique os logs do workflow para detalhes
-          3. **Arquivo não identificado**: A issue pode não mencionar o arquivo específico a ser modificado.
-             - Solução: Inclua o caminho do arquivo na descrição (ex: \`scripts/auto_fixer_logic.py\`)
-          4. **Falta de contexto**: A descrição pode ser muito vaga.
-             - Solução: Seja específico sobre o que precisa ser alterado
+          ### 📊 Informações do Erro
 
-          ## Como Ajudar o Auto-Reparo
-          Para que o auto-reparo funcione melhor, inclua na issue:
-          - ✅ O caminho do arquivo a ser modificado
-          - ✅ Palavras-chave relacionadas (ex: 'self-healing', 'github actions', 'api')
-          - ✅ Uma descrição clara e específica do problema ou melhoria
+          **Detalhes do Erro:**
+          \`\`\`
+          ${ERROR_DETAILS:-"Nenhum detalhe de erro disponível"}
+          \`\`\`
+
+          ### 🔧 Tentativas de Correção
+
+          ${ATTEMPTED_FIXES:-"Nenhuma tentativa de correção foi registrada"}
+
+          ### 📋 Análise da Situação
+
+          "
+          
+          if [[ "$FINAL_STATE" == "FAILED_LIMIT" ]]; then
+            REVIEW_BODY+="#### Limite de Tentativas Atingido
+          
+          O sistema realizou 3 tentativas automáticas de correção sem sucesso:
+          
+          1. **Primeira tentativa:** Correção mínima aplicada, testes falharam
+          2. **Segunda tentativa:** Correção alternativa aplicada, testes falharam  
+          3. **Terceira tentativa:** Última tentativa de correção, testes falharam
+          
+          **Próximos Passos:**
+          - 🔍 Revise as tentativas de correção nos logs do workflow
+          - 📝 Analise o padrão de falhas entre as tentativas
+          - ✏️ Aplique correção manual baseada nas tentativas automáticas
+          - 🧪 Execute os testes localmente para validar
+          "
+          elif [[ "$FINAL_STATE" == "NEEDS_HUMAN" ]]; then
+            REVIEW_BODY+="#### Intervenção Humana Necessária
+          
+          O erro detectado requer análise e correção manual:
+          
+          **Possíveis Causas:**
+          - 🌐 **Erro de Infraestrutura:** Timeout, ConnectionError, HTTP 429/500/503
+          - ❓ **Erro Desconhecido:** Tipo de erro não catalogado no sistema
+          - 🔒 **Erro de Configuração:** Variáveis de ambiente ou dependências
+          
+          **Próximos Passos:**
+          - 🔍 Verifique os logs completos do workflow
+          - 🌐 Se for erro de infraestrutura, verifique conectividade e serviços externos
+          - 📚 Se for erro desconhecido, analise o traceback completo
+          - 🔧 Aplique correção manual após identificar a causa raiz
+          "
+          fi
+          
+          REVIEW_BODY+="
+          ### 📖 Logs e Recursos
+
+          - **Workflow Run:** https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          - **Pytest Report:** Disponível nos artefatos do workflow (se gerado)
+          - **Estado da Máquina:** \`$FINAL_STATE\`
+
+          ### ✅ Como Proceder
+
+          1. **Análise:** Revise os logs do workflow e as informações acima
+          2. **Diagnóstico:** Identifique a causa raiz do problema
+          3. **Correção:** Aplique a correção necessária manualmente
+          4. **Validação:** Execute os testes para confirmar a correção
+          5. **Documentação:** Atualize a issue com suas descobertas
 
           ---
-          *Issue criada automaticamente pelo sistema de auto-reparo*"
+          *Requisição de revisão criada automaticamente pelo Self-Healing State Machine*
+          *Este não é um erro - é uma solicitação de revisão humana para casos complexos*"
           
+          # Create issue as review request (not as error)
           gh issue create \
-            --title "🔴 Falha no Auto-Fixer: Issue #${{ github.event.issue.number }}" \
-            --body "$ISSUE_BODY" \
-            --label "bug,manual-intervention-required"
+            --title "$TITLE" \
+            --body "$REVIEW_BODY" \
+            --label "$LABEL"
