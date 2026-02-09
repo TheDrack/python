@@ -278,8 +278,19 @@ class GitHubAdapter:
             return {"success": False, "error": error_msg}
         
         try:
-            # Build issue body
-            body_parts = [description]
+            # Build issue body with structured format for better auto-fixer interpretation
+            body_parts = []
+            
+            # Add description section
+            body_parts.append("## Descrição")
+            body_parts.append(description)
+            
+            # Add helpful hint for auto-fixer if description doesn't mention specific files
+            # This helps the auto-fixer identify which files to modify
+            has_file_mention = any(ext in description.lower() for ext in ['.py', '.yml', '.yaml', '.md', '.txt', '.json'])
+            if not has_file_mention:
+                body_parts.append("\n## Arquivos Relacionados")
+                body_parts.append("*Nota: Para que o auto-reparo funcione corretamente, mencione os arquivos específicos que devem ser modificados.*")
             
             if error_log:
                 body_parts.append("\n## Erro")
