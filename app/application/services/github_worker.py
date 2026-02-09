@@ -3,6 +3,7 @@
 
 import json
 import logging
+import os
 import subprocess
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -472,8 +473,6 @@ class GitHubWorker:
         Returns:
             Result dictionary with success status and message
         """
-        import os
-        
         try:
             # Get GitHub token from environment if not provided
             token = github_token or os.getenv("GITHUB_PAT")
