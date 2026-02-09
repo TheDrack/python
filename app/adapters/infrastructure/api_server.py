@@ -412,7 +412,7 @@ def create_api_server(assistant_service: AssistantService, extension_manager: Ex
         """
         health_status = {
             "status": "healthy",
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(datetime.UTC).isoformat() if hasattr(datetime, 'UTC') else datetime.utcnow().isoformat(),
             "service": "jarvis-api",
             "version": settings.version,
             "checks": {}
