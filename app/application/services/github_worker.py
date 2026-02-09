@@ -425,7 +425,7 @@ class GitHubWorker:
                 session_id=f"ci_heal_{run_id}",
                 thought_process=f"Analyzing CI failure for run {run_id}",
                 problem_description=f"CI workflow run {run_id} failed",
-                solution_attempt="Use scripts/auto_fixer_logic.py for actual implementation",
+                solution_attempt="DEPRECATED: This method is a stub. Use scripts/auto_fixer_logic.py instead.",
                 status=InteractionStatus.INTERNAL_MONOLOGUE,
                 success=False,
                 error_message=f"CI logs:\n{logs[:500]}...",  # First 500 chars

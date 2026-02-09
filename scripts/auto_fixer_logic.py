@@ -92,7 +92,9 @@ class AutoFixer:
         
         # Detect source of request (GitHub Actions vs User via Jarvis)
         # When source is GitHub Actions, we don't need mission_id/session_id identifiers
-        self.source = os.getenv("AUTO_FIXER_SOURCE", "github_actions")  # Default to GitHub Actions
+        # Default is "github_actions" when AUTO_FIXER_SOURCE is not explicitly set,
+        # which is the expected behavior when running in GitHub Actions workflows
+        self.source = os.getenv("AUTO_FIXER_SOURCE", "github_actions")
         self.mission_id = os.getenv("MISSION_ID")  # Only set when from Jarvis
         self.session_id = os.getenv("SESSION_ID")  # Only set when from Jarvis
         
