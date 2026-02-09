@@ -22,6 +22,8 @@ class RequestMetadata(BaseModel):
     source_device_id: Optional[int] = Field(None, description="ID of the device that sent the command")
     network_id: Optional[str] = Field(None, description="Network identifier (SSID or public IP)")
     network_type: Optional[str] = Field(None, description="Network type (wifi, 4g, 5g, ethernet)")
+    # Default to USER_API to ensure requests go through full Jarvis identifier by default
+    # Only GitHub Actions/Issues should explicitly set their source to bypass the identifier
     request_source: Optional[RequestSource] = Field(
         RequestSource.USER_API,
         description="Source of the request (github_actions, github_issue, user_api, jarvis_internal)"
