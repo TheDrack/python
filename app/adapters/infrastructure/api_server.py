@@ -11,6 +11,7 @@ from fastapi import BackgroundTasks, Depends, FastAPI, HTTPException, status, We
 from fastapi.responses import JSONResponse, HTMLResponse, Response
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from fastapi.openapi.docs import get_swagger_ui_html
+from fastapi.staticfiles import StaticFiles
 
 from app.adapters.infrastructure import api_models
 from app.adapters.infrastructure.api_models import (
@@ -159,6 +160,14 @@ def create_api_server(assistant_service: AssistantService, extension_manager: Ex
         redoc_url=None,  # Disable redoc
     )
     
+    # Mount static files for PWA support (manifest, service worker, icons)
+    static_path = Path(__file__).parent.parent.parent.parent / "static"
+    if static_path.exists():
+        app.mount("/static", StaticFiles(directory=str(static_path)), name="static")
+        logger.info(f"Static files mounted from: {static_path}")
+    else:
+        logger.warning(f"Static directory not found at: {static_path}")
+    
     # Initialize database adapter for distributed mode
     db_adapter = SQLiteHistoryAdapter(database_url=settings.database_url)
     
@@ -177,6 +186,19 @@ def create_api_server(assistant_service: AssistantService, extension_manager: Ex
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="/static/manifest.json">
+    
+    <!-- iOS PWA Support -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="JARVIS">
+    <link rel="apple-touch-icon" href="/static/icon-192.png">
+    
+    <!-- Theme Color -->
+    <meta name="theme-color" content="#00d4ff">
+    
     <title>J.A.R.V.I.S. Command Interface</title>
     <style>
         * {
@@ -1373,6 +1395,23 @@ def create_api_server(assistant_service: AssistantService, extension_manager: Ex
         // Start telemetry when authenticated
         if (checkAuth()) {
             startTelemetryMonitoring();
+        }
+        
+        // ============================================
+        // PWA Service Worker Registration
+        // ============================================
+        
+        // Register service worker for PWA functionality
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/static/sw.js')
+                    .then((registration) => {
+                        console.log('Service Worker registered successfully:', registration.scope);
+                    })
+                    .catch((error) => {
+                        console.error('Service Worker registration failed:', error);
+                    });
+            });
         }
     </script>
 </body>
