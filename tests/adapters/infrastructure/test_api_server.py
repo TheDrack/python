@@ -61,7 +61,8 @@ class TestAPIServer:
         response = test_client.head("/")
 
         assert response.status_code == 200
-        # HEAD requests should work for health checks
+        # HEAD requests should not return a body per HTTP specification
+        assert len(response.content) == 0
     
     def test_health_check(self, client):
         """Test health check endpoint"""

@@ -6,7 +6,7 @@ from datetime import datetime
 import platform
 
 from fastapi import BackgroundTasks, Depends, FastAPI, HTTPException, status
-from fastapi.responses import JSONResponse, HTMLResponse
+from fastapi.responses import JSONResponse, HTMLResponse, Response
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from fastapi.openapi.docs import get_swagger_ui_html
 
@@ -486,7 +486,7 @@ def create_api_server(assistant_service: AssistantService, extension_manager: Ex
         HEAD endpoint for health checks
         Used by monitoring services and browsers to verify server status
         """
-        return JSONResponse(content={"status": "online"})
+        return Response(status_code=200)
 
     @app.post("/token", response_model=Token)
     async def login(form_data: OAuth2PasswordRequestForm = Depends()) -> Token:
