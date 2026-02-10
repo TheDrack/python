@@ -2308,4 +2308,155 @@ def create_api_server(assistant_service: AssistantService, extension_manager: Ex
             logger.error(f"Error triggering Jarvis dispatch: {e}", exc_info=True)
             raise HTTPException(status_code=500, detail=f"Dispatch failed: {str(e)}")
 
+    # Evolution and Self-Awareness Endpoints
+    
+    @app.get("/v1/status/evolution", response_model=api_models.EvolutionStatusResponse)
+    async def get_evolution_status():
+        """
+        Get JARVIS evolution status and progress.
+        
+        Returns the overall evolution progress and chapter-by-chapter breakdown
+        of the 102 capabilities defined in JARVIS_OBJECTIVES_MAP.
+        
+        This endpoint provides visibility into JARVIS self-awareness and
+        capability development across 9 chapters.
+        
+        Returns:
+            Evolution status with overall and chapter progress
+        """
+        try:
+            from app.application.services.capability_manager import CapabilityManager
+            
+            # Initialize capability manager
+            capability_manager = CapabilityManager(engine=db_adapter.engine)
+            
+            # Get evolution progress
+            progress = capability_manager.get_evolution_progress()
+            
+            return api_models.EvolutionStatusResponse(
+                overall_progress=progress["overall_progress"],
+                total_capabilities=progress["total_capabilities"],
+                complete_capabilities=progress["complete_capabilities"],
+                partial_capabilities=progress["partial_capabilities"],
+                nonexistent_capabilities=progress["nonexistent_capabilities"],
+                chapters=[
+                    api_models.ChapterProgress(**chapter)
+                    for chapter in progress["chapters"]
+                ]
+            )
+            
+        except Exception as e:
+            logger.error(f"Error getting evolution status: {e}", exc_info=True)
+            raise HTTPException(status_code=500, detail=f"Failed to get evolution status: {str(e)}")
+    
+    @app.get("/v1/evolution/next-step", response_model=api_models.NextEvolutionStepResponse)
+    async def get_next_evolution_step():
+        """
+        Get the next capability that JARVIS should implement.
+        
+        This is the self-evolution trigger. It returns the highest-priority
+        capability that has all technical requirements satisfied and is ready
+        for implementation.
+        
+        Returns:
+            Next evolution step with capability details and technical blueprint
+            
+        Raises:
+            404: If no capabilities are ready for implementation
+        """
+        try:
+            from app.application.services.capability_manager import CapabilityManager
+            
+            # Initialize capability manager
+            capability_manager = CapabilityManager(engine=db_adapter.engine)
+            
+            # Get next evolution step
+            next_step = capability_manager.get_next_evolution_step()
+            
+            if next_step is None:
+                raise HTTPException(
+                    status_code=404,
+                    detail="No capabilities ready for implementation. All capabilities either complete or have missing resources."
+                )
+            
+            # Convert blueprint to CapabilityRequirements model
+            blueprint_data = next_step["blueprint"]
+            blueprint_model = api_models.CapabilityRequirements(**blueprint_data)
+            
+            return api_models.NextEvolutionStepResponse(
+                capability_id=next_step["capability_id"],
+                capability_name=next_step["capability_name"],
+                chapter=next_step["chapter"],
+                current_status=next_step["current_status"],
+                blueprint=blueprint_model,
+                priority_score=next_step["priority_score"]
+            )
+            
+        except HTTPException:
+            raise
+        except Exception as e:
+            logger.error(f"Error getting next evolution step: {e}", exc_info=True)
+            raise HTTPException(status_code=500, detail=f"Failed to get next evolution step: {str(e)}")
+    
+    @app.post("/v1/evolution/scan", response_model=Dict[str, Any])
+    async def scan_capabilities():
+        """
+        Scan the repository to detect which capabilities are already implemented.
+        
+        This endpoint triggers a full scan of the codebase to identify
+        existing functionality and update capability statuses accordingly.
+        
+        Returns:
+            Scan results with updated capabilities and status counts
+        """
+        try:
+            from app.application.services.capability_manager import CapabilityManager
+            
+            # Initialize capability manager
+            capability_manager = CapabilityManager(engine=db_adapter.engine)
+            
+            # Run status scan
+            scan_results = capability_manager.status_scan()
+            
+            return scan_results
+            
+        except Exception as e:
+            logger.error(f"Error scanning capabilities: {e}", exc_info=True)
+            raise HTTPException(status_code=500, detail=f"Failed to scan capabilities: {str(e)}")
+    
+    @app.get("/v1/evolution/requirements/{capability_id}", response_model=api_models.CapabilityRequirements)
+    async def get_capability_requirements(capability_id: int):
+        """
+        Get technical requirements for a specific capability.
+        
+        Returns a technical blueprint describing what libraries, APIs,
+        environment variables, and permissions are needed to implement
+        the specified capability.
+        
+        Args:
+            capability_id: The ID of the capability (1-102)
+            
+        Returns:
+            Technical blueprint with all requirements
+        """
+        try:
+            from app.application.services.capability_manager import CapabilityManager
+            
+            # Initialize capability manager
+            capability_manager = CapabilityManager(engine=db_adapter.engine)
+            
+            # Get requirements
+            blueprint = capability_manager.check_requirements(capability_id)
+            
+            if "error" in blueprint:
+                raise HTTPException(status_code=404, detail=blueprint["error"])
+            
+            return api_models.CapabilityRequirements(**blueprint)
+            
+        except HTTPException:
+            raise
+        except Exception as e:
+            logger.error(f"Error getting capability requirements: {e}", exc_info=True)
+            raise HTTPException(status_code=500, detail=f"Failed to get requirements: {str(e)}")
+
     return app
