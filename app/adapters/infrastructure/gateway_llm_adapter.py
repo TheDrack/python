@@ -18,6 +18,7 @@ from app.adapters.infrastructure.gemini_adapter import LLMCommandAdapter
 from app.adapters.infrastructure.github_adapter import GitHubAdapter
 from app.application.ports import VoiceProvider
 from app.domain.models import CommandType, Intent
+from app.domain.services.agent_service import AgentService
 
 logger = logging.getLogger(__name__)
 
@@ -33,11 +34,16 @@ class GatewayLLMCommandAdapter:
     - Maintains backward compatibility with LLMCommandAdapter interface
     """
     
-    # Default system instruction for conversational responses
-    DEFAULT_SYSTEM_INSTRUCTION = (
-        "Você é um assistente virtual amigável e prestativo. "
-        "Responda de forma conversacional em português brasileiro."
-    )
+    # System instruction for conversational responses - uses Xerife personality from AgentService
+    # This is cached at class level for performance
+    _SYSTEM_INSTRUCTION = None
+    
+    @classmethod
+    def get_system_instruction(cls) -> str:
+        """Get the system instruction, caching it for performance."""
+        if cls._SYSTEM_INSTRUCTION is None:
+            cls._SYSTEM_INSTRUCTION = AgentService.get_system_instruction()
+        return cls._SYSTEM_INSTRUCTION
     
     # Default model for auto-fix recommendations
     # Update this when new models are released
@@ -197,10 +203,10 @@ class GatewayLLMCommandAdapter:
             # Prepare messages for AI Gateway
             messages = []
             
-            # Add system instruction
+            # Add system instruction - use Xerife personality from AgentService
             messages.append({
                 "role": "system",
-                "content": self.DEFAULT_SYSTEM_INSTRUCTION
+                "content": self.get_system_instruction()
             })
             
             # Add context if available

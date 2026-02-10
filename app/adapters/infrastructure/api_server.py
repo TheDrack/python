@@ -1507,6 +1507,9 @@ def create_api_server(assistant_service: AssistantService, extension_manager: Ex
             
             # Use async_process_command for proper async handling
             response = await assistant_service.async_process_command(request.command, request_metadata=metadata_dict)
+            
+            # Log the response for debugging (helps identify if responses are generated but not shown in HUD)
+            logger.info(f"Generated response for user '{current_user.username}': success={response.success}, message_length={len(response.message) if response.message else 0}")
 
             return ExecuteResponse(
                 success=response.success,
@@ -1548,6 +1551,9 @@ def create_api_server(assistant_service: AssistantService, extension_manager: Ex
             
             # Process the message using the assistant service
             response = await assistant_service.async_process_command(request.text)
+            
+            # Log the response for debugging (helps identify if responses are generated but not shown in HUD)
+            logger.info(f"Generated response for user '{current_user.username}': success={response.success}, message_length={len(response.message) if response.message else 0}")
 
             return MessageResponse(
                 success=response.success,
@@ -1558,7 +1564,7 @@ def create_api_server(assistant_service: AssistantService, extension_manager: Ex
             logger.error(f"Error processing message: {e}", exc_info=True)
             return MessageResponse(
                 success=False,
-                response="",
+                response="Desculpe, ocorreu um erro ao processar sua mensagem. Por favor, tente novamente.",
                 error=f"Internal server error: {str(e)}"
             )
 
