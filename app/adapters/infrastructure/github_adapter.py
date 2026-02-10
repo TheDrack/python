@@ -379,11 +379,18 @@ class GitHubAdapter:
 """
             
             if error_log:
+                # Truncate error log for PR body to prevent secrets exposure and size limits
+                max_log_length = 500
+                truncated_log = error_log[:max_log_length]
+                if len(error_log) > max_log_length:
+                    truncated_log += f"\n... (truncated {len(error_log) - max_log_length} characters)"
+                
                 pr_body += f"""
-### Erro
+### Erro (Preview)
 ```
-{error_log}
+{truncated_log}
 ```
+*Full error log available in `autonomous_instruction.json`*
 """
             
             if improvement_context:

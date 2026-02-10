@@ -122,7 +122,8 @@ jobs:
           if [ -f "autonomous_instruction.json" ]; then
             echo "AUTO_FIX_PR=true" >> $GITHUB_ENV
             echo "Auto-fix PR detected - autonomous_instruction.json found"
-            cat autonomous_instruction.json
+            # Don't print full file contents to avoid exposing secrets in logs
+            echo "File size: $(wc -c < autonomous_instruction.json) bytes"
           else
             echo "AUTO_FIX_PR=false" >> $GITHUB_ENV
             echo "Regular PR - no autonomous_instruction.json"
@@ -156,16 +157,29 @@ jobs:
           # Run auto-fixer based on context
           if [[ "${{ env.AUTO_FIX_PR }}" == "true" ]]; then
             echo "Running in auto-fix PR mode with autonomous_instruction.json"
-            # Read the autonomous instruction file
+            # Read the autonomous instruction file and set ISSUE_BODY env var
             if [ -f "autonomous_instruction.json" ]; then
-              echo "Reading autonomous_instruction.json:"
-              INSTRUCTION=$(cat autonomous_instruction.json | jq -r '.description')
+              TITLE=$(cat autonomous_instruction.json | jq -r '.title // "Auto-fix"')
+              DESCRIPTION=$(cat autonomous_instruction.json | jq -r '.description // ""')
               ERROR_LOG=$(cat autonomous_instruction.json | jq -r '.error_log // ""')
-              echo "Instruction: $INSTRUCTION"
-              echo "Error Log: $ERROR_LOG"
+              CONTEXT=$(cat autonomous_instruction.json | jq -r '.improvement_context // ""')
               
-              # Run auto-fixer with the instruction
-              python scripts/auto_fixer_logic.py --instruction "$INSTRUCTION" --error-log "$ERROR_LOG"
+              # Compose ISSUE_BODY from autonomous instruction (don't echo full logs to avoid exposing secrets)
+              echo "Processing auto-fix request: $TITLE"
+              
+              # Build ISSUE_BODY for the auto-fixer script to consume
+              ISSUE_BODY="## $TITLE"$'\n\n'"$DESCRIPTION"
+              if [ -n "$ERROR_LOG" ]; then
+                ISSUE_BODY+=$'\n\n'"### Error Log"$'\n'"$ERROR_LOG"
+              fi
+              if [ -n "$CONTEXT" ]; then
+                ISSUE_BODY+=$'\n\n'"### Context"$'\n'"$CONTEXT"
+              fi
+              
+              export ISSUE_BODY
+              
+              # Run auto-fixer in standard mode (it will read ISSUE_BODY from env)
+              python scripts/auto_fixer_logic.py
             fi
           elif [[ "${{ github.event_name }}" == "repository_dispatch" ]]; then
             echo "Running in standard mode (no pytest report)"

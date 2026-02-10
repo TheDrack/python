@@ -24,7 +24,7 @@ async def report_for_auto_correction(
 ```
 
 **Process Flow**:
-1. ✅ Creates a new branch with prefix `auto-fix/{timestamp}` (e.g., `auto-fix/20260210-143045`)
+1. ✅ Creates a new branch named `auto-fix/{timestamp}-{random}` (e.g., `auto-fix/20260210-143045-123456-a7b2`)
 2. ✅ Creates `autonomous_instruction.json` at repository root containing:
    - Title and description of the error/improvement
    - Optional error log for debugging
@@ -272,8 +272,8 @@ result = await adapter.report_for_auto_correction(
 
 ### Testing
 - ✅ **23/23 tests passing** (100% pass rate)
-- 19 existing tests (no regressions)
-- 4 new tests for auto-correction
+- 18 existing tests (no regressions)
+- 5 new tests for auto-correction
 - Comprehensive coverage of success and failure scenarios
 
 ### Security Scan

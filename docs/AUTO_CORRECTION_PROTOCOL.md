@@ -96,7 +96,7 @@ result = await adapter.report_for_auto_correction(
     "success": True,
     "pr_number": 123,
     "pr_url": "https://github.com/owner/repo/pull/123",
-    "branch": "auto-fix/20260210-143045",
+    "branch": "auto-fix/20260210-143045-123456-a7b2",
     "message": "Auto-correction PR created - Jarvis Autonomous State Machine will process it"
 }
 ```
