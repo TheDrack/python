@@ -79,6 +79,9 @@ COPY app/core/__init__.py ./app/core/__init__.py
 COPY app/container.py ./app/container.py
 COPY serve.py ./serve.py
 
+# Copy static files for PWA support (manifest, icons, service worker)
+COPY static/ ./static/
+
 ENV PYTHONUNBUFFERED=1
 ENV PYTHONDONTWRITEBYTECODE=1
 

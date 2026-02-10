@@ -7,7 +7,7 @@ import platform
 import sys
 from collections import deque
 from datetime import datetime
-from typing import Any, Deque, Dict, List, Optional
+from typing import Any, Deque, Dict, List, Optional, Tuple
 
 from app.application.ports import ActionProvider, HistoryProvider, VoiceProvider, WebProvider
 from app.application.services.dependency_manager import DependencyManager
@@ -22,6 +22,9 @@ class AssistantService:
     Main application service that orchestrates the assistant's behavior.
     Uses dependency injection for all external dependencies (ports).
     """
+    
+    # Constants for noise filtering
+    MIN_RENDER_NOISE_THRESHOLD = 2  # Minimum Render noise patterns to trigger filtering
 
     def __init__(
         self,
@@ -543,12 +546,87 @@ class AssistantService:
         # For now, we return None for standard commands
         return None
     
-    def _get_recent_error_log(self) -> Optional[str]:
+    def _filter_render_noise(self, error_log: Optional[str]) -> Optional[str]:
+        """
+        Filter out Render deployment system noise from error logs.
+        
+        Render often reports timeouts, memory issues, and other infrastructure
+        logs that are not related to code logic issues. This method filters those out.
+        
+        Uses a ratio-based approach: filters if render_matches > code_matches * 2
+        and render_matches >= MIN_RENDER_NOISE_THRESHOLD.
+        
+        Args:
+            error_log: Raw error log
+            
+        Returns:
+            Filtered error log, or None if it's only Render noise
+        """
+        if not error_log:
+            return None
+        
+        # Render noise patterns to filter out
+        render_noise_patterns = [
+            "timeout",
+            "memory limit",
+            "connection timeout",
+            "render deployment",
+            "health check",
+            "502 Bad Gateway",
+            "503 Service Unavailable",
+            "worker timeout",
+            "gunicorn timeout",
+            "uvicorn timeout",
+        ]
+        
+        # Convert to lowercase for case-insensitive matching
+        error_lower = error_log.lower()
+        
+        # Check if the error is primarily Render infrastructure noise
+        # Using a ratio-based approach to handle mixed scenarios
+        render_matches = sum(1 for pattern in render_noise_patterns if pattern in error_lower)
+        
+        # Code-specific patterns that indicate actual logic issues
+        code_patterns = [
+            "traceback",
+            "exception",
+            "error:",
+            "failed:",
+            "assert",
+            "syntax",
+            "import",
+            "module",
+            "function",
+            "class",
+        ]
+        
+        code_matches = sum(1 for pattern in code_patterns if pattern in error_lower)
+        
+        # Filter if Render noise is significantly higher than code patterns
+        # and meets minimum threshold.
+        # Special case: if code_matches is 0, only filter if render noise is present
+        # to avoid filtering legitimate infrastructure issues
+        if render_matches >= self.MIN_RENDER_NOISE_THRESHOLD:
+            if code_matches == 0:
+                # Pure infrastructure noise with no code context - filter it
+                logger.info(f"Filtered out Render system noise: {error_log[:100]}...")
+                return None
+            elif render_matches > code_matches * 2:
+                # Render noise significantly outweighs code patterns - likely infrastructure issue
+                logger.info(f"Filtered out Render system noise: {error_log[:100]}...")
+                return None
+        
+        return error_log
+    
+    def _get_recent_error_log(self) -> Tuple[Optional[str], bool]:
         """
         Get the most recent error log from command history.
         
         Returns:
-            Error message from the most recent failed command, or None
+            Tuple of (error_message, had_error_before_filtering)
+            - error_message: Filtered error message, or None if filtered out as Render noise
+            - had_error_before_filtering: True if an error was found in command history
+              (before noise filtering), False if no error was found in history
         """
         try:
             # Search through command history for the most recent error
@@ -556,11 +634,14 @@ class AssistantService:
                 if not item.get("success", True):
                     error_msg = item.get("message", "")
                     if error_msg:
-                        return error_msg
-            return None
+                        # Filter out Render noise
+                        filtered_error = self._filter_render_noise(error_msg)
+                        # Return filtered error and flag indicating we had an error
+                        return (filtered_error, True)
+            return (None, False)
         except Exception as e:
             logger.warning(f"Error retrieving error log: {e}")
-            return None
+            return (None, False)
     
     def _get_system_info(self) -> Dict[str, Any]:
         """
@@ -583,6 +664,8 @@ class AssistantService:
         """
         Synchronously handle report issue command.
         
+        CHANGED: Now creates Pull Requests instead of Issues for autonomous correction.
+        
         Args:
             params: Command parameters
             
@@ -600,17 +683,34 @@ class AssistantService:
         if not issue_description:
             return Response(
                 success=False,
-                message="Descrição da issue é obrigatória",
+                message="Descrição da correção é obrigatória",
                 error="MISSING_DESCRIPTION",
             )
         
-        # Get the most recent error log from history
-        error_log = self._get_recent_error_log()
+        # Get the most recent error log from history (filtered for Render noise)
+        error_log, had_error = self._get_recent_error_log()
+        
+        # If we had an error but it was filtered out as Render noise, skip creating a PR
+        if had_error and error_log is None:
+            logger.info("Skipping PR creation - error was filtered as Render system noise")
+            return Response(
+                success=True,
+                message="Erro detectado como ruído de infraestrutura do Render. Nenhuma ação necessária.",
+                data={"filtered": True}
+            )
         
         # Get system information
         system_info = self._get_system_info()
         
-        # Create the issue asynchronously
+        # Create comprehensive improvement context from system info
+        context_parts = [
+            f"Platform: {system_info.get('platform', 'unknown')}",
+            f"Python: {system_info.get('python_version', 'unknown')}",
+            f"Architecture: {system_info.get('architecture', 'unknown')}"
+        ]
+        improvement_context = "\n".join(context_parts)
+        
+        # Create PR for autonomous correction instead of Issue
         try:
             # Check if we're already in an async context
             try:
@@ -625,44 +725,47 @@ class AssistantService:
             except RuntimeError:
                 # No running loop - safe to use asyncio.run()
                 result = asyncio.run(
-                    self.github_adapter.create_issue(
+                    self.github_adapter.report_for_auto_correction(
                         title=issue_description,
                         description=issue_description,
                         error_log=error_log,
-                        system_info=system_info,
+                        improvement_context=improvement_context,
                     )
                 )
             
             if result.get("success"):
-                issue_number = result.get("issue_number")
+                pr_number = result.get("pr_number")
                 # Field Engineer style: concise, direct response
-                message = f"Issue #{issue_number} aberta no GitHub. O auto-reparo está em standby."
+                message = f"PR #{pr_number} criada. Jarvis Autonomous State Machine ativado para correção."
                 return Response(
                     success=True,
                     message=message,
                     data={
-                        "issue_number": issue_number,
-                        "issue_url": result.get("issue_url"),
+                        "pr_number": pr_number,
+                        "pr_url": result.get("pr_url"),
+                        "branch": result.get("branch"),
                     }
                 )
             else:
                 error = result.get("error", "Erro desconhecido")
                 return Response(
                     success=False,
-                    message=f"Falha ao criar issue: {error}",
+                    message=f"Falha ao criar PR: {error}",
                     error="GITHUB_API_ERROR",
                 )
         except Exception as e:
-            logger.error(f"Error creating GitHub issue: {e}")
+            logger.error(f"Error creating auto-correction PR: {e}")
             return Response(
                 success=False,
-                message=f"Erro ao criar issue: {str(e)}",
+                message=f"Erro ao criar PR: {str(e)}",
                 error="EXECUTION_ERROR",
             )
     
     async def _handle_report_issue_async(self, params: dict) -> Response:
         """
         Asynchronously handle report issue command.
+        
+        CHANGED: Now creates Pull Requests instead of Issues for autonomous correction.
         
         Args:
             params: Command parameters
@@ -681,48 +784,66 @@ class AssistantService:
         if not issue_description:
             return Response(
                 success=False,
-                message="Descrição da issue é obrigatória",
+                message="Descrição da correção é obrigatória",
                 error="MISSING_DESCRIPTION",
             )
         
-        # Get the most recent error log from history
-        error_log = self._get_recent_error_log()
+        # Get the most recent error log from history (filtered for Render noise)
+        error_log, had_error = self._get_recent_error_log()
+        
+        # If we had an error but it was filtered out as Render noise, skip creating a PR
+        if had_error and error_log is None:
+            logger.info("Skipping PR creation - error was filtered as Render system noise")
+            return Response(
+                success=True,
+                message="Erro detectado como ruído de infraestrutura do Render. Nenhuma ação necessária.",
+                data={"filtered": True}
+            )
         
         # Get system information
         system_info = self._get_system_info()
         
-        # Create the issue asynchronously
+        # Create comprehensive improvement context from system info
+        context_parts = [
+            f"Platform: {system_info.get('platform', 'unknown')}",
+            f"Python: {system_info.get('python_version', 'unknown')}",
+            f"Architecture: {system_info.get('architecture', 'unknown')}"
+        ]
+        improvement_context = "\n".join(context_parts)
+        
+        # Create PR for autonomous correction instead of Issue
         try:
-            result = await self.github_adapter.create_issue(
+            result = await self.github_adapter.report_for_auto_correction(
                 title=issue_description,
                 description=issue_description,
                 error_log=error_log,
-                system_info=system_info,
+                improvement_context=improvement_context,
             )
             
             if result.get("success"):
-                issue_number = result.get("issue_number")
+                pr_number = result.get("pr_number")
                 # Field Engineer style: concise, direct response
-                message = f"Issue #{issue_number} aberta no GitHub. O auto-reparo está em standby."
+                message = f"PR #{pr_number} criada. Jarvis Autonomous State Machine ativado para correção."
                 return Response(
                     success=True,
                     message=message,
                     data={
-                        "issue_number": issue_number,
-                        "issue_url": result.get("issue_url"),
+                        "pr_number": pr_number,
+                        "pr_url": result.get("pr_url"),
+                        "branch": result.get("branch"),
                     }
                 )
             else:
                 error = result.get("error", "Erro desconhecido")
                 return Response(
                     success=False,
-                    message=f"Falha ao criar issue: {error}",
+                    message=f"Falha ao criar PR: {error}",
                     error="GITHUB_API_ERROR",
                 )
         except Exception as e:
-            logger.error(f"Error creating GitHub issue: {e}")
+            logger.error(f"Error creating auto-correction PR: {e}")
             return Response(
                 success=False,
-                message=f"Erro ao criar issue: {str(e)}",
+                message=f"Erro ao criar PR: {str(e)}",
                 error="EXECUTION_ERROR",
             )
