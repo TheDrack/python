@@ -394,15 +394,15 @@ def create_api_server(assistant_service: AssistantService, extension_manager: Ex
         }
         
         .terminal {
-            flex: 1;
             background: rgba(0, 0, 0, 0.6);
             border: 2px solid #00d4ff;
             border-radius: 10px;
             padding: 20px;
             margin-bottom: 20px;
-            overflow-y: auto;
+            overflow-y: scroll;
             box-shadow: 0 0 30px rgba(0, 212, 255, 0.2);
-            min-height: 400px;
+            height: 500px;
+            max-height: 500px;
         }
         
         .message {
@@ -705,7 +705,8 @@ def create_api_server(assistant_service: AssistantService, extension_manager: Ex
             }
             
             .terminal {
-                min-height: 300px;
+                height: 400px;
+                max-height: 400px;
                 padding: 15px;
             }
             
