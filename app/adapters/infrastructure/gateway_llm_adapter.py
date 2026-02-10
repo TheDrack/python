@@ -6,6 +6,7 @@ between multiple LLM providers through the AI Gateway.
 """
 
 import asyncio
+import functools
 import json
 import logging
 import os
@@ -35,15 +36,12 @@ class GatewayLLMCommandAdapter:
     """
     
     # System instruction for conversational responses - uses Xerife personality from AgentService
-    # This is cached at class level for performance
-    _SYSTEM_INSTRUCTION = None
-    
-    @classmethod
-    def get_system_instruction(cls) -> str:
-        """Get the system instruction, caching it for performance."""
-        if cls._SYSTEM_INSTRUCTION is None:
-            cls._SYSTEM_INSTRUCTION = AgentService.get_system_instruction()
-        return cls._SYSTEM_INSTRUCTION
+    # Using functools.lru_cache for thread-safe initialization
+    @staticmethod
+    @functools.lru_cache(maxsize=1)
+    def get_system_instruction() -> str:
+        """Get the system instruction (thread-safe, cached)."""
+        return AgentService.get_system_instruction()
     
     # Default model for auto-fix recommendations
     # Update this when new models are released

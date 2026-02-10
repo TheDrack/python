@@ -231,9 +231,9 @@ jobs:
           fi
           
           # Build detailed review body
-          REVIEW_BODY="# 🚨 INTERVENÇÃO HUMANA NECESSÁRIA
+          REVIEW_BODY="## 🚨 INTERVENÇÃO HUMANA NECESSÁRIA
           
-          ## $STATUS - Auto-Repair Review Request
+          ### $STATUS - Auto-Repair Review Request
 
           **Estado Final:** \`$FINAL_STATE\`
           **Motivo:** $REASON
