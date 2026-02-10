@@ -396,6 +396,13 @@ class GitHubAdapter:
 ### Instrução Autônoma
 O arquivo `autonomous_instruction.json` foi criado na raiz do repositório com os detalhes completos da correção/melhoria solicitada.
 
+### 🔧 Copilot Workspace (Fallback Manual)
+Se preferir editar manualmente ou o workflow automático falhar, você pode abrir o Copilot Workspace diretamente:
+
+**[🚀 Abrir no Copilot Workspace](https://github.com/codespaces/copilot-workspace?repo_id={os.getenv('GITHUB_REPOSITORY_ID', self.repo_owner + '/' + self.repo_name)}&branch={branch_name})**
+
+Este link abre o ambiente de edição do GitHub Copilot Agent diretamente, com o plano de correção já traçado.
+
 ---
 *Pull Request criada automaticamente pelo protocolo de auto-correção do Jarvis*
 *Esta PR dispara o workflow Jarvis Autonomous State Machine para correção autônoma*
