@@ -543,6 +543,9 @@ class AssistantService:
         # For now, we return None for standard commands
         return None
     
+    # Constants for noise filtering
+    MIN_RENDER_NOISE_THRESHOLD = 2  # Minimum Render noise patterns to trigger filtering
+    
     def _filter_render_noise(self, error_log: Optional[str]) -> Optional[str]:
         """
         Filter out Render deployment system noise from error logs.
@@ -597,18 +600,20 @@ class AssistantService:
         code_matches = sum(1 for pattern in code_patterns if pattern in error_lower)
         
         # If it's mostly Render noise with minimal code context, filter it out
-        if render_matches >= 2 and code_matches == 0:
+        if render_matches >= self.MIN_RENDER_NOISE_THRESHOLD and code_matches == 0:
             logger.info(f"Filtered out Render system noise: {error_log[:100]}...")
             return None
         
         return error_log
     
-    def _get_recent_error_log(self) -> Optional[str]:
+    def _get_recent_error_log(self) -> tuple[Optional[str], bool]:
         """
         Get the most recent error log from command history.
         
         Returns:
-            Error message from the most recent failed command, or None
+            Tuple of (error_message, had_error_before_filtering)
+            - error_message: Filtered error message, or None if filtered out
+            - had_error_before_filtering: True if there was an error before filtering
         """
         try:
             # Search through command history for the most recent error
@@ -618,12 +623,12 @@ class AssistantService:
                     if error_msg:
                         # Filter out Render noise
                         filtered_error = self._filter_render_noise(error_msg)
-                        if filtered_error:
-                            return filtered_error
-            return None
+                        # Return filtered error and flag indicating we had an error
+                        return (filtered_error, True)
+            return (None, False)
         except Exception as e:
             logger.warning(f"Error retrieving error log: {e}")
-            return None
+            return (None, False)
     
     def _get_system_info(self) -> Dict[str, Any]:
         """
@@ -670,11 +675,10 @@ class AssistantService:
             )
         
         # Get the most recent error log from history (filtered for Render noise)
-        error_log = self._get_recent_error_log()
+        error_log, had_error = self._get_recent_error_log()
         
-        # If error_log is None after filtering, it means it was Render noise
-        # In this case, skip creating a PR
-        if error_log is None and "erro" in issue_description.lower():
+        # If we had an error but it was filtered out as Render noise, skip creating a PR
+        if had_error and error_log is None:
             logger.info("Skipping PR creation - error was filtered as Render system noise")
             return Response(
                 success=True,
@@ -767,11 +771,10 @@ class AssistantService:
             )
         
         # Get the most recent error log from history (filtered for Render noise)
-        error_log = self._get_recent_error_log()
+        error_log, had_error = self._get_recent_error_log()
         
-        # If error_log is None after filtering, it means it was Render noise
-        # In this case, skip creating a PR
-        if error_log is None and "erro" in issue_description.lower():
+        # If we had an error but it was filtered out as Render noise, skip creating a PR
+        if had_error and error_log is None:
             logger.info("Skipping PR creation - error was filtered as Render system noise")
             return Response(
                 success=True,
