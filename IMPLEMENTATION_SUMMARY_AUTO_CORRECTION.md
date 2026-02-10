@@ -72,8 +72,8 @@ async def report_for_auto_correction(
 ```bash
 ======================== 23 passed, 1 warning in 3.27s =========================
 ```
-- **19 existing tests**: All passing (no regressions)
-- **4 new tests**: All passing
+- **18 existing tests**: All passing (no regressions)
+- **5 new tests**: All passing
 
 ### 4. Documentation
 

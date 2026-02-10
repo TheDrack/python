@@ -288,10 +288,14 @@ class GitHubAdapter:
         try:
             import json
             from datetime import datetime
+            import random
+            import string
             
-            # Generate unique branch name with timestamp
-            timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
-            branch_name = f"auto-fix/{timestamp}"
+            # Generate unique branch name with timestamp and random suffix
+            # Include microseconds and random suffix to avoid collisions
+            timestamp = datetime.now().strftime("%Y%m%d-%H%M%S-%f")
+            random_suffix = ''.join(random.choices(string.ascii_lowercase + string.digits, k=4))
+            branch_name = f"auto-fix/{timestamp}-{random_suffix}"
             
             # Prepare autonomous_instruction.json content
             instruction_data = {
@@ -350,7 +354,6 @@ class GitHubAdapter:
             )
             
             # Encode content as base64
-            import base64
             encoded_content = base64.b64encode(instruction_content.encode("utf-8")).decode("ascii")
             
             file_payload = {

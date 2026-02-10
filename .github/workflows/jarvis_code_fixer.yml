@@ -114,16 +114,30 @@ jobs:
           echo "DISPATCH_ISSUE_NUMBER=$ISSUE_NUMBER" >> $GITHUB_ENV
           echo "DISPATCH_ISSUE_BODY=$ISSUE_BODY" >> $GITHUB_ENV
 
+      - name: Check for Auto-Fix PR
+        id: check_auto_fix
+        if: github.event_name == 'pull_request'
+        run: |
+          # Check if this is an auto-fix PR by looking for autonomous_instruction.json
+          if [ -f "autonomous_instruction.json" ]; then
+            echo "AUTO_FIX_PR=true" >> $GITHUB_ENV
+            echo "Auto-fix PR detected - autonomous_instruction.json found"
+            cat autonomous_instruction.json
+          else
+            echo "AUTO_FIX_PR=false" >> $GITHUB_ENV
+            echo "Regular PR - no autonomous_instruction.json"
+          fi
+
       - name: Run Pytest (The Judge)
         id: tester
-        if: github.event_name != 'repository_dispatch'
+        if: github.event_name != 'repository_dispatch' && env.AUTO_FIX_PR != 'true'
         run: |
           pytest --json-report --json-report-file=report.json || echo "TESTS_FAILED=true" >> $GITHUB_ENV
         continue-on-error: true
 
       - name: Self-Healing Logic
         id: healing_engine
-        if: env.TESTS_FAILED == 'true' || github.event_name == 'repository_dispatch'
+        if: env.TESTS_FAILED == 'true' || github.event_name == 'repository_dispatch' || env.AUTO_FIX_PR == 'true'
         env:
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -139,8 +153,21 @@ jobs:
           git config --global user.name "Jarvis-Auto-Fixer"
           git config --global user.email "jarvis@bot.com"
           
-          # Run auto-fixer (use standard mode for repository_dispatch, state machine mode for tests)
-          if [[ "${{ github.event_name }}" == "repository_dispatch" ]]; then
+          # Run auto-fixer based on context
+          if [[ "${{ env.AUTO_FIX_PR }}" == "true" ]]; then
+            echo "Running in auto-fix PR mode with autonomous_instruction.json"
+            # Read the autonomous instruction file
+            if [ -f "autonomous_instruction.json" ]; then
+              echo "Reading autonomous_instruction.json:"
+              INSTRUCTION=$(cat autonomous_instruction.json | jq -r '.description')
+              ERROR_LOG=$(cat autonomous_instruction.json | jq -r '.error_log // ""')
+              echo "Instruction: $INSTRUCTION"
+              echo "Error Log: $ERROR_LOG"
+              
+              # Run auto-fixer with the instruction
+              python scripts/auto_fixer_logic.py --instruction "$INSTRUCTION" --error-log "$ERROR_LOG"
+            fi
+          elif [[ "${{ github.event_name }}" == "repository_dispatch" ]]; then
             echo "Running in standard mode (no pytest report)"
             python scripts/auto_fixer_logic.py
           else

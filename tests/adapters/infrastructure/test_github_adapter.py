@@ -431,7 +431,6 @@ class TestGitHubAdapter:
             assert "branch" in file_payload
             
             # Decode and verify file content
-            import base64
             import json
             decoded_content = base64.b64decode(file_payload["content"]).decode("utf-8")
             instruction_data = json.loads(decoded_content)
@@ -576,7 +575,6 @@ class TestGitHubAdapter:
             put_call_args = mock_client.put.call_args
             file_payload = put_call_args[1]["json"]
             
-            import base64
             import json
             decoded_content = base64.b64decode(file_payload["content"]).decode("utf-8")
             instruction_data = json.loads(decoded_content)

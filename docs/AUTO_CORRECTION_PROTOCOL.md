@@ -16,7 +16,7 @@ The Jarvis Auto-Correction Protocol enables autonomous self-healing without manu
 ┌─────────────────────────────────────────────────┐
 │  GitHubAdapter.report_for_auto_correction()     │
 │                                                  │
-│  1. Create auto-fix/{timestamp} branch          │
+│  1. Create auto-fix/{timestamp}-{random} branch │
 │  2. Create autonomous_instruction.json at root  │
 │  3. Commit changes                              │
 │  4. Open Pull Request to main                   │
@@ -28,7 +28,8 @@ The Jarvis Auto-Correction Protocol enables autonomous self-healing without manu
 │  - Title: 🤖 Auto-fix: {description}            │
 │  - Body: Contains "Jarvis Autonomous State      │
 │          Machine" keyword                       │
-│  - Branch: auto-fix/{timestamp}                 │
+│  - Branch: auto-fix/{timestamp}-{random}        │
+│  - File: autonomous_instruction.json            │
 └──────────┬──────────────────────────────────────┘
            │
            ▼
@@ -37,9 +38,10 @@ The Jarvis Auto-Correction Protocol enables autonomous self-healing without manu
 │  (.github/workflows/jarvis_code_fixer.yml)      │
 │                                                  │
 │  - Triggered by pull_request event              │
-│  - Reads autonomous_instruction.json            │
+│  - Checks for autonomous_instruction.json       │
+│  - If found, reads instruction and runs         │
+│    auto-fixer immediately (no test run)         │
 │  - Applies corrections using GitHub Copilot     │
-│  - Runs tests                                   │
 │  - Auto-commits fixes                           │
 └──────────┬──────────────────────────────────────┘
            │
