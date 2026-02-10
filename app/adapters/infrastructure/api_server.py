@@ -167,7 +167,7 @@ def create_api_server(assistant_service: AssistantService, extension_manager: Ex
     async def root():
         """
         Root endpoint - Stark Industries command interface
-        Serves the main HTML UI for interacting with Jarvis
+        Serves the main HTML UI for interacting with Jarvis with authentication and voice input
         """
         html_content = """
 <!DOCTYPE html>
@@ -220,6 +220,120 @@ def create_api_server(assistant_service: AssistantService, extension_manager: Ex
             background: rgba(0, 212, 255, 0.1);
             border: 1px solid #00d4ff;
             border-radius: 20px;
+            font-size: 0.9em;
+        }
+        
+        .user-info {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            font-size: 0.9em;
+        }
+        
+        .logout-btn {
+            margin-left: 15px;
+            background: rgba(255, 0, 0, 0.2);
+            border: 1px solid #ff0000;
+            border-radius: 5px;
+            padding: 5px 10px;
+            color: #ff0000;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .logout-btn:hover {
+            background: rgba(255, 0, 0, 0.4);
+            box-shadow: 0 0 10px rgba(255, 0, 0, 0.5);
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(5px);
+        }
+        
+        .modal.active {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .modal-content {
+            background: linear-gradient(135deg, #0a0e27 0%, #1a1f3a 100%);
+            padding: 40px;
+            border: 2px solid #00d4ff;
+            border-radius: 10px;
+            box-shadow: 0 0 40px rgba(0, 212, 255, 0.5);
+            max-width: 400px;
+            width: 90%;
+        }
+        
+        .modal-content h2 {
+            text-align: center;
+            margin-bottom: 30px;
+            text-shadow: 0 0 10px #00d4ff;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 0.9em;
+            letter-spacing: 1px;
+        }
+        
+        .form-group input {
+            width: 100%;
+            background: rgba(0, 0, 0, 0.6);
+            border: 2px solid #00d4ff;
+            border-radius: 5px;
+            padding: 12px;
+            color: #00d4ff;
+            font-family: 'Courier New', monospace;
+            font-size: 1em;
+            outline: none;
+            transition: all 0.3s;
+        }
+        
+        .form-group input:focus {
+            border-color: #00ff88;
+            box-shadow: 0 0 15px rgba(0, 255, 136, 0.3);
+        }
+        
+        .login-btn {
+            width: 100%;
+            background: linear-gradient(135deg, #00d4ff 0%, #0088cc 100%);
+            border: none;
+            border-radius: 5px;
+            padding: 15px;
+            color: #0a0e27;
+            font-weight: bold;
+            font-family: 'Courier New', monospace;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            transition: all 0.3s;
+            box-shadow: 0 0 20px rgba(0, 212, 255, 0.3);
+        }
+        
+        .login-btn:hover {
+            background: linear-gradient(135deg, #00ff88 0%, #00cc66 100%);
+            box-shadow: 0 0 30px rgba(0, 255, 136, 0.5);
+        }
+        
+        .error-message {
+            color: #ff0000;
+            text-align: center;
+            margin-top: 15px;
             font-size: 0.9em;
         }
         
@@ -299,6 +413,33 @@ def create_api_server(assistant_service: AssistantService, extension_manager: Ex
             box-shadow: 0 0 15px rgba(0, 255, 136, 0.3);
         }
         
+        #voiceButton {
+            background: rgba(0, 0, 0, 0.6);
+            border: 2px solid #00d4ff;
+            border-radius: 5px;
+            padding: 15px 20px;
+            color: #00d4ff;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 1.2em;
+        }
+        
+        #voiceButton:hover {
+            border-color: #00ff88;
+            box-shadow: 0 0 15px rgba(0, 255, 136, 0.3);
+        }
+        
+        #voiceButton.recording {
+            background: rgba(255, 0, 0, 0.3);
+            border-color: #ff0000;
+            animation: pulse 1s ease-in-out infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { box-shadow: 0 0 15px rgba(255, 0, 0, 0.5); }
+            50% { box-shadow: 0 0 30px rgba(255, 0, 0, 0.8); }
+        }
+        
         #sendButton {
             background: linear-gradient(135deg, #00d4ff 0%, #0088cc 100%);
             border: none;
@@ -354,44 +495,264 @@ def create_api_server(assistant_service: AssistantService, extension_manager: Ex
         @keyframes spin {
             to { transform: rotate(360deg); }
         }
+        
+        .hidden {
+            display: none !important;
+        }
     </style>
 </head>
 <body>
-    <div class="header">
-        <h1>J.A.R.V.I.S.</h1>
-        <div class="status">● SYSTEM ONLINE</div>
+    <!-- Login Modal -->
+    <div id="loginModal" class="modal active">
+        <div class="modal-content">
+            <h2>J.A.R.V.I.S. ACCESS</h2>
+            <form id="loginForm">
+                <div class="form-group">
+                    <label for="username">USERNAME</label>
+                    <input type="text" id="username" name="username" required autocomplete="username">
+                </div>
+                <div class="form-group">
+                    <label for="password">PASSWORD</label>
+                    <input type="password" id="password" name="password" required autocomplete="current-password">
+                </div>
+                <button type="submit" class="login-btn">AUTHENTICATE</button>
+                <div id="loginError" class="error-message"></div>
+            </form>
+        </div>
     </div>
     
-    <div class="container">
-        <div class="terminal" id="terminal">
-            <div class="message system">
-                <div class="message-label">System</div>
-                <div>J.A.R.V.I.S. Command Interface initialized. Ready for input.</div>
+    <!-- Main Interface -->
+    <div id="mainInterface" class="hidden">
+        <div class="header">
+            <h1>J.A.R.V.I.S.</h1>
+            <div class="status">● SYSTEM ONLINE</div>
+            <div class="user-info">
+                <span id="userDisplay"></span>
+                <button class="logout-btn" id="logoutBtn">LOGOUT</button>
             </div>
         </div>
         
-        <div class="loading" id="loading">
-            <div class="spinner"></div>
-            <span style="margin-left: 10px;">Processing...</span>
-        </div>
-        
-        <div class="input-area">
-            <input 
-                type="text" 
-                id="commandInput" 
-                placeholder="Enter command..."
-                autocomplete="off"
-            />
-            <button id="sendButton">Execute</button>
+        <div class="container">
+            <div class="terminal" id="terminal">
+                <div class="message system">
+                    <div class="message-label">System</div>
+                    <div>J.A.R.V.I.S. Command Interface initialized. Ready for input.</div>
+                </div>
+            </div>
+            
+            <div class="loading" id="loading">
+                <div class="spinner"></div>
+                <span style="margin-left: 10px;">Processing...</span>
+            </div>
+            
+            <div class="input-area">
+                <button id="voiceButton" title="Voice Input">🎤</button>
+                <input 
+                    type="text" 
+                    id="commandInput" 
+                    placeholder="Enter command or use voice..."
+                    autocomplete="off"
+                />
+                <button id="sendButton">Execute</button>
+            </div>
         </div>
     </div>
     
     <script>
+        // Authentication management
+        const AUTH_TOKEN_KEY = 'jarvis_auth_token';
+        const AUTH_USER_KEY = 'jarvis_auth_user';
+        const TOKEN_EXPIRY_KEY = 'jarvis_token_expiry';
+        const ACTIVITY_TIMEOUT = 30 * 60 * 1000; // 30 minutes
+        let lastActivity = Date.now();
+        let activityCheckInterval;
+        
+        // UI Elements
+        const loginModal = document.getElementById('loginModal');
+        const mainInterface = document.getElementById('mainInterface');
+        const loginForm = document.getElementById('loginForm');
+        const loginError = document.getElementById('loginError');
+        const userDisplay = document.getElementById('userDisplay');
+        const logoutBtn = document.getElementById('logoutBtn');
         const terminal = document.getElementById('terminal');
         const commandInput = document.getElementById('commandInput');
         const sendButton = document.getElementById('sendButton');
+        const voiceButton = document.getElementById('voiceButton');
         const loading = document.getElementById('loading');
         
+        // Voice recognition
+        let recognition = null;
+        let isRecording = false;
+        
+        // Initialize Web Speech API
+        if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            recognition = new SpeechRecognition();
+            recognition.continuous = false;
+            recognition.interimResults = false;
+            recognition.lang = 'pt-BR'; // Portuguese Brazilian
+            
+            recognition.onresult = (event) => {
+                const transcript = event.results[0][0].transcript;
+                commandInput.value = transcript;
+                addMessage(`Voice captured: ${transcript}`, 'system');
+            };
+            
+            recognition.onerror = (event) => {
+                console.error('Speech recognition error:', event.error);
+                addMessage(`Voice error: ${event.error}`, 'system');
+                isRecording = false;
+                voiceButton.classList.remove('recording');
+            };
+            
+            recognition.onend = () => {
+                isRecording = false;
+                voiceButton.classList.remove('recording');
+            };
+        } else {
+            // Hide voice button if not supported
+            voiceButton.style.display = 'none';
+        }
+        
+        // Check authentication on load
+        function checkAuth() {
+            const token = localStorage.getItem(AUTH_TOKEN_KEY);
+            const expiry = localStorage.getItem(TOKEN_EXPIRY_KEY);
+            
+            if (token && expiry && Date.now() < parseInt(expiry)) {
+                const user = localStorage.getItem(AUTH_USER_KEY);
+                showMainInterface(user);
+                startActivityMonitoring();
+                return true;
+            } else {
+                logout();
+                return false;
+            }
+        }
+        
+        // Login function
+        async function login(username, password) {
+            try {
+                const formData = new URLSearchParams();
+                formData.append('username', username);
+                formData.append('password', password);
+                
+                const response = await fetch('/token', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: formData
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Invalid credentials');
+                }
+                
+                const data = await response.json();
+                
+                // Store token and expiry (24 hours)
+                localStorage.setItem(AUTH_TOKEN_KEY, data.access_token);
+                localStorage.setItem(AUTH_USER_KEY, username);
+                localStorage.setItem(TOKEN_EXPIRY_KEY, Date.now() + (24 * 60 * 60 * 1000));
+                
+                showMainInterface(username);
+                startActivityMonitoring();
+            } catch (error) {
+                loginError.textContent = 'Authentication failed. Please check your credentials.';
+                throw error;
+            }
+        }
+        
+        // Logout function
+        function logout() {
+            localStorage.removeItem(AUTH_TOKEN_KEY);
+            localStorage.removeItem(AUTH_USER_KEY);
+            localStorage.removeItem(TOKEN_EXPIRY_KEY);
+            
+            if (activityCheckInterval) {
+                clearInterval(activityCheckInterval);
+            }
+            
+            loginModal.classList.add('active');
+            mainInterface.classList.add('hidden');
+            loginError.textContent = '';
+        }
+        
+        // Show main interface
+        function showMainInterface(username) {
+            userDisplay.textContent = `User: ${username}`;
+            loginModal.classList.remove('active');
+            mainInterface.classList.remove('hidden');
+            commandInput.focus();
+        }
+        
+        // Activity monitoring
+        function updateActivity() {
+            lastActivity = Date.now();
+        }
+        
+        function checkActivity() {
+            const token = localStorage.getItem(AUTH_TOKEN_KEY);
+            if (!token) return;
+            
+            const timeSinceActivity = Date.now() - lastActivity;
+            if (timeSinceActivity > ACTIVITY_TIMEOUT) {
+                addMessage('Session expired due to inactivity', 'system');
+                setTimeout(() => logout(), 2000);
+            }
+        }
+        
+        function startActivityMonitoring() {
+            // Update activity on user interaction
+            ['mousedown', 'keydown', 'scroll', 'touchstart'].forEach(event => {
+                document.addEventListener(event, updateActivity);
+            });
+            
+            // Check activity every minute
+            activityCheckInterval = setInterval(checkActivity, 60000);
+        }
+        
+        // Login form handler
+        loginForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            loginError.textContent = '';
+            
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            
+            try {
+                await login(username, password);
+            } catch (error) {
+                console.error('Login error:', error);
+            }
+        });
+        
+        // Logout handler
+        logoutBtn.addEventListener('click', logout);
+        
+        // Voice button handler
+        if (voiceButton) {
+            voiceButton.addEventListener('click', () => {
+                if (!recognition) {
+                    addMessage('Voice recognition not supported in this browser', 'system');
+                    return;
+                }
+                
+                if (isRecording) {
+                    recognition.stop();
+                    isRecording = false;
+                    voiceButton.classList.remove('recording');
+                } else {
+                    recognition.start();
+                    isRecording = true;
+                    voiceButton.classList.add('recording');
+                    addMessage('Listening... Speak now', 'system');
+                }
+            });
+        }
+        
+        // Add message to terminal
         function addMessage(text, type = 'system') {
             const messageDiv = document.createElement('div');
             messageDiv.className = `message ${type}`;
@@ -411,9 +772,16 @@ def create_api_server(assistant_service: AssistantService, extension_manager: Ex
             terminal.scrollTop = terminal.scrollHeight;
         }
         
+        // Send command function
         async function sendCommand() {
             const command = commandInput.value.trim();
             if (!command) return;
+            
+            const token = localStorage.getItem(AUTH_TOKEN_KEY);
+            if (!token) {
+                logout();
+                return;
+            }
             
             // Add user message
             addMessage(command, 'user');
@@ -426,22 +794,23 @@ def create_api_server(assistant_service: AssistantService, extension_manager: Ex
             loading.classList.add('active');
             
             try {
-                // Note: This endpoint requires authentication
-                // For production use, implement OAuth2 token authentication
-                const response = await fetch('/v1/message', {
+                const response = await fetch('/v1/execute', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
                     },
                     body: JSON.stringify({
-                        message: command,
+                        command: command,
                         source: 'web_ui'
                     })
                 });
                 
                 if (!response.ok) {
                     if (response.status === 401) {
-                        throw new Error('Authentication required. Please configure API credentials.');
+                        addMessage('Session expired. Please login again.', 'system');
+                        setTimeout(() => logout(), 2000);
+                        return;
                     }
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
@@ -449,13 +818,15 @@ def create_api_server(assistant_service: AssistantService, extension_manager: Ex
                 const data = await response.json();
                 
                 // Add response
-                if (data.response) {
+                if (data.result) {
+                    addMessage(data.result, 'system');
+                } else if (data.response) {
                     addMessage(data.response, 'system');
-                } else if (data.message) {
-                    addMessage(data.message, 'system');
                 } else {
                     addMessage('Command executed successfully', 'system');
                 }
+                
+                updateActivity();
             } catch (error) {
                 addMessage(`Error: ${error.message}`, 'system');
                 console.error('Error:', error);
@@ -477,8 +848,8 @@ def create_api_server(assistant_service: AssistantService, extension_manager: Ex
             }
         });
         
-        // Focus input on load
-        commandInput.focus();
+        // Initialize app
+        checkAuth();
     </script>
 </body>
 </html>
