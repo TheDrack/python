@@ -426,6 +426,8 @@ def create_api_server(assistant_service: AssistantService, extension_manager: Ex
             loading.classList.add('active');
             
             try {
+                // Note: This endpoint requires authentication
+                // For production use, implement OAuth2 token authentication
                 const response = await fetch('/v1/message', {
                     method: 'POST',
                     headers: {
@@ -438,6 +440,9 @@ def create_api_server(assistant_service: AssistantService, extension_manager: Ex
                 });
                 
                 if (!response.ok) {
+                    if (response.status === 401) {
+                        throw new Error('Authentication required. Please configure API credentials.');
+                    }
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
                 
