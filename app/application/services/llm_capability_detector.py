@@ -367,7 +367,7 @@ Be conservative - only mark as "complete" if you see clear, working implementati
             "recommendations": ["Enable AI Gateway for accurate capability detection"]
         }
 
-    def _resolve_provider(self, provider_setting: str):
+    def _resolve_provider(self, provider_setting: str) -> Optional[LLMProvider]:
         """Resolve provider based on configuration"""
         provider_setting = provider_setting.lower()
         if provider_setting == "groq":

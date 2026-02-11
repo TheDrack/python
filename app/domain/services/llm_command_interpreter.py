@@ -238,7 +238,7 @@ Seja preciso e confiante. Se não tiver certeza, use confidence < 0.7."""
                 logger.warning(f"Invalid command type from LLM: {command_type_raw}")
                 return self._fallback_interpretation(raw_input)
             
-            command_type_str = command_type_raw.upper()
+            command_type_str = str(command_type_raw).upper()
             try:
                 command_type = CommandType[command_type_str]
             except KeyError:
@@ -284,7 +284,7 @@ Seja preciso e confiante. Se não tiver certeza, use confidence < 0.7."""
             confidence=0.3,
         )
 
-    def _resolve_provider(self, provider_setting: str):
+    def _resolve_provider(self, provider_setting: str) -> Optional[LLMProvider]:
         """Resolve provider based on configuration"""
         provider_setting = provider_setting.lower()
         if provider_setting == "groq":
