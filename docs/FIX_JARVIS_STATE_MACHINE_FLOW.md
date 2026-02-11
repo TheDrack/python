@@ -393,8 +393,10 @@ run: |
 1. ➕ Adicionado step "Initialize State Variables" (linha 68-72)
 2. 🔧 Modificada condição do "Run Pytest" (linha 140)
 3. 🔧 Modificada condição do "Self-Healing Logic" (linha 147)
-4. 🔧 Adicionado fallback `|| github.token` para todos os tokens (linhas 78-79, 150-152, 215-216)
-5. ➕ Adicionado autenticação explícita do gh CLI com `gh auth login` (linha 160-163)
+4. 🔧 Configurado token `secrets.JARVIS_TOKEN_CI` com fallback para `github.token` (linhas 78-79, 155-157, 227-228)
+5. ➕ Adicionado autenticação explícita do gh CLI com `gh auth login` (linhas 167-169)
+6. 🔧 Corrigido multi-line env var com sintaxe heredoc (linhas 121-128)
+7. 🔧 Removido fallback PR number de ISSUE_NUMBER (linha 159)
 
 **Diff Completo:**
 ```diff
@@ -476,9 +478,11 @@ pytest tests/test_state_machine.py -v
 - ✅ Fluxo completo funcionando para todos os eventos
 - ✅ Integração correta com Jarvis API
 - ✅ Auto-correção funcionando para issues
-- ✅ Tokens sempre têm fallback para `github.token`
+- ✅ Token `JARVIS_TOKEN_CI` com fallback para `github.token` para resiliência
 - ✅ `gh` CLI autentica corretamente em todos os cenários
 - ✅ Comandos `gh copilot explain` e `gh copilot suggest` funcionam corretamente
+- ✅ Multi-line env vars tratadas corretamente com heredoc
+- ✅ ISSUE_NUMBER não tenta fechar PRs incorretamente
 
 ---
 
