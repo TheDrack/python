@@ -30,13 +30,12 @@ class LLMCommandInterpreter:
         self.wake_word = wake_word
         self.ai_gateway = ai_gateway
         
-        # Fallback to keyword-based if no AI Gateway
+        # Always initialize fallback interpreter for reliability
+        from app.domain.services.command_interpreter import CommandInterpreter
+        self._fallback_interpreter = CommandInterpreter(wake_word=wake_word)
+        
         if not self.ai_gateway:
-            logger.warning("No AI Gateway provided, will use basic fallback logic")
-            from app.domain.services.command_interpreter import CommandInterpreter
-            self._fallback_interpreter = CommandInterpreter(wake_word=wake_word)
-        else:
-            self._fallback_interpreter = None
+            logger.warning("No AI Gateway provided, will use keyword-based fallback")
 
     async def interpret_async(self, raw_input: str) -> Intent:
         """

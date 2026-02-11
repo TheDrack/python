@@ -141,7 +141,8 @@ def create_command_interpreter(wake_word: str = "xerife", ai_gateway=None):
     Returns:
         Either LLMCommandInterpreter or CommandInterpreter based on configuration
     """
-    if LLMConfig.USE_LLM_COMMAND_INTERPRETATION and ai_gateway:
+    # Check if LLM is enabled AND ai_gateway is provided
+    if LLMConfig.USE_LLM_COMMAND_INTERPRETATION and ai_gateway is not None:
         from app.domain.services.llm_command_interpreter import LLMCommandInterpreter
         logger.info("Creating LLM-based command interpreter")
         return LLMCommandInterpreter(wake_word=wake_word, ai_gateway=ai_gateway)

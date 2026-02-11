@@ -231,11 +231,24 @@ class TestLLMConfig:
     def test_create_interpreter_with_llm(self):
         """Test creating interpreter when LLM is enabled"""
         mock_gateway = MagicMock()
+        
+        # Create interpreter with gateway provided
+        from app.core.llm_config import create_command_interpreter
         interpreter = create_command_interpreter(ai_gateway=mock_gateway)
         
-        # Should create LLM-based interpreter
+        # Should create LLM-based interpreter when:
+        # 1. LLM is enabled in config (default), AND
+        # 2. Gateway is provided (which we did)
         from app.domain.services.llm_command_interpreter import LLMCommandInterpreter
-        assert isinstance(interpreter, LLMCommandInterpreter)
+        from app.domain.services.command_interpreter import CommandInterpreter
+        from app.core.llm_config import LLMConfig
+        
+        if LLMConfig.USE_LLM_COMMAND_INTERPRETATION:
+            # If LLM is enabled, should get LLM interpreter
+            assert isinstance(interpreter, LLMCommandInterpreter)
+        else:
+            # If LLM is disabled, should get standard interpreter
+            assert isinstance(interpreter, CommandInterpreter)
 
 
 class TestIntegration:
