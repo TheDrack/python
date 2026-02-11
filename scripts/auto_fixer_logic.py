@@ -544,8 +544,9 @@ class AutoFixer:
             # The -p flag allows the prompt to be passed as an argument, avoiding interactive
             # prompts and stdin requirements, which is essential for automation environments
             # Note: subprocess.run with list form safely handles arguments without shell interpretation
+            # Using Claude Sonnet 4.5 as the default model for GitHub Agents as specified
             result = subprocess.run(
-                ["gh", "copilot", "explain", "-p", sanitized_error],
+                ["gh", "copilot", "--model", "claude-sonnet-4.5", "explain", "-p", sanitized_error],
                 capture_output=True,
                 text=True,
                 timeout=60,
@@ -585,8 +586,9 @@ class AutoFixer:
             # The -p flag allows the prompt to be passed as an argument, avoiding interactive
             # prompts and stdin requirements, which is essential for automation environments
             # Note: subprocess.run with list form safely handles arguments without shell interpretation
+            # Using Claude Sonnet 4.5 as the default model for GitHub Agents as specified
             result = subprocess.run(
-                ["gh", "copilot", "suggest", "-t", "shell", "-p", sanitized_prompt],
+                ["gh", "copilot", "--model", "claude-sonnet-4.5", "suggest", "-t", "shell", "-p", sanitized_prompt],
                 capture_output=True,
                 text=True,
                 timeout=60,
@@ -679,9 +681,9 @@ File: {file_path}
 
 Show me the corrected version of this file: {temp_code_file}"""
                 
-                # Use suggest to get the fix
+                # Use suggest to get the fix with Claude Sonnet 4.5 as default model
                 result = subprocess.run(
-                    ["gh", "copilot", "suggest", fix_prompt],
+                    ["gh", "copilot", "--model", "claude-sonnet-4.5", "suggest", fix_prompt],
                     capture_output=True,
                     text=True,
                     timeout=90,
