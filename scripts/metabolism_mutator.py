@@ -68,7 +68,7 @@ class MetabolismMutator:
                 ['gh', 'copilot', '--version'],
                 capture_output=True,
                 text=True,
-                timeout=10
+                timeout=self.COPILOT_CHECK_TIMEOUT
             )
             if result.returncode == 0:
                 logger.info("✅ GitHub Copilot CLI disponível")
