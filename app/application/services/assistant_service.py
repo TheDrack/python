@@ -114,12 +114,8 @@ class AssistantService:
         Returns:
             Response object with execution result
         """
-        # Interpret the command
-        interpret_async = getattr(self.interpreter, 'interpret_async', None)
-        if interpret_async and asyncio.iscoroutinefunction(interpret_async):
-            intent = await interpret_async(user_input)
-        else:
-            intent = self.interpreter.interpret(user_input)
+        # Interpret the command (sync version)
+        intent = self.interpreter.interpret(user_input)
         logger.info(f"Interpreted intent: {intent.command_type} with params: {intent.parameters}")
 
         # Handle unknown commands with conversational AI if available
