@@ -7,7 +7,7 @@
 
 ## Sumário Executivo
 
-Identificamos e corrigimos **5 problemas críticos** no fluxo do Jarvis Autonomous State Machine que causavam comportamento imprevisível devido a variáveis de ambiente não inicializadas, condições lógicas incorretas, tokens GitHub vazios, e falta de autenticação do gh CLI no workflow do GitHub Actions.
+Identificamos e corrigimos **5 problemas críticos** no fluxo do Jarvis Autonomous State Machine que causavam comportamento imprevisível devido a variáveis de ambiente não inicializadas, condições lógicas incorretas, tokens GitHub vazios, falta de autenticação do gh CLI, e problemas com variáveis multi-line no workflow do GitHub Actions. Adicionalmente, configuramos o token dedicado `JARVIS_TOKEN_CI` para autenticação consistente.
 
 ## Problema Reportado
 
@@ -202,52 +202,64 @@ if: env.TESTS_FAILED == 'true' || github.event_name == 'repository_dispatch' || 
 
 ---
 
-### ✅ Correção #4: Fallback para Tokens GitHub Vazios
+### ✅ Correção #4: Configuração de Token Dedicado e Fix Multi-line Env Var
 
 **Arquivo:** `.github/workflows/jarvis_code_fixer.yml`  
-**Linhas:** 78-79, 150-152, 215-216
+**Linhas:** 78-79, 121-128, 155-157, 225-226
 
-**Problema Identificado:**
-```
-Log do erro:
-  GITHUB_TOKEN: 
-  GH_TOKEN: 
-  COPILOT_GITHUB_TOKEN: 
-  gh: To use GitHub CLI in a GitHub Actions workflow, set the GH_TOKEN environment variable.
-  Process completed with exit code 1.
+**Problemas Identificados:**
+
+1. **Multi-line environment variable quebrava $GITHUB_ENV:**
+```bash
+# Problema: Formato KEY=value não suporta multi-line
+echo "DISPATCH_ISSUE_BODY=$ISSUE_BODY" >> $GITHUB_ENV
 ```
 
-**Causa:**
-- `secrets.JARVIS_RENDER_TOKEN` pode estar vazio ou não configurado
-- Sem fallback, os tokens ficam vazios
-- `gh` CLI falha porque precisa de autenticação válida
+2. **Token não configurado adequadamente:**
+- Workflow usava `JARVIS_RENDER_TOKEN` com fallback para `github.token`
+- Necessário usar token dedicado `JARVIS_TOKEN_CI`
 
-**Antes:**
+**Soluções Aplicadas:**
+
+**1. Fix Multi-line Env Var (linha 121-128):**
 ```yaml
-env:
-  GITHUB_TOKEN: ${{ secrets.JARVIS_RENDER_TOKEN }}
-  GH_TOKEN: ${{ secrets.JARVIS_RENDER_TOKEN }}
-  COPILOT_GITHUB_TOKEN: ${{ secrets.JARVIS_RENDER_TOKEN }}
+# Antes:
+echo "DISPATCH_ISSUE_BODY=$ISSUE_BODY" >> $GITHUB_ENV
+
+# Depois (heredoc syntax):
+{
+  echo "DISPATCH_ISSUE_BODY<<EOF"
+  echo "$ISSUE_BODY"
+  echo "EOF"
+} >> $GITHUB_ENV
 ```
 
-**Depois:**
+**2. Configuração de Token Dedicado:**
 ```yaml
+# Antes:
 env:
   GITHUB_TOKEN: ${{ secrets.JARVIS_RENDER_TOKEN || github.token }}
   GH_TOKEN: ${{ secrets.JARVIS_RENDER_TOKEN || github.token }}
   COPILOT_GITHUB_TOKEN: ${{ secrets.JARVIS_RENDER_TOKEN || github.token }}
+
+# Depois:
+env:
+  GITHUB_TOKEN: ${{ secrets.JARVIS_TOKEN_CI }}
+  GH_TOKEN: ${{ secrets.JARVIS_TOKEN_CI }}
+  COPILOT_GITHUB_TOKEN: ${{ secrets.JARVIS_TOKEN_CI }}
 ```
 
 **Benefícios:**
-- ✅ Se `JARVIS_RENDER_TOKEN` estiver vazio, usa `github.token` (token padrão do Actions)
-- ✅ `gh` CLI sempre tem um token válido para autenticação
-- ✅ Workflow não falha por falta de token
-- ✅ Funciona tanto com token customizado quanto com token padrão
+- ✅ Multi-line env vars funcionam corretamente sem quebrar $GITHUB_ENV
+- ✅ Token dedicado `JARVIS_TOKEN_CI` configurado em todos os steps
+- ✅ Workflow usa token consistente e controlado
+- ✅ Elimina dependência de fallback para token padrão
 
-**Locais Corrigidos:**
-1. **Handle Repository Dispatch** - Criação de issues via API
-2. **Self-Healing Logic** - Execução do auto-fixer
-3. **Request Human Review** - Comentários em issues
+**Locais Atualizados:**
+1. **Handle Repository Dispatch** - Criação de issues via API (linhas 78-79)
+2. **Self-Healing Logic** - Execução do auto-fixer (linhas 155-157)
+3. **Request Human Review** - Comentários em issues (linhas 225-226)
+4. **Multi-line Fix** - DISPATCH_ISSUE_BODY heredoc (linhas 121-128)
 
 ---
 
