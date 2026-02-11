@@ -117,6 +117,9 @@ class MetabolismAnalyzer:
         'api contract',
     ]
     
+    # Constantes para validação
+    MIN_CONTEXT_LENGTH = 100  # Mínimo de caracteres de contexto para prosseguir automaticamente
+    
     def __init__(self, repo_path: Optional[str] = None):
         """
         Inicializa o analisador metabólico
@@ -467,7 +470,7 @@ class MetabolismAnalyzer:
                 }
         
         # Verificar contexto insuficiente
-        if len(context) < 100:  # Muito pouco contexto
+        if len(context) < self.MIN_CONTEXT_LENGTH:
             return {
                 'required': True,
                 'reason': EscalationReason.INSUFFICIENT_INFORMATION.value
