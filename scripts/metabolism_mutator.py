@@ -43,6 +43,10 @@ class MetabolismMutator:
     Mecânico Consertador - Implementa mutagênese controlada no DNA
     """
     
+    # Timeouts e constantes de configuração
+    COPILOT_TIMEOUT_SECONDS = 60  # Timeout para consultas ao GitHub Copilot
+    COPILOT_CHECK_TIMEOUT = 10    # Timeout para verificação de disponibilidade
+    
     def __init__(self, repo_path: Optional[str] = None):
         """
         Inicializa o mutador metabólico

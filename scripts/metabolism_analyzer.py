@@ -118,8 +118,24 @@ class MetabolismAnalyzer:
         'api contract',
     ]
     
-    # Constantes para validação
+    # Constantes para validação e coleta de contexto
     MIN_CONTEXT_LENGTH = 100  # Mínimo de caracteres de contexto para prosseguir automaticamente
+    """
+    Threshold mínimo de contexto (100 caracteres) antes de permitir metabolismo automático.
+    
+    Se o contexto fornecido for menor que este valor, o sistema escalona ao COMANDANTE
+    por informação insuficiente. Este valor foi escolhido considerando que uma descrição
+    mínima útil deve conter:
+    - Tipo do problema (~20 chars)
+    - Descrição básica (~50 chars)
+    - Contexto mínimo (~30 chars)
+    
+    Ajuste este valor se necessário, mas valores muito baixos (<50) podem resultar em
+    mutações mal informadas, enquanto valores muito altos (>200) podem escalonar
+    desnecessariamente.
+    """
+    MAX_COMMITS_TO_FETCH = 10  # Número de commits recentes para contexto
+    GIT_OPERATION_TIMEOUT = 10  # Timeout em segundos para operações git
     
     def __init__(self, repo_path: Optional[str] = None):
         """
@@ -247,11 +263,11 @@ class MetabolismAnalyzer:
         # Coletar commits recentes
         try:
             recent_commits = subprocess.run(
-                ['git', 'log', '--oneline', '-10'],
+                ['git', 'log', '--oneline', f'-{self.MAX_COMMITS_TO_FETCH}'],
                 capture_output=True,
                 text=True,
                 cwd=self.repo_path,
-                timeout=10
+                timeout=self.GIT_OPERATION_TIMEOUT
             )
             if recent_commits.returncode == 0:
                 context_parts.append(f"## Commits Recentes\n{recent_commits.stdout}\n")
@@ -265,7 +281,7 @@ class MetabolismAnalyzer:
                 capture_output=True,
                 text=True,
                 cwd=self.repo_path,
-                timeout=10
+                timeout=self.GIT_OPERATION_TIMEOUT
             )
             if git_status.returncode == 0 and git_status.stdout.strip():
                 context_parts.append(f"## Status do Repositório\n{git_status.stdout}\n")
