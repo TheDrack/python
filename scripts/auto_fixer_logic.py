@@ -215,6 +215,34 @@ class AutoFixer:
         # Add a note about truncation
         return f"[Log truncated - showing last {max_size} characters]\n...\n{truncated}"
     
+    def _sanitize_prompt(self, prompt: str) -> str:
+        """
+        Sanitize prompt text for gh copilot CLI commands.
+        Removes problematic characters that could break shell commands.
+        
+        Args:
+            prompt: The raw prompt text
+            
+        Returns:
+            Sanitized prompt safe for command line usage
+        """
+        # Replace newlines with spaces to create a single-line prompt
+        sanitized = prompt.replace('\n', ' ').replace('\r', ' ')
+        
+        # Replace multiple spaces with single space (this also normalizes tabs)
+        sanitized = re.sub(r'\s+', ' ', sanitized)
+        
+        # Remove control characters, keep only printable ASCII characters (32-126)
+        # This removes Unicode to prevent shell issues in automation environments
+        # ASCII 32 is space (first printable character), 127 is DEL (control character)
+        # Trade-off: May strip non-English characters, but ensures reliable CLI execution
+        sanitized = re.sub(r'[^\x20-\x7E]', '', sanitized)
+        
+        # Strip leading/trailing whitespace
+        sanitized = sanitized.strip()
+        
+        return sanitized
+    
     def _check_gh_cli(self) -> bool:
         """Check if GitHub CLI is installed and authenticated"""
         try:
@@ -509,34 +537,28 @@ class AutoFixer:
             # Truncate error message to prevent terminal overflow
             truncated_error = self._truncate_log(error_message)
             
-            # Create a temporary file with the error message
-            with tempfile.NamedTemporaryFile(mode='w', suffix='.txt', delete=False) as f:
-                f.write(truncated_error)
-                temp_file = f.name
+            # Sanitize the error message for command line usage
+            sanitized_error = self._sanitize_prompt(truncated_error)
             
-            try:
-                # Use gh copilot explain command
-                result = subprocess.run(
-                    ["gh", "copilot", "explain", truncated_error],
-                    capture_output=True,
-                    text=True,
-                    timeout=60,
-                    cwd=self.repo_path,
-                )
-                
-                if result.returncode == 0:
-                    explanation = result.stdout.strip()
-                    logger.info(f"✓ Received explanation from GitHub Copilot ({len(explanation)} chars)")
-                    return explanation
-                else:
-                    logger.error(f"GitHub Copilot explain failed: {result.stderr}")
-                    return None
-            finally:
-                # Clean up temp file
-                try:
-                    os.unlink(temp_file)
-                except:
-                    pass
+            # Use gh copilot explain command with -p flag for non-interactive mode
+            # The -p flag allows the prompt to be passed as an argument, avoiding interactive
+            # prompts and stdin requirements, which is essential for automation environments
+            # Note: subprocess.run with list form safely handles arguments without shell interpretation
+            result = subprocess.run(
+                ["gh", "copilot", "explain", "-p", sanitized_error],
+                capture_output=True,
+                text=True,
+                timeout=60,
+                cwd=self.repo_path,
+            )
+            
+            if result.returncode == 0:
+                explanation = result.stdout.strip()
+                logger.info(f"✓ Received explanation from GitHub Copilot ({len(explanation)} chars)")
+                return explanation
+            else:
+                logger.error(f"GitHub Copilot explain failed: {result.stderr}")
+                return None
                     
         except Exception as e:
             logger.error(f"Error calling gh copilot explain: {e}")
@@ -556,16 +578,19 @@ class AutoFixer:
             # Truncate prompt to prevent terminal overflow (allows more context than logs)
             truncated_prompt = self._truncate_log(prompt, max_size=MAX_PROMPT_SIZE)
             
-            # Use gh copilot suggest command with shell target for general suggestions
-            # Note: Empty input string is provided via stdin, but actual behavior depends on
-            # gh copilot implementation. May require user interaction in some cases.
+            # Sanitize the prompt for command line usage
+            sanitized_prompt = self._sanitize_prompt(truncated_prompt)
+            
+            # Use gh copilot suggest command with -p flag for non-interactive mode
+            # The -p flag allows the prompt to be passed as an argument, avoiding interactive
+            # prompts and stdin requirements, which is essential for automation environments
+            # Note: subprocess.run with list form safely handles arguments without shell interpretation
             result = subprocess.run(
-                ["gh", "copilot", "suggest", "-t", "shell", truncated_prompt],
+                ["gh", "copilot", "suggest", "-t", "shell", "-p", sanitized_prompt],
                 capture_output=True,
                 text=True,
                 timeout=60,
                 cwd=self.repo_path,
-                input="",  # Attempt to auto-accept, but may not work in all cases
             )
             
             if result.returncode == 0:

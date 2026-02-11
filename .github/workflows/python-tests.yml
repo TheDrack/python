@@ -37,7 +37,7 @@ jobs:
         uv pip install sqlmodel
         
         # 5. Ferramentas de Teste
-        uv pip install pytest pytest-cov mock
+        uv pip install pytest pytest-cov pytest-asyncio mock
         
         # 6. System Automation (needed for setup wizard)
         uv pip install pyperclip==1.8.2
