@@ -49,3 +49,6 @@ COMMENT ON COLUMN jarvis_capabilities.capability_name IS 'Human-readable name of
 COMMENT ON COLUMN jarvis_capabilities.status IS 'Current implementation status: nonexistent, partial, or complete';
 COMMENT ON COLUMN jarvis_capabilities.requirements IS 'JSON array of technical requirements needed for this capability';
 COMMENT ON COLUMN jarvis_capabilities.implementation_logic IS 'Description of how this capability is/should be implemented';
+
+-- Enable Row Level Security (RLS) for data protection
+ALTER TABLE jarvis_capabilities ENABLE ROW LEVEL SECURITY;

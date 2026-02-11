@@ -30,3 +30,6 @@ COMMENT ON COLUMN evolution_rewards.reward_value IS 'Reward points (positive for
 COMMENT ON COLUMN evolution_rewards.context_data IS 'JSON context about the action (test names, error messages, metrics, etc.)';
 COMMENT ON COLUMN evolution_rewards.meta_data IS 'Additional metadata (user_id, session_id, deployment_id, etc.)';
 COMMENT ON COLUMN evolution_rewards.created_at IS 'Timestamp when the reward was logged';
+
+-- Enable Row Level Security (RLS) for data protection
+ALTER TABLE evolution_rewards ENABLE ROW LEVEL SECURITY;
