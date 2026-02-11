@@ -23,6 +23,7 @@ Critérios de Escalonamento Antecipado:
 """
 
 import argparse
+import datetime
 import json
 import logging
 import os
@@ -489,7 +490,6 @@ class MetabolismAnalyzer:
             analysis_dir.mkdir(parents=True, exist_ok=True)
             
             # Nome do arquivo com timestamp
-            import datetime
             timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
             filename = f"analysis_{timestamp}.json"
             

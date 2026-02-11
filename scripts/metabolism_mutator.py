@@ -20,6 +20,7 @@ Princípios:
 """
 
 import argparse
+import datetime
 import json
 import logging
 import os
@@ -243,7 +244,6 @@ Mudança: <descrição da mudança>
             marker_dir = self.repo_path / ".github" / "metabolism_markers"
             marker_dir.mkdir(parents=True, exist_ok=True)
             
-            import datetime
             timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
             marker_file = marker_dir / f"mutation_{timestamp}.md"
             
@@ -320,7 +320,6 @@ O Mecânico Consertador identificou que esta mutação requer implementação ma
             log_dir = self.repo_path / ".github" / "metabolism_logs"
             log_dir.mkdir(parents=True, exist_ok=True)
             
-            import datetime
             timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
             filename = f"mutation_{timestamp}.json"
             
