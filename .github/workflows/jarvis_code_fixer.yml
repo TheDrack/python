@@ -157,6 +157,11 @@ jobs:
           gh --version
           gh extension install github/gh-copilot || echo "Copilot extension already installed"
           
+          # Authenticate gh CLI with the token
+          # The GH_TOKEN env var is already set, but we need to ensure gh CLI uses it
+          echo "$GH_TOKEN" | gh auth login --with-token || echo "Already authenticated"
+          gh auth status
+          
           # Setup git authentication with the token
           gh auth setup-git
           
