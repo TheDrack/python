@@ -65,6 +65,12 @@ jobs:
             pip install -r requirements/dev.txt || echo "Some dev dependencies failed, continuing..."
           fi
 
+      - name: Initialize State Variables
+        run: |
+          # Initialize state variables to prevent undefined behavior
+          echo "AUTO_FIX_PR=false" >> $GITHUB_ENV
+          echo "TESTS_FAILED=false" >> $GITHUB_ENV
+
       - name: Handle Repository Dispatch (Jarvis API)
         id: handle_dispatch
         if: github.event_name == 'repository_dispatch'
@@ -131,14 +137,14 @@ jobs:
 
       - name: Run Pytest (The Judge)
         id: tester
-        if: github.event_name != 'repository_dispatch' && env.AUTO_FIX_PR != 'true'
+        if: github.event_name == 'pull_request' && env.AUTO_FIX_PR != 'true'
         run: |
           pytest --json-report --json-report-file=report.json || echo "TESTS_FAILED=true" >> $GITHUB_ENV
         continue-on-error: true
 
       - name: Self-Healing Logic
         id: healing_engine
-        if: env.TESTS_FAILED == 'true' || github.event_name == 'repository_dispatch' || env.AUTO_FIX_PR == 'true'
+        if: env.TESTS_FAILED == 'true' || github.event_name == 'repository_dispatch' || github.event_name == 'issues' || env.AUTO_FIX_PR == 'true'
         env:
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
           GITHUB_TOKEN: ${{ secrets.JARVIS_RENDER_TOKEN }}
