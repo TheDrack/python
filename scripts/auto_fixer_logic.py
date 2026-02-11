@@ -233,7 +233,9 @@ class AutoFixer:
         sanitized = re.sub(r'\s+', ' ', sanitized)
         
         # Remove control characters, keep only printable ASCII characters (32-126)
+        # This removes Unicode to prevent shell issues in automation environments
         # ASCII 32 is space (first printable character), 127 is DEL (control character)
+        # Trade-off: May strip non-English characters, but ensures reliable CLI execution
         sanitized = re.sub(r'[^\x20-\x7E]', '', sanitized)
         
         # Strip leading/trailing whitespace
