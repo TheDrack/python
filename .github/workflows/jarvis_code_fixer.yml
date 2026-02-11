@@ -156,7 +156,7 @@ jobs:
           GH_TOKEN: ${{ secrets.JARVIS_TOKEN_CI }}
           COPILOT_GITHUB_TOKEN: ${{ secrets.JARVIS_TOKEN_CI }}
           ISSUE_BODY: ${{ github.event_name == 'repository_dispatch' && env.DISPATCH_ISSUE_BODY || (github.event_name == 'issues' && github.event.issue.body || '') }}
-          ISSUE_NUMBER: ${{ github.event_name == 'repository_dispatch' && env.DISPATCH_ISSUE_NUMBER || (github.event.issue.number || github.event.pull_request.number) }}
+          ISSUE_NUMBER: ${{ github.event_name == 'repository_dispatch' && env.DISPATCH_ISSUE_NUMBER || github.event.issue.number || '' }}
         run: |
           # Install GitHub CLI Copilot extension
           gh --version
@@ -164,7 +164,9 @@ jobs:
           
           # Authenticate gh CLI with the token
           # The GH_TOKEN env var is already set, but we need to ensure gh CLI uses it
-          echo "$GH_TOKEN" | gh auth login --with-token || echo "Already authenticated"
+          if ! gh auth status &>/dev/null; then
+            echo "$GH_TOKEN" | gh auth login --with-token
+          fi
           gh auth status
           
           # Setup git authentication with the token
