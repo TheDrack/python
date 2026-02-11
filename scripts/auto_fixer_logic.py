@@ -232,8 +232,10 @@ class AutoFixer:
         # Replace multiple spaces with single space
         sanitized = re.sub(r'\s+', ' ', sanitized)
         
-        # Remove null bytes and other control characters except tab
-        sanitized = ''.join(char for char in sanitized if char == '\t' or (ord(char) >= 32 and ord(char) != 127))
+        # Remove control characters except tab (ASCII 9)
+        # Keep printable characters (ASCII 32-126) plus tab
+        # ASCII 32 is space (first printable character), 127 is DEL (control character)
+        sanitized = re.sub(r'[^\t\x20-\x7E]', '', sanitized)
         
         # Strip leading/trailing whitespace
         sanitized = sanitized.strip()
@@ -537,36 +539,24 @@ class AutoFixer:
             # Sanitize the error message for command line usage
             sanitized_error = self._sanitize_prompt(truncated_error)
             
-            # Create a temporary file with the error message
-            with tempfile.NamedTemporaryFile(mode='w', suffix='.txt', delete=False) as f:
-                f.write(truncated_error)
-                temp_file = f.name
+            # Use gh copilot explain command with -p flag for non-interactive mode
+            # The -p flag allows the prompt to be passed as an argument, avoiding interactive
+            # prompts and stdin requirements, which is essential for automation environments
+            result = subprocess.run(
+                ["gh", "copilot", "explain", "-p", sanitized_error],
+                capture_output=True,
+                text=True,
+                timeout=60,
+                cwd=self.repo_path,
+            )
             
-            try:
-                # Use gh copilot explain command with -p flag for non-interactive mode
-                # The -p flag allows the prompt to be passed as an argument, avoiding interactive
-                # prompts and stdin requirements, which is essential for automation environments
-                result = subprocess.run(
-                    ["gh", "copilot", "explain", "-p", sanitized_error],
-                    capture_output=True,
-                    text=True,
-                    timeout=60,
-                    cwd=self.repo_path,
-                )
-                
-                if result.returncode == 0:
-                    explanation = result.stdout.strip()
-                    logger.info(f"✓ Received explanation from GitHub Copilot ({len(explanation)} chars)")
-                    return explanation
-                else:
-                    logger.error(f"GitHub Copilot explain failed: {result.stderr}")
-                    return None
-            finally:
-                # Clean up temp file
-                try:
-                    os.unlink(temp_file)
-                except:
-                    pass
+            if result.returncode == 0:
+                explanation = result.stdout.strip()
+                logger.info(f"✓ Received explanation from GitHub Copilot ({len(explanation)} chars)")
+                return explanation
+            else:
+                logger.error(f"GitHub Copilot explain failed: {result.stderr}")
+                return None
                     
         except Exception as e:
             logger.error(f"Error calling gh copilot explain: {e}")
