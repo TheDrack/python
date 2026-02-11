@@ -53,6 +53,13 @@ from app.core.config import settings
 
 logger = logging.getLogger(__name__)
 
+# List of tables that should have RLS enabled for security
+# Update this list when adding new tables to the database
+RLS_PROTECTED_TABLES = [
+    'jarvis_capabilities',
+    'evolution_rewards',
+]
+
 # OAuth2 scheme for token authentication
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
@@ -1698,8 +1705,8 @@ def create_api_server(assistant_service: AssistantService, extension_manager: Ex
         }
         
         try:
-            # Check if database URL is configured
-            if not settings.database_url or settings.database_url == "sqlite:///jarvis.db":
+            # Check if database URL is configured for SQLite
+            if not settings.database_url or settings.database_url.startswith('sqlite://'):
                 # SQLite doesn't support RLS
                 response["database"]["connected"] = True
                 response["database"]["type"] = "sqlite"
@@ -1720,14 +1727,16 @@ def create_api_server(assistant_service: AssistantService, extension_manager: Ex
                     response["database"]["connected"] = True
                     
                     # Check RLS status for all tables in the public schema
-                    rls_query = text("""
+                    # Build the IN clause dynamically from RLS_PROTECTED_TABLES
+                    table_list = ", ".join(f"'{table}'" for table in RLS_PROTECTED_TABLES)
+                    rls_query = text(f"""
                         SELECT 
                             schemaname,
                             tablename,
                             rowsecurity
                         FROM pg_tables 
                         WHERE schemaname = 'public'
-                        AND tablename IN ('jarvis_capabilities', 'evolution_rewards')
+                        AND tablename IN ({table_list})
                         ORDER BY tablename
                     """)
                     

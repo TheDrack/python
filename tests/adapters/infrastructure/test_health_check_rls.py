@@ -9,6 +9,18 @@ from app.adapters.infrastructure import create_api_server
 from app.application.services import AssistantService
 
 
+# Test data constants
+TEST_TABLES_WITH_RLS = [
+    ('public', 'evolution_rewards', True),
+    ('public', 'jarvis_capabilities', True),
+]
+
+TEST_TABLES_WITHOUT_RLS = [
+    ('public', 'evolution_rewards', False),
+    ('public', 'jarvis_capabilities', False),
+]
+
+
 class TestHealthCheckRLS:
     """Test cases for RLS security health checks"""
 
@@ -63,10 +75,7 @@ class TestHealthCheckRLS:
                 def exec(self, query):
                     # Mock result for RLS query
                     result = Mock()
-                    result.fetchall.return_value = [
-                        ('public', 'evolution_rewards', True),
-                        ('public', 'jarvis_capabilities', True),
-                    ]
+                    result.fetchall.return_value = TEST_TABLES_WITH_RLS
                     return result
                     
                 def __enter__(self):
@@ -105,10 +114,7 @@ class TestHealthCheckRLS:
                 def exec(self, query):
                     # Mock result for RLS query - tables without RLS
                     result = Mock()
-                    result.fetchall.return_value = [
-                        ('public', 'evolution_rewards', False),
-                        ('public', 'jarvis_capabilities', False),
-                    ]
+                    result.fetchall.return_value = TEST_TABLES_WITHOUT_RLS
                     return result
                     
                 def __enter__(self):
