@@ -5,8 +5,9 @@ This interpreter replaces keyword-based pattern matching with LLM-based understa
 providing more accurate and flexible command interpretation.
 """
 
+import asyncio
 import logging
-from typing import Optional, Dict, Any
+from typing import Optional
 from app.domain.models import CommandType, Intent
 
 logger = logging.getLogger(__name__)
@@ -89,6 +90,18 @@ class LLMCommandInterpreter:
         Returns:
             Intent object with command type and parameters
         """
+        if self.ai_gateway:
+            try:
+                asyncio.get_running_loop()
+                logger.warning("Event loop already running, using keyword fallback for sync interpret")
+                return self._fallback_interpretation(raw_input)
+            except RuntimeError:
+                try:
+                    return asyncio.run(self.interpret_async(raw_input))
+                except Exception as e:
+                    logger.error(f"Sync LLM interpretation failed: {e}. Using fallback.", exc_info=True)
+                    return self._fallback_interpretation(raw_input)
+        
         if self._fallback_interpreter:
             return self._fallback_interpreter.interpret(raw_input)
         
@@ -125,6 +138,7 @@ class LLMCommandInterpreter:
             messages=messages,
             functions=None,
             multimodal=False,
+            force_provider=self._get_forced_provider(),
         )
         
         # Parse response to extract intent
@@ -215,7 +229,7 @@ Seja preciso e confiante. Se não tiver certeza, use confidence < 0.7."""
             data = json.loads(json_text)
             
             # Map string command type to enum
-            command_type_str = data.get("command_type", "UNKNOWN")
+            command_type_str = str(data.get("command_type", "UNKNOWN")).upper()
             try:
                 command_type = CommandType[command_type_str]
             except KeyError:
@@ -224,6 +238,13 @@ Seja preciso e confiante. Se não tiver certeza, use confidence < 0.7."""
             
             parameters = data.get("parameters", {})
             confidence = float(data.get("confidence", 0.7))
+            
+            if confidence < self._get_min_confidence():
+                logger.warning(
+                    f"LLM confidence {confidence:.2f} below minimum "
+                    f"{self._get_min_confidence():.2f}. Using fallback."
+                )
+                return self._fallback_interpretation(raw_input)
             
             logger.info(f"LLM classified as {command_type} with {confidence:.2f} confidence")
             logger.debug(f"LLM reasoning: {data.get('reasoning', 'N/A')}")
@@ -253,6 +274,23 @@ Seja preciso e confiante. Se não tiver certeza, use confidence < 0.7."""
             raw_input=raw_input,
             confidence=0.3,
         )
+
+    def _get_min_confidence(self) -> float:
+        """Get minimum confidence threshold from config"""
+        from app.core.llm_config import LLMConfig
+        return LLMConfig.MIN_COMMAND_CONFIDENCE
+
+    def _get_forced_provider(self):
+        """Get forced provider based on configuration"""
+        from app.core.llm_config import LLMConfig
+        from app.adapters.infrastructure.ai_gateway import LLMProvider
+        
+        provider_setting = LLMConfig.COMMAND_LLM_PROVIDER.lower()
+        if provider_setting == "groq":
+            return LLMProvider.GROQ
+        if provider_setting == "gemini":
+            return LLMProvider.GEMINI
+        return None
 
     def is_exit_command(self, raw_input: str) -> bool:
         """

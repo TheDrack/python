@@ -9,7 +9,6 @@ just looking for keywords.
 
 import json
 import logging
-import os
 from pathlib import Path
 from typing import Dict, List, Optional, Any
 
@@ -231,6 +230,7 @@ class LLMCapabilityDetector:
             messages=messages,
             functions=None,
             multimodal=False,
+            force_provider=self._get_forced_provider(),
         )
         
         # Extract and parse response
@@ -362,6 +362,18 @@ Be conservative - only mark as "complete" if you see clear, working implementati
             "files_found": [],
             "recommendations": ["Enable AI Gateway for accurate capability detection"]
         }
+
+    def _get_forced_provider(self):
+        """Get forced provider based on configuration"""
+        from app.core.llm_config import LLMConfig
+        from app.adapters.infrastructure.ai_gateway import LLMProvider
+        
+        provider_setting = LLMConfig.CAPABILITY_LLM_PROVIDER.lower()
+        if provider_setting == "groq":
+            return LLMProvider.GROQ
+        if provider_setting == "gemini":
+            return LLMProvider.GEMINI
+        return None
 
 
 class EnhancedCapabilityManager:
