@@ -53,6 +53,13 @@ from app.core.config import settings
 
 logger = logging.getLogger(__name__)
 
+# List of tables that should have RLS enabled for security
+# Update this list when adding new tables to the database
+RLS_PROTECTED_TABLES = [
+    'jarvis_capabilities',
+    'evolution_rewards',
+]
+
 # OAuth2 scheme for token authentication
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
@@ -1677,7 +1684,100 @@ def create_api_server(assistant_service: AssistantService, extension_manager: Ex
 
     @app.get("/health")
     async def health_check():
-        return {"status": "healthy", "version": "1.0.0"}
+        """
+        Health check endpoint that validates database connectivity and security settings.
+        
+        Returns:
+            JSON response with health status, database connectivity, and RLS security status
+        """
+        response = {
+            "status": "healthy",
+            "version": "1.0.0",
+            "database": {
+                "connected": False,
+                "type": "unknown"
+            },
+            "security": {
+                "rls_enabled": False,
+                "tables_checked": [],
+                "tables_without_rls": []
+            }
+        }
+        
+        try:
+            # Check if database URL is configured for SQLite
+            if not settings.database_url or settings.database_url.startswith('sqlite://'):
+                # SQLite doesn't support RLS
+                response["database"]["connected"] = True
+                response["database"]["type"] = "sqlite"
+                response["security"]["rls_enabled"] = "n/a"
+                response["security"]["note"] = "SQLite does not support Row Level Security"
+                return response
+            
+            # For PostgreSQL/Supabase databases, check RLS status
+            if "postgresql" in settings.database_url or "postgres" in settings.database_url:
+                response["database"]["type"] = "postgresql"
+                
+                # Try to connect and check RLS status
+                from sqlmodel import Session, text
+                
+                with Session(db_adapter.engine) as session:
+                    # Test database connectivity
+                    session.exec(text("SELECT 1"))
+                    response["database"]["connected"] = True
+                    
+                    # Check RLS status for all tables in the public schema
+                    # Build the IN clause dynamically from RLS_PROTECTED_TABLES
+                    table_list = ", ".join(f"'{table}'" for table in RLS_PROTECTED_TABLES)
+                    rls_query = text(f"""
+                        SELECT 
+                            schemaname,
+                            tablename,
+                            rowsecurity
+                        FROM pg_tables 
+                        WHERE schemaname = 'public'
+                        AND tablename IN ({table_list})
+                        ORDER BY tablename
+                    """)
+                    
+                    results = session.exec(rls_query).fetchall()
+                    
+                    tables_with_rls = []
+                    tables_without_rls = []
+                    
+                    for row in results:
+                        table_name = row[1]  # tablename
+                        rls_enabled = row[2]  # rowsecurity
+                        
+                        response["security"]["tables_checked"].append(table_name)
+                        
+                        if rls_enabled:
+                            tables_with_rls.append(table_name)
+                        else:
+                            tables_without_rls.append(table_name)
+                    
+                    response["security"]["tables_without_rls"] = tables_without_rls
+                    
+                    # All tables should have RLS enabled
+                    if len(tables_without_rls) == 0 and len(tables_with_rls) > 0:
+                        response["security"]["rls_enabled"] = True
+                        response["status"] = "healthy"
+                    elif len(tables_without_rls) > 0:
+                        response["security"]["rls_enabled"] = False
+                        response["status"] = "degraded"
+                        response["security"]["warning"] = f"Row Level Security is NOT enabled on: {', '.join(tables_without_rls)}"
+                    else:
+                        # No tables found
+                        response["security"]["rls_enabled"] = "unknown"
+                        response["security"]["note"] = "No tables found in database"
+                        
+        except Exception as e:
+            logger.error(f"Health check failed: {e}", exc_info=True)
+            response["status"] = "unhealthy"
+            response["database"]["connected"] = False
+            response["error"] = str(e)
+        
+        return response
 
     # Extension Manager Endpoints
 
