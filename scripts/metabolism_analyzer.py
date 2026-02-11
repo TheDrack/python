@@ -23,6 +23,7 @@ Critérios de Escalonamento Antecipado:
 """
 
 import argparse
+import asyncio
 import datetime
 import json
 import logging
@@ -40,6 +41,22 @@ logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
+
+# Import AI Gateway for LLM-based intent identification
+try:
+    # Add app directory to path
+    app_path = Path(__file__).parent.parent / "app"
+    if str(app_path) not in sys.path:
+        sys.path.insert(0, str(app_path))
+    
+    from adapters.infrastructure.ai_gateway import AIGateway, LLMProvider
+    HAS_AI_GATEWAY = True
+    logger.info("✅ AI Gateway disponível para identificação de intenção via LLM")
+except ImportError as e:
+    logger.warning(f"⚠️ AI Gateway não disponível, usando identificação por palavras-chave: {e}")
+    HAS_AI_GATEWAY = False
+    AIGateway = None
+    LLMProvider = None
 
 
 class IntentType(Enum):
@@ -137,14 +154,40 @@ class MetabolismAnalyzer:
     MAX_COMMITS_TO_FETCH = 10  # Número de commits recentes para contexto
     GIT_OPERATION_TIMEOUT = 10  # Timeout em segundos para operações git
     
-    def __init__(self, repo_path: Optional[str] = None):
+    def __init__(self, repo_path: Optional[str] = None, use_llm: bool = True):
         """
         Inicializa o analisador metabólico
         
         Args:
             repo_path: Caminho do repositório (padrão: diretório atual)
+            use_llm: Se True, usa LLM para identificação de intenção; se False, usa palavras-chave
         """
         self.repo_path = Path(repo_path) if repo_path else Path.cwd()
+        self.use_llm = use_llm and HAS_AI_GATEWAY
+        
+        # Initialize AI Gateway if available and requested
+        self.ai_gateway = None
+        if self.use_llm:
+            try:
+                groq_api_key = os.getenv('GROQ_API_KEY')
+                gemini_api_key = os.getenv('GOOGLE_API_KEY') or os.getenv('GEMINI_API_KEY')
+                
+                if groq_api_key or gemini_api_key:
+                    self.ai_gateway = AIGateway(
+                        groq_api_key=groq_api_key,
+                        gemini_api_key=gemini_api_key,
+                        default_provider=LLMProvider.GROQ,
+                    )
+                    logger.info("🤖 Mecânico Revisionador usando LLM para identificação de intenção")
+                else:
+                    logger.warning("⚠️ Nenhuma API key configurada, usando identificação por palavras-chave")
+                    self.use_llm = False
+            except Exception as e:
+                logger.warning(f"⚠️ Erro ao inicializar AI Gateway, usando palavras-chave: {e}")
+                self.use_llm = False
+        else:
+            logger.info("📝 Mecânico Revisionador usando identificação por palavras-chave")
+        
         logger.info(f"🔬 Mecânico Revisionador iniciado - DNA: {self.repo_path}")
     
     def analyze_event(
@@ -233,7 +276,116 @@ class MetabolismAnalyzer:
         return result
     
     def _classify_intent(self, intent: str, instruction: str) -> IntentType:
-        """Classifica a intenção técnica"""
+        """
+        Classifica a intenção técnica usando LLM (se disponível) ou palavras-chave
+        
+        Args:
+            intent: Intenção declarada pelo usuário
+            instruction: Instrução/descrição detalhada
+            
+        Returns:
+            IntentType classificado
+        """
+        # Usar LLM se disponível e configurado
+        if self.use_llm and self.ai_gateway:
+            try:
+                # Usar asyncio.run para executar código assíncrono
+                return asyncio.run(self._classify_intent_with_llm(intent, instruction))
+            except Exception as e:
+                logger.warning(f"⚠️ Erro ao classificar intenção com LLM: {e}")
+                logger.info("📝 Fallback para classificação por palavras-chave")
+        
+        # Fallback para classificação por palavras-chave
+        return self._classify_intent_with_keywords(intent, instruction)
+    
+    async def _classify_intent_with_llm(self, intent: str, instruction: str) -> IntentType:
+        """
+        Classifica a intenção técnica usando LLM
+        
+        Args:
+            intent: Intenção declarada pelo usuário
+            instruction: Instrução/descrição detalhada
+            
+        Returns:
+            IntentType classificado pela LLM
+        """
+        logger.info("🤖 Classificando intenção com LLM...")
+        
+        # Preparar prompt para LLM
+        prompt = f"""Você é um analisador técnico especializado em classificar intenções de mudanças em código.
+
+Analise a seguinte solicitação e classifique a intenção técnica em EXATAMENTE uma das seguintes categorias:
+- correção: Corrigir erros, bugs, falhas
+- criação: Criar novas funcionalidades, adicionar features
+- modificação: Modificar/alterar funcionalidades existentes
+- otimização: Otimizar performance, segurança, melhorar qualidade
+- operacional: Ações operacionais automatizadas, manutenção
+- validação: Validar, revisar, verificar mudanças propostas
+
+**Intenção declarada:** {intent}
+**Instrução/Descrição:** {instruction}
+
+Responda APENAS com uma das categorias acima (uma única palavra em português, sem acentos quando possível):
+correção, criação, modificação, otimização, operacional ou validação"""
+
+        messages = [
+            {"role": "user", "content": prompt}
+        ]
+        
+        try:
+            # Gerar resposta com LLM
+            response = await self.ai_gateway.generate_completion(messages)
+            
+            # Extrair resposta
+            llm_response = response.get('response', '').strip().lower()
+            
+            # Remover acentos para correspondência
+            llm_response_clean = llm_response.replace('ç', 'c').replace('ã', 'a').replace('ê', 'e')
+            
+            logger.info(f"🤖 LLM classificou como: {llm_response}")
+            
+            # Mapear resposta para IntentType
+            intent_mapping = {
+                'correção': IntentType.CORRECAO,
+                'correcao': IntentType.CORRECAO,
+                'criação': IntentType.CRIACAO,
+                'criacao': IntentType.CRIACAO,
+                'modificação': IntentType.MODIFICACAO,
+                'modificacao': IntentType.MODIFICACAO,
+                'otimização': IntentType.OTIMIZACAO,
+                'otimizacao': IntentType.OTIMIZACAO,
+                'operacional': IntentType.OPERACIONAL,
+                'validação': IntentType.VALIDACAO,
+                'validacao': IntentType.VALIDACAO,
+            }
+            
+            # Tentar correspondência direta
+            for key, value in intent_mapping.items():
+                if key in llm_response_clean or key in llm_response:
+                    logger.info(f"✅ Intenção identificada via LLM: {value.value}")
+                    return value
+            
+            # Se não encontrou correspondência, usar fallback
+            logger.warning(f"⚠️ LLM retornou classificação não reconhecida: '{llm_response}'")
+            logger.info("📝 Usando fallback para palavras-chave")
+            return self._classify_intent_with_keywords(intent, instruction)
+            
+        except Exception as e:
+            logger.error(f"❌ Erro ao classificar com LLM: {e}")
+            logger.info("📝 Usando fallback para palavras-chave")
+            return self._classify_intent_with_keywords(intent, instruction)
+    
+    def _classify_intent_with_keywords(self, intent: str, instruction: str) -> IntentType:
+        """
+        Classifica a intenção técnica usando palavras-chave (método legado/fallback)
+        
+        Args:
+            intent: Intenção declarada pelo usuário
+            instruction: Instrução/descrição detalhada
+            
+        Returns:
+            IntentType classificado por palavras-chave
+        """
         intent_lower = intent.lower()
         instruction_lower = instruction.lower()
         
@@ -569,11 +721,25 @@ def main():
         default=None,
         help='Caminho do repositório'
     )
+    parser.add_argument(
+        '--use-llm',
+        action='store_true',
+        default=True,
+        help='Usar LLM para identificação de intenção (padrão: True)'
+    )
+    parser.add_argument(
+        '--no-llm',
+        action='store_true',
+        help='Desabilitar LLM e usar apenas palavras-chave'
+    )
     
     args = parser.parse_args()
     
+    # Determinar se deve usar LLM
+    use_llm = not args.no_llm if args.no_llm else args.use_llm
+    
     # Criar analyzer e executar análise
-    analyzer = MetabolismAnalyzer(repo_path=args.repo_path)
+    analyzer = MetabolismAnalyzer(repo_path=args.repo_path, use_llm=use_llm)
     result = analyzer.analyze_event(
         intent=args.intent,
         instruction=args.instruction,

@@ -100,17 +100,16 @@ O fluxo pode ser iniciado por **QUALQUER evento** que demande ação sobre o DNA
 ### 2. MECÂNICO REVISIONADOR — Análise Metabólica
 
 **Apelido:** Mecânico Revisionador  
-**Identidade:** GitHub Copilot + Claude Code via GitHub CLI  
+**Identidade:** LLM (Groq/Gemini) via AI Gateway + GitHub Copilot  
 **Script:** `scripts/metabolism_analyzer.py`
 
 #### Responsabilidades Obrigatórias
 
-1. **Interpretar a intenção do evento:**
-   - `correção` - Corrigir erros
-   - `criação` - Criar novas funcionalidades
-   - `modificação` - Modificar funcionalidades existentes
-   - `otimização` - Otimizar performance/segurança
-   - `operacional` - Ações operacionais automatizadas
+1. **Interpretar a intenção do evento usando LLM:**
+   - Utiliza modelos de linguagem (LLM) para identificar a intenção técnica
+   - Classifica em: `correção`, `criação`, `modificação`, `otimização`, `operacional`
+   - Fallback para palavras-chave se LLM não disponível
+   - Mais preciso que simples correspondência de palavras-chave
 
 2. **Coletar contexto completo:**
    - Logs de erro
