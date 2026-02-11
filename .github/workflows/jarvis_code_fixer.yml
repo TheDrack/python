@@ -1,6 +1,28 @@
-name: Jarvis Autonomous State Machine
+name: Jarvis Autonomous State Machine (DEPRECATED - Use Metabolism Flow)
 
-# Self-Healing State Machine Implementation
+# ============================================================================
+# WORKFLOW DEPRECATED - USE jarvis_metabolism_flow.yml
+# ============================================================================
+#
+# Este workflow foi substituído pelo Fluxo de Metabolismo do Jarvis.
+# 
+# MOTIVO: Evolução para modelo metabólico que trata o repositório como DNA
+#
+# O novo sistema (jarvis_metabolism_flow.yml) implementa:
+# - Conceito de DNA (repositório) e mutações controladas
+# - Mecânico Revisionador (análise metabólica)
+# - Mecânico Consertador (mutagênese controlada)
+# - Vistoria (homeostase/sistema imunológico)
+# - Controle de Loop (3 ciclos máximos)
+# - Comandante (consciência superior humana)
+# 
+# Este arquivo foi mantido temporariamente para compatibilidade.
+# Use .github/workflows/jarvis_metabolism_flow.yml para novos eventos.
+# 
+# Data de deprecação: 2026-02-11
+# ============================================================================
+
+# Self-Healing State Machine Implementation (LEGACY)
 # Follows the state machine logic for autonomous error fixing:
 # - CHANGE_REQUESTED: Auto-fixable errors
 # - NEEDS_HUMAN: Infrastructure/unidentified errors
