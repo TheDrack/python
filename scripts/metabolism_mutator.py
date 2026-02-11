@@ -27,7 +27,7 @@ import re
 import subprocess
 import sys
 from pathlib import Path
-from typing import Dict, Optional, List
+from typing import Dict, Optional, List, Any
 
 # Setup logging
 logging.basicConfig(

@@ -30,7 +30,7 @@ import re
 import subprocess
 import sys
 from pathlib import Path
-from typing import Dict, Optional, List, Tuple
+from typing import Dict, Optional, List, Tuple, Any
 from enum import Enum
 
 # Setup logging
