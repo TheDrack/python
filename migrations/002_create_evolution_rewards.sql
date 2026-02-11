@@ -9,7 +9,7 @@ CREATE TABLE IF NOT EXISTS evolution_rewards (
     action_type VARCHAR(100) NOT NULL,
     reward_value FLOAT NOT NULL,
     context_data JSONB DEFAULT '{}',
-    metadata JSONB DEFAULT '{}',
+    meta_data JSONB DEFAULT '{}',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -28,5 +28,5 @@ COMMENT ON COLUMN evolution_rewards.id IS 'Unique reward entry identifier';
 COMMENT ON COLUMN evolution_rewards.action_type IS 'Type of action: pytest_pass, pytest_fail, deploy_success, deploy_fail, roadmap_progress, etc.';
 COMMENT ON COLUMN evolution_rewards.reward_value IS 'Reward points (positive for success, negative for failure)';
 COMMENT ON COLUMN evolution_rewards.context_data IS 'JSON context about the action (test names, error messages, metrics, etc.)';
-COMMENT ON COLUMN evolution_rewards.metadata IS 'Additional metadata (user_id, session_id, deployment_id, etc.)';
+COMMENT ON COLUMN evolution_rewards.meta_data IS 'Additional metadata (user_id, session_id, deployment_id, etc.)';
 COMMENT ON COLUMN evolution_rewards.created_at IS 'Timestamp when the reward was logged';

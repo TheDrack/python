@@ -63,7 +63,7 @@ class TestEvolutionRewardModel:
             session.refresh(reward)
             
             assert reward.context_data == {}
-            assert reward.metadata == {}
+            assert reward.meta_data == {}
             assert isinstance(reward.created_at, datetime)
 
 

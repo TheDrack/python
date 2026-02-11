@@ -31,5 +31,5 @@ class EvolutionReward(SQLModel, table=True):
     action_type: str = Field(nullable=False, index=True)  # Type of action that triggered the reward
     reward_value: float = Field(nullable=False)  # Positive or negative reward points
     context_data: Dict[str, Any] = Field(default_factory=dict, sa_column=Column(JSON))  # Action context
-    metadata: Dict[str, Any] = Field(default_factory=dict, sa_column=Column(JSON))  # Additional metadata
+    meta_data: Dict[str, Any] = Field(default_factory=dict, sa_column=Column(JSON))  # Additional metadata (renamed from metadata to avoid SQLAlchemy conflict)
     created_at: datetime = Field(default_factory=datetime.now, nullable=False, index=True)

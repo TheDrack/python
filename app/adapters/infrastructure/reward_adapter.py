@@ -65,7 +65,7 @@ class RewardAdapter(RewardProvider):
                 action_type=action_type,
                 reward_value=reward_value,
                 context_data=context_data or {},
-                metadata=metadata or {},
+                meta_data=metadata or {},
                 created_at=datetime.now()
             )
             session.add(reward)
@@ -119,7 +119,7 @@ class RewardAdapter(RewardProvider):
                     'action_type': r.action_type,
                     'reward_value': r.reward_value,
                     'context_data': r.context_data,
-                    'metadata': r.metadata,
+                    'meta_data': r.meta_data,
                     'created_at': r.created_at
                 }
                 for r in results
