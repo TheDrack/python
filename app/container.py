@@ -9,12 +9,14 @@ from typing import Optional
 from app.adapters.edge import AutomationAdapter, CombinedVoiceProvider, WebAdapter
 from app.adapters.infrastructure import DummyVoiceProvider, LLMCommandAdapter, SQLiteHistoryAdapter
 from app.adapters.infrastructure.github_adapter import GitHubAdapter
+from app.adapters.infrastructure.reward_adapter import RewardAdapter
 try:
     from app.adapters.infrastructure import GatewayLLMCommandAdapter
 except ImportError:
     GatewayLLMCommandAdapter = None
 from app.application.ports import ActionProvider, HistoryProvider, VoiceProvider, WebProvider
 from app.application.services import AssistantService, DependencyManager, ExtensionManager
+from app.application.services.evolution_loop import EvolutionLoopService
 from app.core.config import settings
 from app.domain.services import CommandInterpreter, IntentProcessor
 
@@ -135,6 +137,10 @@ class Container:
         self._dependency_manager: Optional[DependencyManager] = None
         self._extension_manager: Optional[ExtensionManager] = None
         self._github_adapter: Optional[GitHubAdapter] = None
+        
+        # Evolution RL services
+        self._reward_adapter: Optional[RewardAdapter] = None
+        self._evolution_loop_service: Optional[EvolutionLoopService] = None
 
         # Application service
         self._assistant_service: Optional[AssistantService] = None
@@ -275,6 +281,30 @@ class Container:
             else:
                 logger.debug("GitHubAdapter not created - GITHUB_TOKEN not available")
         return self._github_adapter
+    
+    @property
+    def reward_adapter(self) -> RewardAdapter:
+        """Get or create reward adapter for RL evolution tracking"""
+        if self._reward_adapter is None:
+            logger.info("Creating RewardAdapter for Evolution RL")
+            self._reward_adapter = RewardAdapter(engine=self.history_provider.engine)
+        return self._reward_adapter
+    
+    @property
+    def evolution_loop_service(self) -> EvolutionLoopService:
+        """Get or create evolution loop service"""
+        if self._evolution_loop_service is None:
+            logger.info("Creating EvolutionLoopService")
+            # Try to get AI Gateway if available
+            ai_gateway = None
+            if self._llm_command_adapter is not None and hasattr(self._llm_command_adapter, 'ai_gateway'):
+                ai_gateway = self._llm_command_adapter.ai_gateway
+            
+            self._evolution_loop_service = EvolutionLoopService(
+                reward_provider=self.reward_adapter,
+                ai_gateway=ai_gateway
+            )
+        return self._evolution_loop_service
 
     @property
     def assistant_service(self) -> AssistantService:
