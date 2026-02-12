@@ -402,6 +402,7 @@ jobs:
           
           # Criar PR
           gh pr create \
+            --repo "${{ github.repository }}" \
             --title "$PR_TITLE" \
             --body-file "$BODY_FILE" \
             --base main \
