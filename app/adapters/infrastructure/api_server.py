@@ -414,6 +414,8 @@ def create_api_server(assistant_service: AssistantService, extension_manager: Ex
             margin-bottom: 20px;
             box-shadow: 0 0 30px rgba(0, 212, 255, 0.2);
             min-height: 150px;
+            max-height: 300px;
+            overflow-y: auto;
         }
         
         .message {
@@ -801,6 +803,7 @@ def create_api_server(assistant_service: AssistantService, extension_manager: Ex
             
             .terminal {
                 min-height: 120px;
+                max-height: 250px;
                 padding: 15px;
             }
             
@@ -1252,10 +1255,10 @@ def create_api_server(assistant_service: AssistantService, extension_manager: Ex
             messageDiv.appendChild(content);
             terminal.appendChild(messageDiv);
             
-            // Keep only the last 2 messages (last user + last assistant)
+            // Keep only the last 2 messages for better mobile readability
             const messages = terminal.querySelectorAll('.message');
             if (messages.length > 2) {
-                // Remove oldest messages, keeping only last 2
+                // Remove oldest messages, keeping only last 2 regardless of sender
                 for (let i = 0; i < messages.length - 2; i++) {
                     messages[i].remove();
                 }
