@@ -4,7 +4,6 @@
 import json
 import logging
 import os
-import psutil
 import subprocess
 import sys
 import tempfile
@@ -12,6 +11,13 @@ import time
 import traceback
 from pathlib import Path
 from typing import Optional
+
+try:
+    import psutil
+    PSUTIL_AVAILABLE = True
+except ImportError:
+    PSUTIL_AVAILABLE = False
+    logger.warning("psutil not available - resource monitoring will be disabled")
 
 from app.domain.models.mission import Mission, MissionResult
 
@@ -52,8 +58,11 @@ class ResourceMonitor:
         Get current resource usage snapshot
         
         Returns:
-            Dictionary with CPU, memory, and disk usage
+            Dictionary with CPU, memory, and disk usage (empty if psutil unavailable)
         """
+        if not PSUTIL_AVAILABLE:
+            return {}
+        
         try:
             cpu_percent = psutil.cpu_percent(interval=0.1)
             memory = psutil.virtual_memory()
@@ -79,8 +88,11 @@ class ResourceMonitor:
             pid: Process ID
             
         Returns:
-            Dictionary with process CPU and memory usage
+            Dictionary with process CPU and memory usage (empty if psutil unavailable)
         """
+        if not PSUTIL_AVAILABLE:
+            return {}
+        
         try:
             process = psutil.Process(pid)
             return {
@@ -89,6 +101,9 @@ class ResourceMonitor:
                 "num_threads": process.num_threads(),
             }
         except (psutil.NoSuchProcess, psutil.AccessDenied) as e:
+            logger.warning(f"Failed to get process resources for PID {pid}: {e}")
+            return {}
+        except Exception as e:
             logger.warning(f"Failed to get process resources for PID {pid}: {e}")
             return {}
 
