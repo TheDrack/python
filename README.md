@@ -64,6 +64,10 @@ Jarvis is a **cloud-native voice assistant** with distributed device orchestrati
 - **REST API** - FastAPI with OAuth2 authentication
 - **Docker support** - PostgreSQL & containerized deployment
 - **97-100% domain test coverage**
+- **Resource monitoring** - Real-time CPU, memory, and disk tracking
+- **Browser extension support** - Load custom extensions for complex automations
+- **Structured logging** - JSON-formatted logs for all operations
+- **Graceful error handling** - Automatic retries and recovery mechanisms
 
 ## 🚀 Quick Start
 

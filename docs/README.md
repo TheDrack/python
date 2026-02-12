@@ -36,6 +36,8 @@ Component-specific documentation:
 - [CAPABILITY_MANAGER.md](./components/CAPABILITY_MANAGER.md) - Capability management
 - [DEPENDENCY_MANAGER.md](./components/DEPENDENCY_MANAGER.md) - Dependency management
 - [EXTENSION_MANAGER.md](./components/EXTENSION_MANAGER.md) - Extension system
+- [BROWSER_EXTENSION_MANAGER.md](./components/BROWSER_EXTENSION_MANAGER.md) - **NEW:** Browser extension management for Playwright
+- [RESOURCE_MONITORING.md](./components/RESOURCE_MONITORING.md) - **NEW:** System resource monitoring
 - [TASK_EXECUTOR.md](./components/TASK_EXECUTOR.md) - Task execution
 - [LOCAL_BRIDGE.md](./components/LOCAL_BRIDGE.md) - Local bridge component
 - [MOBILE_BRIDGE.md](./components/MOBILE_BRIDGE.md) - Mobile integration
