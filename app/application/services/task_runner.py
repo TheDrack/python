@@ -58,15 +58,29 @@ class ResourceMonitor:
         Get current resource usage snapshot
         
         Returns:
-            Dictionary with CPU, memory, and disk usage (empty if psutil unavailable)
+            Dictionary with CPU, memory, and disk usage (default values if psutil unavailable)
         """
         if not PSUTIL_AVAILABLE:
-            return {}
+            # Return default values instead of empty dict for graceful degradation
+            return {
+                "cpu_percent": 0.0,
+                "memory_percent": 0.0,
+                "memory_available_mb": 0.0,
+                "disk_percent": 0.0,
+                "disk_free_gb": 0.0,
+            }
         
         try:
             cpu_percent = psutil.cpu_percent(interval=0.1)
             memory = psutil.virtual_memory()
-            disk = psutil.disk_usage('/')
+            
+            # Platform-agnostic disk usage: use home directory anchor/drive
+            try:
+                disk_path = Path.home().anchor or '/'
+                disk = psutil.disk_usage(disk_path)
+            except Exception:
+                # Fallback to root for Unix-like systems
+                disk = psutil.disk_usage('/')
             
             return {
                 "cpu_percent": round(cpu_percent, 2),
@@ -77,7 +91,14 @@ class ResourceMonitor:
             }
         except Exception as e:
             logger.warning(f"Failed to get resource snapshot: {e}")
-            return {}
+            # Return default values on error
+            return {
+                "cpu_percent": 0.0,
+                "memory_percent": 0.0,
+                "memory_available_mb": 0.0,
+                "disk_percent": 0.0,
+                "disk_free_gb": 0.0,
+            }
     
     @staticmethod
     def get_process_resources(pid: int) -> dict:
@@ -300,11 +321,6 @@ class TaskRunner:
             
             execution_time = time.time() - start_time
             
-            # Capture final resource snapshot
-            final_resources = ResourceMonitor.get_resource_snapshot()
-            if final_resources:
-                log.info("resources_final", **final_resources)
-            
             log.info("mission_completed", 
                     execution_time=execution_time,
                     exit_code=result['exit_code'],
@@ -348,6 +364,11 @@ class TaskRunner:
             )
             
         finally:
+            # Capture final resource snapshot (always logged regardless of success/failure)
+            final_resources = ResourceMonitor.get_resource_snapshot()
+            if final_resources and any(v > 0 for v in final_resources.values()):
+                log.info("resources_final", **final_resources)
+            
             # Cleanup unless keep_alive is set
             if not mission.keep_alive and script_file:
                 try:

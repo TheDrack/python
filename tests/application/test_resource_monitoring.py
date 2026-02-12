@@ -1,20 +1,35 @@
 # -*- coding: utf-8 -*-
 """Tests for resource monitoring in TaskRunner"""
 
+import shutil
 import tempfile
 from pathlib import Path
+from unittest.mock import Mock, patch
 
 import pytest
 
-from app.application.services.task_runner import ResourceMonitor, TaskRunner
+from app.application.services.task_runner import ResourceMonitor, TaskRunner, PSUTIL_AVAILABLE
 from app.domain.models.mission import Mission
 
 
 class TestResourceMonitor:
     """Test cases for ResourceMonitor"""
 
-    def test_get_resource_snapshot(self):
-        """Test getting a resource snapshot"""
+    @patch('app.application.services.task_runner.PSUTIL_AVAILABLE', True)
+    @patch('app.application.services.task_runner.psutil')
+    def test_get_resource_snapshot(self, mock_psutil):
+        """Test getting a resource snapshot with mocked psutil"""
+        # Mock psutil responses
+        mock_psutil.cpu_percent.return_value = 25.5
+        mock_psutil.virtual_memory.return_value = Mock(
+            percent=42.8,
+            available=8589934592  # 8 GB in bytes
+        )
+        mock_psutil.disk_usage.return_value = Mock(
+            percent=65.3,
+            free=161061273600  # 150 GB in bytes
+        )
+        
         snapshot = ResourceMonitor.get_resource_snapshot()
         
         assert snapshot is not None
@@ -25,26 +40,47 @@ class TestResourceMonitor:
         assert "disk_percent" in snapshot
         assert "disk_free_gb" in snapshot
         
-        # Check value types and ranges
-        assert isinstance(snapshot["cpu_percent"], (int, float))
-        assert 0 <= snapshot["cpu_percent"] <= 100
-        assert isinstance(snapshot["memory_percent"], (int, float))
-        assert 0 <= snapshot["memory_percent"] <= 100
+        # Check values match mock data
+        assert snapshot["cpu_percent"] == 25.5
+        assert snapshot["memory_percent"] == 42.8
+        assert snapshot["memory_available_mb"] == 8192.0
+        assert snapshot["disk_percent"] == 65.3
+        assert snapshot["disk_free_gb"] == 150.0
     
-    def test_get_process_resources(self):
-        """Test getting process resources"""
+    def test_get_resource_snapshot_without_psutil(self):
+        """Test graceful degradation when psutil is not available"""
+        with patch('app.application.services.task_runner.PSUTIL_AVAILABLE', False):
+            snapshot = ResourceMonitor.get_resource_snapshot()
+            
+            # Should return default values instead of empty dict
+            assert snapshot is not None
+            assert isinstance(snapshot, dict)
+            assert snapshot.get("cpu_percent") == 0.0
+            assert snapshot.get("memory_percent") == 0.0
+    
+    @patch('app.application.services.task_runner.PSUTIL_AVAILABLE', True)
+    @patch('app.application.services.task_runner.psutil')
+    def test_get_process_resources(self, mock_psutil):
+        """Test getting process resources with mocked psutil"""
         import os
         
-        # Get resources for current process
+        # Mock process
+        mock_process = Mock()
+        mock_process.cpu_percent.return_value = 15.2
+        mock_process.memory_info.return_value = Mock(rss=134217728)  # 128 MB
+        mock_process.num_threads.return_value = 4
+        mock_psutil.Process.return_value = mock_process
+        
         resources = ResourceMonitor.get_process_resources(os.getpid())
         
         assert resources is not None
         assert isinstance(resources, dict)
-        
-        if resources:  # May be empty on permission errors
-            assert "cpu_percent" in resources
-            assert "memory_mb" in resources
-            assert "num_threads" in resources
+        assert "cpu_percent" in resources
+        assert "memory_mb" in resources
+        assert "num_threads" in resources
+        assert resources["cpu_percent"] == 15.2
+        assert resources["memory_mb"] == 128.0
+        assert resources["num_threads"] == 4
 
 
 class TestTaskRunnerResourceMonitoring:
@@ -54,7 +90,10 @@ class TestTaskRunnerResourceMonitoring:
     def task_runner(self):
         """Create TaskRunner with temporary cache directory"""
         cache_dir = Path(tempfile.mkdtemp(prefix="test_resource_mon_"))
-        return TaskRunner(cache_dir=cache_dir, use_venv=False)
+        yield TaskRunner(cache_dir=cache_dir, use_venv=False)
+        # Cleanup temp directory
+        if cache_dir.exists():
+            shutil.rmtree(cache_dir, ignore_errors=True)
     
     def test_mission_logs_resource_snapshots(self, task_runner):
         """Test that missions log initial and final resource snapshots"""

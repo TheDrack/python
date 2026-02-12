@@ -4,6 +4,7 @@
 import json
 import logging
 import os
+import socket
 import subprocess
 import sys
 import tempfile
@@ -222,22 +223,45 @@ class PersistentBrowserManager:
                             stderr=subprocess.PIPE,
                         )
                         
-                        # Wait for browser to start (with timeout)
+                        # Wait for browser to start and verify CDP is reachable
                         start_time = time.time()
+                        cdp_ready = False
+                        
                         while time.time() - start_time < timeout:
+                            # Check if process exited prematurely
                             if self._browser_process.poll() is not None:
-                                # Process exited prematurely
                                 stdout, stderr = self._browser_process.communicate()
                                 self.log.error("browser_process_exited",
                                              returncode=self._browser_process.returncode,
                                              stderr=stderr.decode() if stderr else "")
                                 return None
                             
-                            time.sleep(0.5)
+                            # Try to connect to CDP port to verify readiness
+                            try:
+                                sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                                sock.settimeout(0.5)
+                                result = sock.connect_ex(('localhost', port))
+                                sock.close()
+                                
+                                if result == 0:
+                                    # Port is open and accepting connections
+                                    cdp_ready = True
+                                    self.log.debug("cdp_port_ready", port=port, 
+                                                 elapsed=round(time.time() - start_time, 2))
+                                    break
+                            except Exception as e:
+                                self.log.debug("cdp_check_failed", error=str(e))
                             
-                            # Check if port is listening (basic check)
-                            if time.time() - start_time > 2:  # Wait at least 2 seconds before declaring success
-                                break
+                            time.sleep(0.5)
+                        
+                        if not cdp_ready:
+                            # Timeout reached without successful connection
+                            self.log.error("browser_startup_timeout", 
+                                         timeout=timeout,
+                                         port=port)
+                            if self._browser_process and self._browser_process.poll() is None:
+                                self._browser_process.kill()
+                            return None
                         
                         # Set CDP URL
                         self._cdp_url = f"http://localhost:{port}"

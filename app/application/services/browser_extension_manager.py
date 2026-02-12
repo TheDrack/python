@@ -80,12 +80,33 @@ class BrowserExtensionManager:
             if manifest_file.exists():
                 with open(manifest_file, 'r') as f:
                     manifest_data = json.load(f)
+                
+                base_dir = self.extensions_dir.resolve()
                     
                 for ext_data in manifest_data.get("extensions", []):
+                    raw_path = Path(ext_data.get("path", ""))
+                    
+                    # Normalize path: if relative, treat as relative to extensions_dir
+                    if not raw_path.is_absolute():
+                        candidate_path = (self.extensions_dir / raw_path).resolve()
+                    else:
+                        candidate_path = raw_path.resolve()
+                    
+                    # Ensure the candidate path is within the extensions directory
+                    try:
+                        candidate_path.relative_to(base_dir)
+                    except ValueError:
+                        # Path is not within extensions_dir
+                        logger.warning(
+                            f"Skipping extension {ext_data.get('extension_id')} "
+                            f"due to unsafe path outside extensions_dir: {raw_path}"
+                        )
+                        continue
+                    
                     extension = BrowserExtension(
                         extension_id=ext_data["extension_id"],
                         name=ext_data["name"],
-                        path=Path(ext_data["path"]),
+                        path=candidate_path,
                         enabled=ext_data.get("enabled", True),
                         metadata=ext_data.get("metadata", {}),
                     )
@@ -180,11 +201,23 @@ class BrowserExtensionManager:
                 logger.warning(f"Browser extension {extension_id} not found")
                 return False
             
-            extension = self.extensions[extension_id]
+            # Compute the extension directory from the trusted base directory
+            ext_dir = (self.extensions_dir / extension_id).resolve()
+            base_dir = self.extensions_dir.resolve()
+            
+            # Ensure the directory to remove is within the extensions directory
+            try:
+                ext_dir.relative_to(base_dir)
+            except ValueError:
+                logger.error(
+                    f"Refusing to uninstall browser extension {extension_id}: "
+                    f"computed path {ext_dir} is outside of extensions_dir {base_dir}"
+                )
+                return False
             
             # Remove extension directory
-            if extension.path.exists():
-                shutil.rmtree(extension.path)
+            if ext_dir.exists():
+                shutil.rmtree(ext_dir)
             
             # Remove from tracking
             del self.extensions[extension_id]
