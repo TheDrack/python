@@ -1066,6 +1066,11 @@ def create_api_server(assistant_service: AssistantService, extension_manager: Ex
         </div>
     </div>
     
+    <!-- Leaflet JavaScript for OpenStreetMap - loaded before inline scripts -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+            integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+            crossorigin=""></script>
+    
     <script>
         // Authentication management
         const AUTH_TOKEN_KEY = 'jarvis_auth_token';
@@ -1553,7 +1558,7 @@ def create_api_server(assistant_service: AssistantService, extension_manager: Ex
         const BATTERY_LOW_THRESHOLD = 15; // Percentage - triggers power-saving mode
         const TELEMETRY_INTERVAL_MS = 30000; // 30 seconds
         const GPS_CACHE_MAX_AGE_MS = 300000; // 5 minutes
-        const SIGNIFICANT_DISPLACEMENT_METERS = 100; // Minimum displacement to update map (updated to 100m as per requirement)
+        const SIGNIFICANT_DISPLACEMENT_METERS = 100; // Performance requirement: update map only if position changes > 100m
         
         let batteryLevel = 100;
         let batteryCharging = false;
@@ -1716,7 +1721,7 @@ def create_api_server(assistant_service: AssistantService, extension_manager: Ex
                 const nominatimUrl = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=18&addressdetails=1`;
                 const response = await fetch(nominatimUrl, {
                     headers: {
-                        'User-Agent': 'JARVIS-HUD/1.0'
+                        'User-Agent': 'JARVIS-HUD/1.0 (https://github.com/TheDrack/Jarvis_Xerife)'
                     }
                 });
                 const data = await response.json();
@@ -1729,9 +1734,18 @@ def create_api_server(assistant_service: AssistantService, extension_manager: Ex
                     const locality = address.city || address.town || address.village || address.municipality || '';
                     const establishment = address.amenity || address.building || '';
                     
-                    // Display location name
+                    // Display location name with clear logic
                     const primaryLocation = establishment || neighborhood || locality || 'Localização atual';
-                    const secondaryLocation = establishment ? (neighborhood || locality) : (neighborhood && locality ? locality : '');
+                    
+                    // Determine secondary location
+                    let secondaryLocation = '';
+                    if (establishment && neighborhood) {
+                        secondaryLocation = neighborhood;
+                    } else if (establishment && locality) {
+                        secondaryLocation = locality;
+                    } else if (neighborhood && locality) {
+                        secondaryLocation = locality;
+                    }
                     
                     locationName.innerHTML = `
                         <div class="primary">${primaryLocation}</div>
@@ -1946,11 +1960,6 @@ def create_api_server(assistant_service: AssistantService, extension_manager: Ex
             });
         }
     </script>
-    
-    <!-- Leaflet JavaScript for OpenStreetMap -->
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
-            integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
-            crossorigin=""></script>
 </body>
 </html>
         """
