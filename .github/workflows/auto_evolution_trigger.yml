@@ -78,6 +78,7 @@ jobs:
           # Usar o serviço de auto-evolução para verificar com melhor tratamento de erros
           export PYTHONPATH=$PYTHONPATH:$(pwd)
           set +e
+          set -o pipefail
           python - << 'PYCODE' 2>&1 | tee -a /tmp/auto_evolution_check.log
           import os
           import sys
@@ -115,7 +116,7 @@ jobs:
               sys.exit(1)
           PYCODE
           EXIT_CODE=$?
-          set -e
+          set +e
           
           # Mostrar log se houver erro
           if [ $EXIT_CODE -ne 0 ]; then
@@ -167,6 +168,7 @@ jobs:
           
           export PYTHONPATH=$PYTHONPATH:$(pwd)
           set +e
+          set -o pipefail
           python - << 'PYCODE' 2>&1 | tee /tmp/find_mission.log
           import json
           import os
@@ -236,7 +238,7 @@ jobs:
               sys.exit(1)
           PYCODE
           EXIT_CODE=$?
-          set -e
+          set +e
           
           # Mostrar log
           cat /tmp/find_mission.log >> $GITHUB_STEP_SUMMARY
@@ -455,6 +457,7 @@ jobs:
           
           export PYTHONPATH=$PYTHONPATH:$(pwd)
           set +e
+          set -o pipefail
           python - << 'PYCODE' 2>&1 | tee /tmp/rl_result.log
           import os
           import sys
@@ -509,7 +512,7 @@ jobs:
               sys.exit(0)  # Don't fail the workflow if RL fails
           PYCODE
           EXIT_CODE=$?
-          set -e
+          set +e
           
           # Mostrar resultado
           cat /tmp/rl_result.log >> $GITHUB_STEP_SUMMARY
