@@ -877,17 +877,12 @@ def create_api_server(assistant_service: AssistantService, extension_manager: Ex
             }
             
             /* Spatial orientation optimizations for portrait mobile */
-            .spatial-orientation-panel {
-                padding: 12px;
-            }
-            
             .spatial-orientation-panel h3 {
                 font-size: 0.95em;
                 margin-bottom: 10px;
             }
             
             .location-name {
-                padding: 8px;
                 font-size: 0.85em;
                 margin-bottom: 10px;
             }
