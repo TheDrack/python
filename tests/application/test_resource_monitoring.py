@@ -11,6 +11,12 @@ import pytest
 
 # Mock psutil before importing TaskRunner to handle environments without psutil
 mock_psutil = MagicMock()
+# Set default return values to prevent AttributeError
+mock_psutil.cpu_percent.return_value = 25.5
+mock_psutil.virtual_memory.return_value.percent = 42.8
+mock_psutil.virtual_memory.return_value.available = 8589934592
+mock_psutil.disk_usage.return_value.percent = 65.3
+mock_psutil.disk_usage.return_value.free = 161061273600
 sys.modules['psutil'] = mock_psutil
 
 from app.application.services.task_runner import ResourceMonitor, TaskRunner
@@ -22,7 +28,7 @@ class TestResourceMonitor:
 
     def test_get_resource_snapshot(self):
         """Test getting a resource snapshot with mocked psutil"""
-        # Configure mock psutil responses
+        # Configure mock_psutil responses
         mock_psutil.cpu_percent.return_value = 25.5
         mock_psutil.virtual_memory.return_value = Mock(
             percent=42.8,
