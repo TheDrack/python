@@ -412,18 +412,19 @@ def create_api_server(assistant_service: AssistantService, extension_manager: Ex
             border-radius: 10px;
             padding: 20px;
             margin-bottom: 20px;
-            overflow-y: scroll;
             box-shadow: 0 0 30px rgba(0, 212, 255, 0.2);
-            height: 500px;
-            max-height: 500px;
+            min-height: 150px;
+            max-height: 300px;
+            overflow-y: auto;
         }
         
         .message {
             margin: 10px 0;
-            padding: 10px;
+            padding: 12px;
             border-left: 3px solid #00d4ff;
             background: rgba(0, 212, 255, 0.05);
             animation: fadeIn 0.3s ease-in;
+            font-size: 1.1em;
         }
         
         @keyframes fadeIn {
@@ -445,7 +446,7 @@ def create_api_server(assistant_service: AssistantService, extension_manager: Ex
             font-weight: bold;
             margin-bottom: 5px;
             text-transform: uppercase;
-            font-size: 0.8em;
+            font-size: 0.9em;
             letter-spacing: 2px;
         }
         
@@ -462,9 +463,12 @@ def create_api_server(assistant_service: AssistantService, extension_manager: Ex
             padding: 15px;
             color: #00d4ff;
             font-family: 'Courier New', monospace;
-            font-size: 1em;
+            font-size: 1.1em;
             outline: none;
             transition: all 0.3s;
+            resize: none;
+            min-height: 60px;
+            line-height: 1.5;
         }
         
         #commandInput:focus {
@@ -631,14 +635,7 @@ def create_api_server(assistant_service: AssistantService, extension_manager: Ex
         
         /* Mobile Edge Node Telemetry Panel */
         .telemetry-panel {
-            background: rgba(0, 0, 0, 0.6);
-            border: 2px solid #00d4ff;
-            border-radius: 10px;
-            padding: 15px;
-            margin-bottom: 20px;
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 15px;
+            display: none; /* Hidden per user request - info still tracked in background */
         }
         
         .telemetry-item {
@@ -671,28 +668,115 @@ def create_api_server(assistant_service: AssistantService, extension_manager: Ex
             color: #ff0000;
         }
         
+        /* Spatial Orientation Module */
+        .spatial-orientation-panel {
+            background: rgba(0, 0, 0, 0.6);
+            border: 2px solid #00ff88;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 20px;
+            display: none; /* Hidden by default until location is available */
+        }
+        
+        .spatial-orientation-panel.visible {
+            display: block;
+        }
+        
+        .spatial-orientation-panel h3 {
+            color: #00ff88;
+            margin-bottom: 15px;
+            text-align: center;
+            text-shadow: 0 0 10px #00ff88;
+            font-size: 1.2em;
+        }
+        
+        .location-name {
+            text-align: center;
+            padding: 10px;
+            background: rgba(0, 255, 136, 0.05);
+            border-left: 3px solid #00ff88;
+            border-radius: 5px;
+            margin-bottom: 15px;
+            color: #00d4ff;
+            font-size: 0.95em;
+        }
+        
+        .location-name .primary {
+            font-weight: bold;
+            color: #00ff88;
+            font-size: 1.1em;
+            margin-bottom: 5px;
+        }
+        
+        .location-name .secondary {
+            font-size: 0.9em;
+            color: #00d4ff;
+            opacity: 0.8;
+        }
+        
+        .map-container {
+            position: relative;
+            width: 100%;
+            border-radius: 8px;
+            overflow: hidden;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 2px solid #00ff88;
+        }
+        
+        .map-container:hover {
+            box-shadow: 0 0 20px rgba(0, 255, 136, 0.4);
+            border-color: #00d4ff;
+        }
+        
+        .map-container img {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+        
+        .map-overlay {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 8px;
+            text-align: center;
+            color: #00ff88;
+            font-size: 0.85em;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        
+        .map-container:hover .map-overlay {
+            opacity: 1;
+        }
+        
         /* Evolution Panel */
         .evolution-panel {
             background: rgba(0, 0, 0, 0.6);
             border: 2px solid #ff9500;
             border-radius: 10px;
-            padding: 15px;
+            padding: 12px 15px;
             margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
         }
         
         .evolution-panel h3 {
             color: #ff9500;
-            margin-bottom: 15px;
-            text-align: center;
+            margin: 0;
             text-shadow: 0 0 10px #ff9500;
+            font-size: 1em;
         }
         
         .evolution-status {
-            padding: 10px;
-            background: rgba(255, 149, 0, 0.05);
-            border-left: 3px solid #ff9500;
-            border-radius: 5px;
-            margin-top: 10px;
+            color: #ff9500;
+            font-weight: bold;
+            font-size: 1.1em;
         }
         
         /* Mobile responsiveness */
@@ -718,9 +802,14 @@ def create_api_server(assistant_service: AssistantService, extension_manager: Ex
             }
             
             .terminal {
-                height: 400px;
-                max-height: 400px;
+                min-height: 120px;
+                max-height: 250px;
                 padding: 15px;
+            }
+            
+            .message {
+                font-size: 1em;
+                padding: 10px;
             }
             
             .input-area {
@@ -730,8 +819,9 @@ def create_api_server(assistant_service: AssistantService, extension_manager: Ex
             }
             
             #commandInput {
-                font-size: 0.9em;
+                font-size: 1em;
                 padding: 12px;
+                min-height: 50px;
             }
             
             #voiceButton {
@@ -747,6 +837,24 @@ def create_api_server(assistant_service: AssistantService, extension_manager: Ex
             
             .telemetry-panel {
                 grid-template-columns: 1fr;
+            }
+            
+            .spatial-orientation-panel {
+                padding: 12px;
+            }
+            
+            .spatial-orientation-panel h3 {
+                font-size: 1em;
+            }
+            
+            .location-name {
+                padding: 8px;
+                font-size: 0.9em;
+                margin-bottom: 12px;
+            }
+            
+            .map-container {
+                max-height: 250px;
             }
         }
         
@@ -769,8 +877,43 @@ def create_api_server(assistant_service: AssistantService, extension_manager: Ex
             }
             
             .message {
-                padding: 8px;
-                font-size: 0.9em;
+                padding: 10px;
+                font-size: 1em;
+            }
+            
+            #commandInput {
+                font-size: 1em;
+                min-height: 50px;
+            }
+            
+            /* Spatial orientation optimizations for portrait mobile */
+            .spatial-orientation-panel h3 {
+                font-size: 0.95em;
+                margin-bottom: 10px;
+            }
+            
+            .location-name {
+                font-size: 0.85em;
+                margin-bottom: 10px;
+            }
+            
+            .location-name .primary {
+                font-size: 1em;
+                margin-bottom: 3px;
+            }
+            
+            .location-name .secondary {
+                font-size: 0.85em;
+            }
+            
+            .map-container {
+                max-height: 200px;
+                border-width: 1px;
+            }
+            
+            .map-overlay {
+                font-size: 0.75em;
+                padding: 6px;
             }
         }
     </style>
@@ -828,15 +971,23 @@ def create_api_server(assistant_service: AssistantService, extension_manager: Ex
                 </div>
             </div>
             
+            <!-- Spatial Orientation Module -->
+            <div class="spatial-orientation-panel" id="spatialOrientationPanel">
+                <h3>📍 Orientação Espacial</h3>
+                <div class="location-name" id="locationName">
+                    <div class="primary">Carregando localização...</div>
+                    <div class="secondary"></div>
+                </div>
+                <div class="map-container" id="mapContainer" title="Clique para abrir no Google Maps">
+                    <img id="mapImage" src="" alt="Mapa de localização">
+                    <div class="map-overlay">🗺️ Clique para visualizar no Google Maps</div>
+                </div>
+            </div>
+            
             <!-- Real-Time Evolution Panel -->
             <div class="evolution-panel">
-                <h3>⚙️ Evolução em Tempo Real</h3>
-                <div class="evolution-status" id="evolutionStatus">
-                    <div>Aguardando próxima evolução...</div>
-                    <div style="margin-top: 10px; font-size: 0.9em; color: #00d4ff;">
-                        Plugins dinâmicos: <span id="pluginCount">0</span>
-                    </div>
-                </div>
+                <h3>⚙️ Progresso:</h3>
+                <div class="evolution-status" id="evolutionStatus">0%</div>
             </div>
             
             <div class="terminal" id="terminal">
@@ -853,12 +1004,12 @@ def create_api_server(assistant_service: AssistantService, extension_manager: Ex
             
             <div class="input-area">
                 <button id="voiceButton" title="Voice Input">🎤</button>
-                <input 
-                    type="text" 
+                <textarea 
                     id="commandInput" 
                     placeholder="Enter command or use voice..."
                     autocomplete="off"
-                />
+                    rows="2"
+                ></textarea>
                 <button id="sendButton">Enviar</button>
             </div>
         </div>
@@ -1104,8 +1255,14 @@ def create_api_server(assistant_service: AssistantService, extension_manager: Ex
             messageDiv.appendChild(content);
             terminal.appendChild(messageDiv);
             
-            // Auto-scroll to bottom
-            terminal.scrollTop = terminal.scrollHeight;
+            // Keep only the last 2 messages for better mobile readability
+            const messages = terminal.querySelectorAll('.message');
+            if (messages.length > 2) {
+                // Remove oldest messages, keeping only last 2 regardless of sender
+                for (let i = 0; i < messages.length - 2; i++) {
+                    messages[i].remove();
+                }
+            }
         }
         
         // Send command function
@@ -1196,10 +1353,15 @@ def create_api_server(assistant_service: AssistantService, extension_manager: Ex
         const BATTERY_LOW_THRESHOLD = 15; // Percentage - triggers power-saving mode
         const TELEMETRY_INTERVAL_MS = 30000; // 30 seconds
         const GPS_CACHE_MAX_AGE_MS = 300000; // 5 minutes
+        const SIGNIFICANT_DISPLACEMENT_METERS = 50; // Minimum displacement to update map
+        // TODO: Move API key to backend proxy in production to prevent unauthorized usage
+        // For production, implement a server endpoint that proxies Google Maps API calls
+        const GOOGLE_MAPS_API_KEY = 'AIzaSyBs0TFhtLaPFMdIpPaHElrCsjDKiCRMrZM'; // Development only
         
         let batteryLevel = 100;
         let batteryCharging = false;
         let currentLocation = null;
+        let lastMapLocation = null; // Track last location where map was updated
         let deviceType = detectDeviceType();
         let telemetryInterval = null;
         
@@ -1262,7 +1424,120 @@ def create_api_server(assistant_service: AssistantService, extension_manager: Ex
             }
         }
         
-        // Initialize Geolocation
+        // Calculate distance between two coordinates using Haversine formula
+        function calculateDistance(lat1, lon1, lat2, lon2) {
+            const R = 6371e3; // Earth's radius in meters
+            const φ1 = lat1 * Math.PI / 180;
+            const φ2 = lat2 * Math.PI / 180;
+            const Δφ = (lat2 - lat1) * Math.PI / 180;
+            const Δλ = (lon2 - lon1) * Math.PI / 180;
+            
+            // Cache sine calculations for efficiency
+            const sinHalfDeltaPhi = Math.sin(Δφ/2);
+            const sinHalfDeltaLambda = Math.sin(Δλ/2);
+            
+            const a = sinHalfDeltaPhi * sinHalfDeltaPhi +
+                      Math.cos(φ1) * Math.cos(φ2) *
+                      sinHalfDeltaLambda * sinHalfDeltaLambda;
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+            
+            return R * c; // Distance in meters
+        }
+        
+        // Update the spatial orientation module with map and geocoding
+        async function updateSpatialOrientation(latitude, longitude) {
+            const panel = document.getElementById('spatialOrientationPanel');
+            const mapImage = document.getElementById('mapImage');
+            const mapContainer = document.getElementById('mapContainer');
+            const locationName = document.getElementById('locationName');
+            
+            // Check if we should update the map (significant displacement or first time)
+            if (lastMapLocation) {
+                const distance = calculateDistance(
+                    lastMapLocation.latitude,
+                    lastMapLocation.longitude,
+                    latitude,
+                    longitude
+                );
+                
+                // Only update if displacement is significant
+                if (distance < SIGNIFICANT_DISPLACEMENT_METERS) {
+                    console.log(`Displacement: ${distance.toFixed(2)}m - Skipping map update`);
+                    return;
+                }
+                
+                console.log(`Significant displacement: ${distance.toFixed(2)}m - Updating map`);
+            }
+            
+            // Update last map location
+            lastMapLocation = { latitude, longitude };
+            
+            // Generate Static Maps URL
+            const zoom = 16;
+            const size = '600x300';
+            const mapUrl = `https://maps.googleapis.com/maps/api/staticmap?center=${latitude},${longitude}&zoom=${zoom}&size=${size}&markers=color:red%7C${latitude},${longitude}&key=${GOOGLE_MAPS_API_KEY}`;
+            
+            // Update map image
+            mapImage.src = mapUrl;
+            
+            // Make map clickable - redirect to Google Maps
+            mapContainer.onclick = () => {
+                const googleMapsUrl = `https://www.google.com/maps?q=${latitude},${longitude}`;
+                window.open(googleMapsUrl, '_blank');
+            };
+            
+            // Fetch location name using Geocoding API
+            try {
+                const geocodeUrl = `https://maps.googleapis.com/maps/api/geocode/json?latlng=${latitude},${longitude}&key=${GOOGLE_MAPS_API_KEY}`;
+                const response = await fetch(geocodeUrl);
+                const data = await response.json();
+                
+                if (data.status === 'OK' && data.results.length > 0) {
+                    const result = data.results[0];
+                    const addressComponents = result.address_components;
+                    
+                    // Extract neighborhood and establishment
+                    let neighborhood = '';
+                    let establishment = '';
+                    let locality = '';
+                    
+                    for (const component of addressComponents) {
+                        if (component.types.includes('neighborhood') || component.types.includes('sublocality')) {
+                            neighborhood = component.long_name;
+                        }
+                        if (component.types.includes('locality')) {
+                            locality = component.long_name;
+                        }
+                        if (component.types.includes('establishment') || component.types.includes('point_of_interest')) {
+                            establishment = component.long_name;
+                        }
+                    }
+                    
+                    // Display location name
+                    const primaryLocation = establishment || neighborhood || locality || 'Localização atual';
+                    const secondaryLocation = establishment ? (neighborhood || locality) : '';
+                    
+                    locationName.innerHTML = `
+                        <div class="primary">${primaryLocation}</div>
+                        ${secondaryLocation ? `<div class="secondary">${secondaryLocation}</div>` : ''}
+                    `;
+                } else {
+                    locationName.innerHTML = `
+                        <div class="primary">Localização: ${latitude.toFixed(4)}, ${longitude.toFixed(4)}</div>
+                    `;
+                }
+            } catch (error) {
+                console.error('Geocoding error:', error);
+                locationName.innerHTML = `
+                    <div class="primary">Localização: ${latitude.toFixed(4)}, ${longitude.toFixed(4)}</div>
+                `;
+            }
+            
+            // Show the panel
+            panel.classList.add('visible');
+        }
+        
+        // Initialize Geolocation with spatial orientation module
         function initGeolocation() {
             if ('geolocation' in navigator) {
                 navigator.geolocation.getCurrentPosition(
@@ -1276,20 +1551,47 @@ def create_api_server(assistant_service: AssistantService, extension_manager: Ex
                         const lat = position.coords.latitude.toFixed(4);
                         const lon = position.coords.longitude.toFixed(4);
                         document.getElementById('locationValue').textContent = `${lat}, ${lon}`;
+                        
+                        // Update spatial orientation module
+                        updateSpatialOrientation(position.coords.latitude, position.coords.longitude);
                     },
                     (error) => {
                         console.error('Geolocation error:', error);
                         document.getElementById('locationValue').textContent = 'Denied';
+                        // Keep spatial orientation panel hidden if location is denied
                     },
                     {
-                        enableHighAccuracy: false, // Disabled for battery saving on mobile devices
+                        enableHighAccuracy: false, // Low accuracy to save battery on all devices
                         timeout: 10000,
                         maximumAge: GPS_CACHE_MAX_AGE_MS
                     }
                 );
                 
-                // Watch for location changes (optional, can be battery intensive)
-                // navigator.geolocation.watchPosition(updateLocation);
+                // Watch for location changes and update spatial orientation
+                navigator.geolocation.watchPosition(
+                    (position) => {
+                        currentLocation = {
+                            latitude: position.coords.latitude,
+                            longitude: position.coords.longitude,
+                            accuracy: position.coords.accuracy
+                        };
+                        
+                        const lat = position.coords.latitude.toFixed(4);
+                        const lon = position.coords.longitude.toFixed(4);
+                        document.getElementById('locationValue').textContent = `${lat}, ${lon}`;
+                        
+                        // Update spatial orientation (will only update map if displacement > 50m)
+                        updateSpatialOrientation(position.coords.latitude, position.coords.longitude);
+                    },
+                    (error) => {
+                        console.error('Geolocation watch error:', error);
+                    },
+                    {
+                        enableHighAccuracy: false,
+                        timeout: 10000,
+                        maximumAge: GPS_CACHE_MAX_AGE_MS
+                    }
+                );
             } else {
                 document.getElementById('locationValue').textContent = 'N/A';
             }
