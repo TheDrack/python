@@ -154,9 +154,10 @@ jobs:
       - name: 🔬 Análise Metabólica - Interpretação da Intenção
         id: analyze
         env:
-          GITHUB_TOKEN: ${{ secrets.JARVIS_TOKEN_CI || github.token }}
-          GH_TOKEN: ${{ secrets.JARVIS_TOKEN_CI || github.token }}
+          GITHUB_TOKEN: ${{ secrets.JARVIS_RENDER_TOKEN || secrets.JARVIS_TOKEN_CI || github.token }}
+          GH_TOKEN: ${{ secrets.JARVIS_RENDER_TOKEN || secrets.JARVIS_TOKEN_CI || github.token }}
         run: |
+          export PYTHONPATH=$PYTHONPATH:.
           echo "==================================================" >> $GITHUB_STEP_SUMMARY
           echo "## 2️⃣ MECÂNICO REVISIONADOR - Análise Metabólica" >> $GITHUB_STEP_SUMMARY
           echo "==================================================" >> $GITHUB_STEP_SUMMARY
@@ -194,8 +195,8 @@ jobs:
         id: escalation_check
         if: steps.analyze.outputs.requires_human == 'true'
         env:
-          GITHUB_TOKEN: ${{ secrets.JARVIS_TOKEN_CI || github.token }}
-          GH_TOKEN: ${{ secrets.JARVIS_TOKEN_CI || github.token }}
+          GITHUB_TOKEN: ${{ secrets.JARVIS_RENDER_TOKEN || secrets.JARVIS_TOKEN_CI || github.token }}
+          GH_TOKEN: ${{ secrets.JARVIS_RENDER_TOKEN || secrets.JARVIS_TOKEN_CI || github.token }}
         run: |
           echo "==================================================" >> $GITHUB_STEP_SUMMARY
           echo "## 3️⃣ ESCALONAMENTO ANTECIPADO AO COMANDANTE" >> $GITHUB_STEP_SUMMARY
@@ -267,8 +268,8 @@ jobs:
 
       - name: Install GitHub Copilot CLI
         env:
-          GITHUB_TOKEN: ${{ secrets.JARVIS_TOKEN_CI || github.token }}
-          GH_TOKEN: ${{ secrets.JARVIS_TOKEN_CI || github.token }}
+          GITHUB_TOKEN: ${{ secrets.JARVIS_RENDER_TOKEN || secrets.JARVIS_TOKEN_CI || github.token }}
+          GH_TOKEN: ${{ secrets.JARVIS_RENDER_TOKEN || secrets.JARVIS_TOKEN_CI || github.token }}
         run: |
           gh --version
           gh extension install github/gh-copilot || echo "Copilot extension already installed"
@@ -299,13 +300,14 @@ jobs:
       - name: 🧬 Mecânico Consertador - Implementar Mutagênese Controlada
         id: mutate
         env:
-          GITHUB_TOKEN: ${{ secrets.JARVIS_TOKEN_CI || github.token }}
-          GH_TOKEN: ${{ secrets.JARVIS_TOKEN_CI || github.token }}
+          GITHUB_TOKEN: ${{ secrets.JARVIS_RENDER_TOKEN || secrets.JARVIS_TOKEN_CI || github.token }}
+          GH_TOKEN: ${{ secrets.JARVIS_RENDER_TOKEN || secrets.JARVIS_TOKEN_CI || github.token }}
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
           INTENT_TYPE: ${{ needs.metabolic_analysis.outputs.intent_type }}
           IMPACT_TYPE: ${{ needs.metabolic_analysis.outputs.impact_type }}
           MUTATION_STRATEGY: ${{ needs.metabolic_analysis.outputs.mutation_strategy }}
         run: |
+          export PYTHONPATH=$PYTHONPATH:.
           echo "==================================================" >> $GITHUB_STEP_SUMMARY
           echo "## 5️⃣ MECÂNICO CONSERTADOR - Mutagênese Controlada" >> $GITHUB_STEP_SUMMARY
           echo "==================================================" >> $GITHUB_STEP_SUMMARY
@@ -374,6 +376,7 @@ jobs:
         id: validate
         continue-on-error: true
         run: |
+          export PYTHONPATH=$PYTHONPATH:.
           echo "==================================================" >> $GITHUB_STEP_SUMMARY
           echo "## 6️⃣ VISTORIA - Homeostase (Sistema Imunológico)" >> $GITHUB_STEP_SUMMARY
           echo "==================================================" >> $GITHUB_STEP_SUMMARY
@@ -462,8 +465,8 @@ jobs:
     steps:
       - name: Escalar ao Comandante (Humano)
         env:
-          GITHUB_TOKEN: ${{ secrets.JARVIS_TOKEN_CI || github.token }}
-          GH_TOKEN: ${{ secrets.JARVIS_TOKEN_CI || github.token }}
+          GITHUB_TOKEN: ${{ secrets.JARVIS_RENDER_TOKEN || secrets.JARVIS_TOKEN_CI || github.token }}
+          GH_TOKEN: ${{ secrets.JARVIS_RENDER_TOKEN || secrets.JARVIS_TOKEN_CI || github.token }}
         run: |
           echo "==================================================" >> $GITHUB_STEP_SUMMARY
           echo "## 8️⃣ COMANDANTE - Consciência Superior" >> $GITHUB_STEP_SUMMARY
