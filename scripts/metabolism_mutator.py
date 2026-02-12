@@ -216,7 +216,16 @@ Mudança: <descrição da mudança>
         self, intent: str, impact: str, issue_body: str, prompt: str = ""
     ) -> Dict[str, Any]:
         """
-        Cria marcador para mudança manual quando automação não está disponível
+        Creates a manual mutation marker when automation is not available.
+        
+        Args:
+            intent: Type of intent (correction, creation, etc.)
+            impact: Type of impact (structural, behavioral, etc.)
+            issue_body: Description of the event/issue
+            prompt: Optional technical context/prompt for implementation guidance
+            
+        Returns:
+            Dictionary with mutation result including marker file path
         """
         logger.info("📝 Criando marcador para mudança manual...")
         

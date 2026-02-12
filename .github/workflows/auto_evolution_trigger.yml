@@ -104,10 +104,10 @@ try:
     sys.exit(0)
     
 except Exception as e:
-    print(f'❌ ERRO ao verificar auto-evolução: {e}', file=sys.stderr)
+    print(f'❌ ERROR checking auto-evolution: {e}', file=sys.stderr)
     import traceback
     traceback.print_exc()
-    # Em caso de erro, não triggamos evolução por segurança
+    # In case of error, don't trigger evolution for safety
     with open(os.environ.get('GITHUB_OUTPUT', '/dev/null'), 'a') as f:
         f.write('should_evolve=false\n')
     sys.exit(1)
@@ -222,7 +222,7 @@ try:
         sys.exit(0)
         
 except Exception as e:
-    print(f'❌ ERRO ao buscar missão: {e}', file=sys.stderr)
+    print(f'❌ ERROR finding next mission: {e}', file=sys.stderr)
     import traceback
     traceback.print_exc()
     
@@ -496,11 +496,11 @@ try:
     sys.exit(0)
     
 except Exception as e:
-    print(f'⚠️ Erro ao registrar no RL system: {e}', file=sys.stderr)
+    print(f'⚠️ Error registering RL result: {e}', file=sys.stderr)
     import traceback
     traceback.print_exc()
-    print('Continuando sem registro de recompensa...')
-    sys.exit(0)  # Não falhar o workflow se RL falhar
+    print('Continuing without reward registration...')
+    sys.exit(0)  # Don't fail the workflow if RL fails
 PYCODE
           EXIT_CODE=$?
           set -e

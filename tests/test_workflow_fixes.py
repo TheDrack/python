@@ -37,9 +37,9 @@ def test_metabolism_analyzer():
             [
                 sys.executable,
                 str(PROJECT_ROOT / 'scripts' / 'metabolism_analyzer.py'),
-                '--intent', 'teste',
-                '--instruction', 'Testar o analisador',
-                '--context', 'Contexto de teste suficientemente grande para passar pela validação',
+                '--intent', 'test',
+                '--instruction', 'Test the analyzer',
+                '--context', 'Test context with sufficient length to pass validation',
                 '--event-type', 'test'
             ],
             capture_output=True,
