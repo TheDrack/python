@@ -213,6 +213,11 @@ def create_api_server(assistant_service: AssistantService, extension_manager: Ex
     <!-- Theme Color -->
     <meta name="theme-color" content="#00d4ff">
     
+    <!-- Leaflet CSS for OpenStreetMap -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+          integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+          crossorigin=""/>
+    
     <title>J.A.R.V.I.S. Strategic HUD</title>
     <style>
         * {
@@ -757,6 +762,7 @@ def create_api_server(assistant_service: AssistantService, extension_manager: Ex
         .map-container {
             position: relative;
             width: 100%;
+            height: 300px;
             border-radius: 8px;
             overflow: hidden;
             cursor: pointer;
@@ -769,10 +775,15 @@ def create_api_server(assistant_service: AssistantService, extension_manager: Ex
             border-color: #00d4ff;
         }
         
-        .map-container img {
+        #map {
             width: 100%;
-            height: auto;
-            display: block;
+            height: 100%;
+            z-index: 1;
+        }
+        
+        /* Dark mode for Leaflet map tiles */
+        .leaflet-tile {
+            filter: brightness(0.6) invert(1) contrast(3) hue-rotate(200deg) saturate(0.3) brightness(0.7);
         }
         
         .map-overlay {
@@ -1019,7 +1030,7 @@ def create_api_server(assistant_service: AssistantService, extension_manager: Ex
                     <div class="secondary"></div>
                 </div>
                 <div class="map-container" id="mapContainer" title="Clique para abrir no Google Maps">
-                    <img id="mapImage" src="" alt="Mapa de localização">
+                    <div id="map"></div>
                     <div class="map-overlay">🗺️ Clique para visualizar no Google Maps</div>
                 </div>
             </div>
@@ -1542,10 +1553,7 @@ def create_api_server(assistant_service: AssistantService, extension_manager: Ex
         const BATTERY_LOW_THRESHOLD = 15; // Percentage - triggers power-saving mode
         const TELEMETRY_INTERVAL_MS = 30000; // 30 seconds
         const GPS_CACHE_MAX_AGE_MS = 300000; // 5 minutes
-        const SIGNIFICANT_DISPLACEMENT_METERS = 50; // Minimum displacement to update map
-        // TODO: Move API key to backend proxy in production to prevent unauthorized usage
-        // For production, implement a server endpoint that proxies Google Maps API calls
-        const GOOGLE_MAPS_API_KEY = 'AIzaSyBs0TFhtLaPFMdIpPaHElrCsjDKiCRMrZM'; // Development only
+        const SIGNIFICANT_DISPLACEMENT_METERS = 100; // Minimum displacement to update map (updated to 100m as per requirement)
         
         let batteryLevel = 100;
         let batteryCharging = false;
@@ -1553,6 +1561,8 @@ def create_api_server(assistant_service: AssistantService, extension_manager: Ex
         let lastMapLocation = null; // Track last location where map was updated
         let deviceType = detectDeviceType();
         let telemetryInterval = null;
+        let leafletMap = null; // Leaflet map instance
+        let mapMarker = null; // Map marker instance
         
         // Detect device type using user agent
         // Maps various mobile/tablet user agents to device categories
@@ -1636,7 +1646,6 @@ def create_api_server(assistant_service: AssistantService, extension_manager: Ex
         // Update the spatial orientation module with map and geocoding
         async function updateSpatialOrientation(latitude, longitude) {
             const panel = document.getElementById('spatialOrientationPanel');
-            const mapImage = document.getElementById('mapImage');
             const mapContainer = document.getElementById('mapContainer');
             const locationName = document.getElementById('locationName');
             
@@ -1661,13 +1670,40 @@ def create_api_server(assistant_service: AssistantService, extension_manager: Ex
             // Update last map location
             lastMapLocation = { latitude, longitude };
             
-            // Generate Static Maps URL
-            const zoom = 16;
-            const size = '600x300';
-            const mapUrl = `https://maps.googleapis.com/maps/api/staticmap?center=${latitude},${longitude}&zoom=${zoom}&size=${size}&markers=color:red%7C${latitude},${longitude}&key=${GOOGLE_MAPS_API_KEY}`;
-            
-            // Update map image
-            mapImage.src = mapUrl;
+            // Initialize Leaflet map if not already initialized
+            if (!leafletMap) {
+                leafletMap = L.map('map', {
+                    zoomControl: true,
+                    attributionControl: true,
+                    dragging: false,
+                    scrollWheelZoom: false,
+                    doubleClickZoom: false,
+                    boxZoom: false,
+                    keyboard: false,
+                    tap: false
+                }).setView([latitude, longitude], 16);
+                
+                // Add OpenStreetMap tiles with dark mode styling
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+                    maxZoom: 19,
+                }).addTo(leafletMap);
+                
+                // Create a custom icon for the marker
+                const customIcon = L.divIcon({
+                    className: 'custom-marker',
+                    html: '<div style="background-color: #00ff88; width: 20px; height: 20px; border-radius: 50%; border: 3px solid #00d4ff; box-shadow: 0 0 10px rgba(0, 255, 136, 0.6);"></div>',
+                    iconSize: [20, 20],
+                    iconAnchor: [10, 10]
+                });
+                
+                // Add marker
+                mapMarker = L.marker([latitude, longitude], { icon: customIcon }).addTo(leafletMap);
+            } else {
+                // Update map view and marker position
+                leafletMap.setView([latitude, longitude], 16);
+                mapMarker.setLatLng([latitude, longitude]);
+            }
             
             // Make map clickable - redirect to Google Maps
             mapContainer.onclick = () => {
@@ -1675,36 +1711,27 @@ def create_api_server(assistant_service: AssistantService, extension_manager: Ex
                 window.open(googleMapsUrl, '_blank');
             };
             
-            // Fetch location name using Geocoding API
+            // Fetch location name using Nominatim (OSM) Reverse Geocoding
             try {
-                const geocodeUrl = `https://maps.googleapis.com/maps/api/geocode/json?latlng=${latitude},${longitude}&key=${GOOGLE_MAPS_API_KEY}`;
-                const response = await fetch(geocodeUrl);
+                const nominatimUrl = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=18&addressdetails=1`;
+                const response = await fetch(nominatimUrl, {
+                    headers: {
+                        'User-Agent': 'JARVIS-HUD/1.0'
+                    }
+                });
                 const data = await response.json();
                 
-                if (data.status === 'OK' && data.results.length > 0) {
-                    const result = data.results[0];
-                    const addressComponents = result.address_components;
+                if (data && data.address) {
+                    const address = data.address;
                     
-                    // Extract neighborhood and establishment
-                    let neighborhood = '';
-                    let establishment = '';
-                    let locality = '';
-                    
-                    for (const component of addressComponents) {
-                        if (component.types.includes('neighborhood') || component.types.includes('sublocality')) {
-                            neighborhood = component.long_name;
-                        }
-                        if (component.types.includes('locality')) {
-                            locality = component.long_name;
-                        }
-                        if (component.types.includes('establishment') || component.types.includes('point_of_interest')) {
-                            establishment = component.long_name;
-                        }
-                    }
+                    // Extract neighborhood, suburb, or locality
+                    const neighborhood = address.neighbourhood || address.suburb || address.quarter || '';
+                    const locality = address.city || address.town || address.village || address.municipality || '';
+                    const establishment = address.amenity || address.building || '';
                     
                     // Display location name
                     const primaryLocation = establishment || neighborhood || locality || 'Localização atual';
-                    const secondaryLocation = establishment ? (neighborhood || locality) : '';
+                    const secondaryLocation = establishment ? (neighborhood || locality) : (neighborhood && locality ? locality : '');
                     
                     locationName.innerHTML = `
                         <div class="primary">${primaryLocation}</div>
@@ -1716,7 +1743,7 @@ def create_api_server(assistant_service: AssistantService, extension_manager: Ex
                     `;
                 }
             } catch (error) {
-                console.error('Geocoding error:', error);
+                console.error('Nominatim geocoding error:', error);
                 locationName.innerHTML = `
                     <div class="primary">Localização: ${latitude.toFixed(4)}, ${longitude.toFixed(4)}</div>
                 `;
@@ -1919,6 +1946,11 @@ def create_api_server(assistant_service: AssistantService, extension_manager: Ex
             });
         }
     </script>
+    
+    <!-- Leaflet JavaScript for OpenStreetMap -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+            integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+            crossorigin=""></script>
 </body>
 </html>
         """
