@@ -412,18 +412,17 @@ def create_api_server(assistant_service: AssistantService, extension_manager: Ex
             border-radius: 10px;
             padding: 20px;
             margin-bottom: 20px;
-            overflow-y: scroll;
             box-shadow: 0 0 30px rgba(0, 212, 255, 0.2);
-            height: 500px;
-            max-height: 500px;
+            min-height: 150px;
         }
         
         .message {
             margin: 10px 0;
-            padding: 10px;
+            padding: 12px;
             border-left: 3px solid #00d4ff;
             background: rgba(0, 212, 255, 0.05);
             animation: fadeIn 0.3s ease-in;
+            font-size: 1.1em;
         }
         
         @keyframes fadeIn {
@@ -445,7 +444,7 @@ def create_api_server(assistant_service: AssistantService, extension_manager: Ex
             font-weight: bold;
             margin-bottom: 5px;
             text-transform: uppercase;
-            font-size: 0.8em;
+            font-size: 0.9em;
             letter-spacing: 2px;
         }
         
@@ -462,9 +461,12 @@ def create_api_server(assistant_service: AssistantService, extension_manager: Ex
             padding: 15px;
             color: #00d4ff;
             font-family: 'Courier New', monospace;
-            font-size: 1em;
+            font-size: 1.1em;
             outline: none;
             transition: all 0.3s;
+            resize: none;
+            min-height: 60px;
+            line-height: 1.5;
         }
         
         #commandInput:focus {
@@ -631,14 +633,7 @@ def create_api_server(assistant_service: AssistantService, extension_manager: Ex
         
         /* Mobile Edge Node Telemetry Panel */
         .telemetry-panel {
-            background: rgba(0, 0, 0, 0.6);
-            border: 2px solid #00d4ff;
-            border-radius: 10px;
-            padding: 15px;
-            margin-bottom: 20px;
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 15px;
+            display: none; /* Hidden per user request - info still tracked in background */
         }
         
         .telemetry-item {
@@ -761,23 +756,25 @@ def create_api_server(assistant_service: AssistantService, extension_manager: Ex
             background: rgba(0, 0, 0, 0.6);
             border: 2px solid #ff9500;
             border-radius: 10px;
-            padding: 15px;
+            padding: 12px 15px;
             margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
         }
         
         .evolution-panel h3 {
             color: #ff9500;
-            margin-bottom: 15px;
-            text-align: center;
+            margin: 0;
             text-shadow: 0 0 10px #ff9500;
+            font-size: 1em;
         }
         
         .evolution-status {
-            padding: 10px;
-            background: rgba(255, 149, 0, 0.05);
-            border-left: 3px solid #ff9500;
-            border-radius: 5px;
-            margin-top: 10px;
+            color: #ff9500;
+            font-weight: bold;
+            font-size: 1.1em;
         }
         
         /* Mobile responsiveness */
@@ -803,9 +800,13 @@ def create_api_server(assistant_service: AssistantService, extension_manager: Ex
             }
             
             .terminal {
-                height: 400px;
-                max-height: 400px;
+                min-height: 120px;
                 padding: 15px;
+            }
+            
+            .message {
+                font-size: 1em;
+                padding: 10px;
             }
             
             .input-area {
@@ -815,8 +816,9 @@ def create_api_server(assistant_service: AssistantService, extension_manager: Ex
             }
             
             #commandInput {
-                font-size: 0.9em;
+                font-size: 1em;
                 padding: 12px;
+                min-height: 50px;
             }
             
             #voiceButton {
@@ -872,8 +874,13 @@ def create_api_server(assistant_service: AssistantService, extension_manager: Ex
             }
             
             .message {
-                padding: 8px;
-                font-size: 0.9em;
+                padding: 10px;
+                font-size: 1em;
+            }
+            
+            #commandInput {
+                font-size: 1em;
+                min-height: 50px;
             }
             
             /* Spatial orientation optimizations for portrait mobile */
@@ -976,13 +983,8 @@ def create_api_server(assistant_service: AssistantService, extension_manager: Ex
             
             <!-- Real-Time Evolution Panel -->
             <div class="evolution-panel">
-                <h3>⚙️ Evolução em Tempo Real</h3>
-                <div class="evolution-status" id="evolutionStatus">
-                    <div>Aguardando próxima evolução...</div>
-                    <div style="margin-top: 10px; font-size: 0.9em; color: #00d4ff;">
-                        Plugins dinâmicos: <span id="pluginCount">0</span>
-                    </div>
-                </div>
+                <h3>⚙️ Progresso:</h3>
+                <div class="evolution-status" id="evolutionStatus">0%</div>
             </div>
             
             <div class="terminal" id="terminal">
@@ -999,12 +1001,12 @@ def create_api_server(assistant_service: AssistantService, extension_manager: Ex
             
             <div class="input-area">
                 <button id="voiceButton" title="Voice Input">🎤</button>
-                <input 
-                    type="text" 
+                <textarea 
                     id="commandInput" 
                     placeholder="Enter command or use voice..."
                     autocomplete="off"
-                />
+                    rows="2"
+                ></textarea>
                 <button id="sendButton">Enviar</button>
             </div>
         </div>
@@ -1250,8 +1252,14 @@ def create_api_server(assistant_service: AssistantService, extension_manager: Ex
             messageDiv.appendChild(content);
             terminal.appendChild(messageDiv);
             
-            // Auto-scroll to bottom
-            terminal.scrollTop = terminal.scrollHeight;
+            // Keep only the last 2 messages (last user + last assistant)
+            const messages = terminal.querySelectorAll('.message');
+            if (messages.length > 2) {
+                // Remove oldest messages, keeping only last 2
+                for (let i = 0; i < messages.length - 2; i++) {
+                    messages[i].remove();
+                }
+            }
         }
         
         // Send command function
