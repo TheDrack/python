@@ -12,16 +12,16 @@ import traceback
 from pathlib import Path
 from typing import Optional
 
+from app.domain.models.mission import Mission, MissionResult
+
+logger = logging.getLogger(__name__)
+
 try:
     import psutil
     PSUTIL_AVAILABLE = True
 except ImportError:
     PSUTIL_AVAILABLE = False
     logger.warning("psutil not available - resource monitoring will be disabled")
-
-from app.domain.models.mission import Mission, MissionResult
-
-logger = logging.getLogger(__name__)
 
 
 class StructuredLogger:
