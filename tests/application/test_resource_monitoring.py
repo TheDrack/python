@@ -1,12 +1,17 @@
 # -*- coding: utf-8 -*-
 """Tests for resource monitoring in TaskRunner"""
 
+import sys
 import shutil
 import tempfile
 from pathlib import Path
-from unittest.mock import Mock, patch
+from unittest.mock import Mock, MagicMock, patch
 
 import pytest
+
+# Mock psutil before importing TaskRunner to handle environments without psutil
+mock_psutil = MagicMock()
+sys.modules['psutil'] = mock_psutil
 
 from app.application.services.task_runner import ResourceMonitor, TaskRunner
 from app.domain.models.mission import Mission
@@ -15,24 +20,21 @@ from app.domain.models.mission import Mission
 class TestResourceMonitor:
     """Test cases for ResourceMonitor"""
 
-    @patch('app.application.services.task_runner.PSUTIL_AVAILABLE', True)
-    @patch('psutil.cpu_percent')
-    @patch('psutil.virtual_memory')
-    @patch('psutil.disk_usage')
-    def test_get_resource_snapshot(self, mock_disk_usage, mock_virtual_memory, mock_cpu_percent):
+    def test_get_resource_snapshot(self):
         """Test getting a resource snapshot with mocked psutil"""
-        # Mock psutil responses
-        mock_cpu_percent.return_value = 25.5
-        mock_virtual_memory.return_value = Mock(
+        # Configure mock psutil responses
+        mock_psutil.cpu_percent.return_value = 25.5
+        mock_psutil.virtual_memory.return_value = Mock(
             percent=42.8,
             available=8589934592  # 8 GB in bytes
         )
-        mock_disk_usage.return_value = Mock(
+        mock_psutil.disk_usage.return_value = Mock(
             percent=65.3,
             free=161061273600  # 150 GB in bytes
         )
         
-        snapshot = ResourceMonitor.get_resource_snapshot()
+        with patch('app.application.services.task_runner.PSUTIL_AVAILABLE', True):
+            snapshot = ResourceMonitor.get_resource_snapshot()
         
         assert snapshot is not None
         assert isinstance(snapshot, dict)
@@ -60,20 +62,19 @@ class TestResourceMonitor:
             assert snapshot.get("cpu_percent") == 0.0
             assert snapshot.get("memory_percent") == 0.0
     
-    @patch('app.application.services.task_runner.PSUTIL_AVAILABLE', True)
-    @patch('psutil.Process')
-    def test_get_process_resources(self, mock_Process):
+    def test_get_process_resources(self):
         """Test getting process resources with mocked psutil"""
         import os
         
-        # Mock process
+        # Configure mock process
         mock_process = Mock()
         mock_process.cpu_percent.return_value = 15.2
         mock_process.memory_info.return_value = Mock(rss=134217728)  # 128 MB
         mock_process.num_threads.return_value = 4
-        mock_Process.return_value = mock_process
+        mock_psutil.Process.return_value = mock_process
         
-        resources = ResourceMonitor.get_process_resources(os.getpid())
+        with patch('app.application.services.task_runner.PSUTIL_AVAILABLE', True):
+            resources = ResourceMonitor.get_process_resources(os.getpid())
         
         assert resources is not None
         assert isinstance(resources, dict)
