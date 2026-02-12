@@ -76,13 +76,12 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           
           # Usar o serviço de auto-evolução para verificar com melhor tratamento de erros
-          export PYTHONPATH=$PYTHONPATH:$(pwd)
+          export PYTHONPATH="${PYTHONPATH:+$PYTHONPATH:}$(pwd)"
           set +e
           set -o pipefail
           python - << 'PYCODE' 2>&1 | tee -a /tmp/auto_evolution_check.log
           import os
           import sys
-          sys.path.insert(0, os.getcwd())
           
           try:
               from app.application.services.auto_evolution import AutoEvolutionService
@@ -115,7 +114,7 @@ jobs:
                   f.write('should_evolve=false\n')
               sys.exit(1)
           PYCODE
-          EXIT_CODE=$?
+          EXIT_CODE=${PIPESTATUS[0]}
           set -e
           
           # Mostrar log se houver erro
@@ -166,14 +165,13 @@ jobs:
           echo "==================================================" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           
-          export PYTHONPATH=$PYTHONPATH:$(pwd)
+          export PYTHONPATH="${PYTHONPATH:+$PYTHONPATH:}$(pwd)"
           set +e
           set -o pipefail
           python - << 'PYCODE' 2>&1 | tee /tmp/find_mission.log
           import json
           import os
           import sys
-          sys.path.insert(0, os.getcwd())
           
           try:
               from app.application.services.auto_evolution import AutoEvolutionService
@@ -237,7 +235,7 @@ jobs:
               
               sys.exit(1)
           PYCODE
-          EXIT_CODE=$?
+          EXIT_CODE=${PIPESTATUS[0]}
           set -e
           
           # Mostrar log
@@ -455,13 +453,12 @@ jobs:
           echo "==================================================" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           
-          export PYTHONPATH=$PYTHONPATH:$(pwd)
+          export PYTHONPATH="${PYTHONPATH:+$PYTHONPATH:}$(pwd)"
           set +e
           set -o pipefail
           python - << 'PYCODE' 2>&1 | tee /tmp/rl_result.log
           import os
           import sys
-          sys.path.insert(0, os.getcwd())
           
           try:
               from app.adapters.infrastructure.sqlite_history_adapter import SQLiteHistoryAdapter
@@ -511,7 +508,7 @@ jobs:
               print('Continuing without reward registration...')
               sys.exit(0)  # Don't fail the workflow if RL fails
           PYCODE
-          EXIT_CODE=$?
+          EXIT_CODE=${PIPESTATUS[0]}
           set -e
           
           # Mostrar resultado
