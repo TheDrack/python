@@ -1303,7 +1303,9 @@ def create_api_server(assistant_service: AssistantService, extension_manager: Ex
         const TELEMETRY_INTERVAL_MS = 30000; // 30 seconds
         const GPS_CACHE_MAX_AGE_MS = 300000; // 5 minutes
         const SIGNIFICANT_DISPLACEMENT_METERS = 50; // Minimum displacement to update map
-        const GOOGLE_MAPS_API_KEY = 'AIzaSyBs0TFhtLaPFMdIpPaHElrCsjDKiCRMrZM'; // Note: In production, use environment variable
+        // TODO: Move API key to backend proxy in production to prevent unauthorized usage
+        // For production, implement a server endpoint that proxies Google Maps API calls
+        const GOOGLE_MAPS_API_KEY = 'AIzaSyBs0TFhtLaPFMdIpPaHElrCsjDKiCRMrZM'; // Development only
         
         let batteryLevel = 100;
         let batteryCharging = false;
@@ -1379,9 +1381,13 @@ def create_api_server(assistant_service: AssistantService, extension_manager: Ex
             const Δφ = (lat2 - lat1) * Math.PI / 180;
             const Δλ = (lon2 - lon1) * Math.PI / 180;
             
-            const a = Math.sin(Δφ/2) * Math.sin(Δφ/2) +
+            // Cache sine calculations for efficiency
+            const sinHalfDeltaPhi = Math.sin(Δφ/2);
+            const sinHalfDeltaLambda = Math.sin(Δλ/2);
+            
+            const a = sinHalfDeltaPhi * sinHalfDeltaPhi +
                       Math.cos(φ1) * Math.cos(φ2) *
-                      Math.sin(Δλ/2) * Math.sin(Δλ/2);
+                      sinHalfDeltaLambda * sinHalfDeltaLambda;
             const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
             
             return R * c; // Distance in meters
@@ -1504,7 +1510,7 @@ def create_api_server(assistant_service: AssistantService, extension_manager: Ex
                         // Keep spatial orientation panel hidden if location is denied
                     },
                     {
-                        enableHighAccuracy: false, // Disabled for battery saving on mobile devices
+                        enableHighAccuracy: false, // Low accuracy to save battery on all devices
                         timeout: 10000,
                         maximumAge: GPS_CACHE_MAX_AGE_MS
                     }
