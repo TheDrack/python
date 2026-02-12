@@ -834,8 +834,18 @@ def create_api_server(assistant_service: AssistantService, extension_manager: Ex
                 grid-template-columns: 1fr;
             }
             
+            .spatial-orientation-panel {
+                padding: 12px;
+            }
+            
             .spatial-orientation-panel h3 {
                 font-size: 1em;
+            }
+            
+            .location-name {
+                padding: 8px;
+                font-size: 0.9em;
+                margin-bottom: 12px;
             }
             
             .map-container {
@@ -864,6 +874,41 @@ def create_api_server(assistant_service: AssistantService, extension_manager: Ex
             .message {
                 padding: 8px;
                 font-size: 0.9em;
+            }
+            
+            /* Spatial orientation optimizations for portrait mobile */
+            .spatial-orientation-panel {
+                padding: 12px;
+            }
+            
+            .spatial-orientation-panel h3 {
+                font-size: 0.95em;
+                margin-bottom: 10px;
+            }
+            
+            .location-name {
+                padding: 8px;
+                font-size: 0.85em;
+                margin-bottom: 10px;
+            }
+            
+            .location-name .primary {
+                font-size: 1em;
+                margin-bottom: 3px;
+            }
+            
+            .location-name .secondary {
+                font-size: 0.85em;
+            }
+            
+            .map-container {
+                max-height: 200px;
+                border-width: 1px;
+            }
+            
+            .map-overlay {
+                font-size: 0.75em;
+                padding: 6px;
             }
         }
     </style>
