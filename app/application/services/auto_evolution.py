@@ -24,6 +24,9 @@ class AutoEvolutionService:
     - ✅ (completed) - skipped
     """
     
+    # Maximum attempts to find a valid mission with auto-complete
+    MAX_AUTO_COMPLETE_ATTEMPTS = 10
+    
     def __init__(self, roadmap_path: Optional[str] = None):
         """
         Initialize the auto evolution service.
@@ -331,10 +334,9 @@ class AutoEvolutionService:
         Returns:
             Dictionary with mission details or None if no mission found
         """
-        max_attempts = 10  # Prevent infinite loops
         attempt = 0
         
-        while attempt < max_attempts:
+        while attempt < self.MAX_AUTO_COMPLETE_ATTEMPTS:
             attempt += 1
             
             # Find next mission using standard logic
@@ -360,7 +362,9 @@ class AutoEvolutionService:
             # Found a valid mission that's not completed
             return next_mission
         
-        logger.warning(f"Reached max attempts ({max_attempts}) while finding next mission")
+        logger.warning(
+            f"Reached max attempts ({self.MAX_AUTO_COMPLETE_ATTEMPTS}) while finding next mission"
+        )
         return None
     
     def get_roadmap_context(self, mission: Dict[str, Any]) -> str:
