@@ -1,5 +1,13 @@
 name: Python Tests
 
+# ==================================================
+# SEGURANÇA: Este workflow usa pull_request_target
+# Proteções implementadas:
+# - Checkout explícito do SHA da PR
+# - Auto-merge apenas de PRs do mesmo repositório (não forks)
+# - Testes executados antes de qualquer merge
+# ==================================================
+
 on:
   push:
     branches: [ main ]
