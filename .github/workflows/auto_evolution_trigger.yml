@@ -322,7 +322,7 @@ jobs:
           
           echo "**Branch:** \`$BRANCH_NAME\`" >> $GITHUB_STEP_SUMMARY
 
-      - name: 🤖 Implementar Missão do ROADMAP
+      - name: 🤖 Implementar Missão via Metabolism Mutator
         id: implement
         env:
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
@@ -355,12 +355,13 @@ jobs:
           EXIT_CODE=$?
           set -e
           
-          # Mostrar saída
+          # Mostrar saída (últimas 50 linhas para evitar logs excessivamente longos)
+          MAX_OUTPUT_LINES=50
           echo "$OUTPUT"
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### Saída da Implementação" >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY
-          echo "$OUTPUT" | tail -50 >> $GITHUB_STEP_SUMMARY
+          echo "$OUTPUT" | tail -n $MAX_OUTPUT_LINES >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY
           
           # Atualizar AUTO_EVOLUTION_LOG

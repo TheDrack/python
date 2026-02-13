@@ -508,7 +508,7 @@ $ python -c "import yaml; yaml.safe_load(open('.github/workflows/auto_evolution_
 - ✅ Nenhum segredo exposto em corpos de PR
 - ✅ Referências de eventos são sanitizadas
 - ✅ Closing keywords funcionam apenas para issues do mesmo repositório
-- ✅ Permissões do token GitHub estão corretamente escopo
+- ✅ Permissões do token GitHub estão corretamente escopadas
 
 ---
 
