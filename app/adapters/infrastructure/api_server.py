@@ -1164,11 +1164,6 @@ def create_api_server(assistant_service: AssistantService, extension_manager: Ex
                     
                     lastSpeechTime = Date.now();
                     
-                    // Reset silence timer when speech is detected
-                    if (silenceTimer) {
-                        clearTimeout(silenceTimer);
-                    }
-                    
                     if (vasState === 'listening') {
                         // Wake word detection mode - check for any wake word
                         const detectedWakeWord = WAKE_WORDS.find(word => transcript.includes(word));
@@ -1180,7 +1175,8 @@ def create_api_server(assistant_service: AssistantService, extension_manager: Ex
                             addMessage(`Wake word "${detectedWakeWord}" detected. Transcribing...`, 'system');
                             // Clear the wake word from input and reset result index
                             commandInput.value = '';
-                            resultIndex = i + 1; // Skip the wake word result
+                            resultIndex = event.results.length; // Skip all results up to this point
+                            break; // Exit loop after detecting wake word
                         }
                     } else if (vasState === 'transcribing') {
                         // Transcription mode - write to input box
@@ -1191,15 +1187,22 @@ def create_api_server(assistant_service: AssistantService, extension_manager: Ex
                             commandInput.value = currentValue ? currentValue + ' ' + newText : newText;
                             resultIndex = i + 1; // Mark this result as processed
                         }
-                        
-                        // Start silence detection
-                        silenceTimer = setTimeout(() => {
-                            handleSilence();
-                        }, SILENCE_TIMEOUT);
-                        
-                        // Visual feedback during speech
-                        commandInput.classList.add('voice-active');
                     }
+                }
+                
+                // Reset silence timer when speech is detected (outside loop)
+                if (silenceTimer) {
+                    clearTimeout(silenceTimer);
+                }
+                
+                // Start silence detection for transcribing state (outside loop to avoid multiple timers)
+                if (vasState === 'transcribing') {
+                    silenceTimer = setTimeout(() => {
+                        handleSilence();
+                    }, SILENCE_TIMEOUT);
+                    
+                    // Visual feedback during speech
+                    commandInput.classList.add('voice-active');
                 }
             };
             
