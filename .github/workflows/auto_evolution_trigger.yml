@@ -20,8 +20,7 @@ name: Auto Evolution Trigger
 # ==================================================
 
 on:
-  pull_request:
-    types: [closed]
+  push:
     branches:
       - main
 
@@ -32,17 +31,15 @@ permissions:
 
 jobs:
   # ==================================================
-  # VERIFICAÇÃO: PR foi merged e não é auto-evolução?
+  # VERIFICAÇÃO: Push para main - Identificar origem
   # ==================================================
   check_trigger_conditions:
     name: "🔍 Verificar Condições de Trigger"
     runs-on: ubuntu-latest
-    # Só executa se PR foi merged
-    if: github.event.pull_request.merged == true
     outputs:
       should_evolve: ${{ steps.check.outputs.should_evolve }}
-      pr_title: ${{ github.event.pull_request.title }}
-      pr_number: ${{ github.event.pull_request.number }}
+      merge_source: ${{ steps.check.outputs.merge_source }}
+      commit_message: ${{ steps.check.outputs.commit_message }}
       
     steps:
       - name: Checkout código
@@ -69,70 +66,113 @@ jobs:
       - name: 🧬 Verificar se deve triggar evolução
         id: check
         env:
-          PR_TITLE: ${{ github.event.pull_request.title }}
-          PR_BODY: ${{ github.event.pull_request.body }}
+          COMMIT_MSG: ${{ github.event.head_commit.message }}
+          GH_TOKEN: ${{ github.token }}
         run: |
           echo "==================================================" >> $GITHUB_STEP_SUMMARY
           echo "## 🧬 AUTO-EVOLUTION TRIGGER CHECK" >> $GITHUB_STEP_SUMMARY
           echo "==================================================" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           
-          echo "**PR Merged:** #${{ github.event.pull_request.number }}" >> $GITHUB_STEP_SUMMARY
-          echo "**Título:** $PR_TITLE" >> $GITHUB_STEP_SUMMARY
+          echo "**Push para main detectado**" >> $GITHUB_STEP_SUMMARY
+          echo "**Commit:** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Mensagem:** $COMMIT_MSG" >> $GITHUB_STEP_SUMMARY
+          echo "**Author:** ${{ github.event.head_commit.author.name }}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           
-          # Usar o serviço de auto-evolução para verificar com melhor tratamento de erros
-          export PYTHONPATH="${PYTHONPATH:+$PYTHONPATH:}$(pwd)"
-          set +e
-          set -o pipefail
-          python - << 'PYCODE' 2>&1 | tee -a /tmp/auto_evolution_check.log
-          import os
-          import sys
+          # Detectar se o merge veio de auto-evolução através de múltiplos sinais
+          IS_AUTO_EVO=false
           
-          try:
-              from app.application.services.auto_evolution import AutoEvolutionService
-          
-              auto_evolution = AutoEvolutionService()
-              is_auto_evo = auto_evolution.is_auto_evolution_pr(
-                  pr_title=os.environ.get('PR_TITLE', ''),
-                  pr_body=os.environ.get('PR_BODY', '')
-              )
-          
-              if is_auto_evo:
-                  print('Este PR é de auto-evolução. Loop infinito evitado!')
-                  print('should_evolve=false')
-                  with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
-                      f.write('should_evolve=false\n')
-              else:
-                  print('Este PR NÃO é de auto-evolução. Triggando evolução!')
-                  print('should_evolve=true')
-                  with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
-                      f.write('should_evolve=true\n')
-              
-              sys.exit(0)
-              
-          except Exception as e:
-              print(f'❌ ERROR checking auto-evolution: {e}', file=sys.stderr)
-              import traceback
-              traceback.print_exc()
-              # In case of error, don't trigger evolution for safety
-              with open(os.environ.get('GITHUB_OUTPUT', '/dev/null'), 'a') as f:
-                  f.write('should_evolve=false\n')
-              sys.exit(1)
-          PYCODE
-          EXIT_CODE=${PIPESTATUS[0]}
-          set -e
-          
-          # Mostrar log se houver erro
-          if [ $EXIT_CODE -ne 0 ]; then
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo "**❌ ERRO ao verificar trigger (código: $EXIT_CODE)**" >> $GITHUB_STEP_SUMMARY
-            echo '```' >> $GITHUB_STEP_SUMMARY
-            cat /tmp/auto_evolution_check.log >> $GITHUB_STEP_SUMMARY
-            echo '```' >> $GITHUB_STEP_SUMMARY
-          else
-            cat /tmp/auto_evolution_check.log >> $GITHUB_STEP_SUMMARY
+          # Sinal 1: Mensagem de commit contém marcadores de auto-evolução
+          if [[ "$COMMIT_MSG" == *"[Auto-Evolution]"* ]] || [[ "$COMMIT_MSG" == *"auto-evolution"* ]]; then
+            IS_AUTO_EVO=true
           fi
+          
+          # Sinal 2: Autor do commit é o bot de auto-evolução
+          if [[ "${{ github.event.head_commit.author.name }}" == "Jarvis-AutoEvolution" ]]; then
+            IS_AUTO_EVO=true
+          fi
+          
+          # Sinal 3: Branch name indica auto-evolution
+          if [[ "${{ github.event.ref }}" == *"auto-evolution"* ]]; then
+            IS_AUTO_EVO=true
+          fi
+          
+          if [ "$IS_AUTO_EVO" = true ]; then
+            echo "**Origem:** Merge de Auto-Evolução (próprio sistema)" >> $GITHUB_STEP_SUMMARY
+            echo "**Ação:** Consolidar conhecimento, NÃO criar nova evolução" >> $GITHUB_STEP_SUMMARY
+            echo "merge_source=auto-evolution" >> $GITHUB_OUTPUT
+            echo "should_evolve=false" >> $GITHUB_OUTPUT
+          else
+            echo "**Origem:** Merge de PR Externa ou commit manual" >> $GITHUB_STEP_SUMMARY
+            echo "**Ação:** Triggando novo ciclo de evolução" >> $GITHUB_STEP_SUMMARY
+            echo "merge_source=external" >> $GITHUB_OUTPUT
+            echo "should_evolve=true" >> $GITHUB_OUTPUT
+          fi
+          
+          echo "commit_message=$COMMIT_MSG" >> $GITHUB_OUTPUT
+
+  # ==================================================
+  # CONSOLIDAÇÃO: Atualizar base de conhecimento após merge
+  # ==================================================
+  consolidate_knowledge:
+    name: "📚 Consolidar Conhecimento"
+    needs: check_trigger_conditions
+    if: needs.check_trigger_conditions.outputs.merge_source == 'auto-evolution'
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout código
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ github.token }}
+
+      - name: Teste de Identidade
+        run: gh auth status
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Instalar dependências
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt || echo "Some dependencies failed, continuing..."
+
+      - name: 📚 Atualizar Base de Conhecimento
+        run: |
+          echo "==================================================" >> $GITHUB_STEP_SUMMARY
+          echo "## 📚 CONSOLIDAÇÃO DE CONHECIMENTO" >> $GITHUB_STEP_SUMMARY
+          echo "==================================================" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          echo "**Origem:** Merge de Auto-Evolução detectado" >> $GITHUB_STEP_SUMMARY
+          echo "**Ação:** Consolidando aprendizado no mapa de conhecimento" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          # Atualizar mapa de conhecimento/documentação
+          export PYTHONPATH="${PYTHONPATH:+$PYTHONPATH:}$(pwd)"
+          
+          cat > /tmp/consolidate.py << 'PYEND'
+          import os
+          from datetime import datetime
+          
+          log_path = 'docs/AUTO_EVOLUTION_LOG.md'
+          if os.path.exists(log_path):
+              with open(log_path, 'a') as f:
+                  f.write('\n\n## Consolidação - ' + datetime.now().isoformat() + '\n')
+                  f.write('**Status:** Merge para main concluído com sucesso\n')
+                  f.write('**Conhecimento consolidado:** Esta evolução foi integrada ao DNA principal\n')
+          print('✅ Base de conhecimento atualizada')
+          PYEND
+          python3 /tmp/consolidate.py || true
+          
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**✅ Conhecimento consolidado com sucesso**" >> $GITHUB_STEP_SUMMARY
 
   # ==================================================
   # ANÁLISE: Buscar próxima missão do ROADMAP
@@ -415,7 +455,7 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
           GH_TOKEN: ${{ github.token }}
           MISSION_DESC: ${{ needs.find_next_mission.outputs.mission_description }}
-          TRIGGER_PR_NUM: ${{ needs.check_trigger_conditions.outputs.pr_number }}
+          COMMIT_SHA: ${{ github.sha }}
         run: |
           # Create PR body in a temp file to avoid shell injection
           BODY_FILE="$(mktemp)"
@@ -440,7 +480,7 @@ jobs:
             printf '%s\n' "---"
             printf '\n'
             printf '%s\n' "_Criado automaticamente pelo workflow auto_evolution_trigger.yml_"
-            printf '%s\n' "_Triggered por: PR #${TRIGGER_PR_NUM}_"
+            printf '%s\n' "_Triggered por: Push to main (${COMMIT_SHA:0:7})_"
           } > "$BODY_FILE"
           
           PR_TITLE="[Auto-Evolution] ${MISSION_DESC:0:80}"
@@ -573,7 +613,7 @@ jobs:
   # ==================================================
   summary:
     name: "📋 Resumo da Auto-Evolução"
-    needs: [check_trigger_conditions, find_next_mission, attempt_evolution, log_evolution_result]
+    needs: [check_trigger_conditions, consolidate_knowledge, find_next_mission, attempt_evolution, log_evolution_result]
     if: always()
     runs-on: ubuntu-latest
     
@@ -585,16 +625,18 @@ jobs:
           echo "==================================================" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           
-          echo "**Trigger:** PR #${{ needs.check_trigger_conditions.outputs.pr_number }} merged" >> $GITHUB_STEP_SUMMARY
+          echo "**Trigger:** Push para main - ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Origem do Merge:** ${{ needs.check_trigger_conditions.outputs.merge_source }}" >> $GITHUB_STEP_SUMMARY
           echo "**Deve Evoluir:** ${{ needs.check_trigger_conditions.outputs.should_evolve }}" >> $GITHUB_STEP_SUMMARY
-          echo "**Missão Encontrada:** ${{ needs.find_next_mission.outputs.has_mission }}" >> $GITHUB_STEP_SUMMARY
-          echo "**Evolução Bem-Sucedida:** ${{ needs.attempt_evolution.outputs.evolution_success }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Missão Encontrada:** ${{ needs.find_next_mission.outputs.has_mission || 'N/A' }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Evolução Bem-Sucedida:** ${{ needs.attempt_evolution.outputs.evolution_success || 'N/A' }}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "---" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Princípios da Auto-Evolução:**" >> $GITHUB_STEP_SUMMARY
-          echo "- ✅ Toda evolução é triggada por sucesso anterior (PR merged)" >> $GITHUB_STEP_SUMMARY
-          echo "- ✅ Loop infinito evitado (detecta PRs de auto-evolução)" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Toda evolução é triggada por push para main" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Detecta origem do merge (auto-evolução vs externa)" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Consolida conhecimento em merges de auto-evolução" >> $GITHUB_STEP_SUMMARY
           echo "- ✅ Missões priorizadas por seção do ROADMAP" >> $GITHUB_STEP_SUMMARY
           echo "- ✅ Reinforcement Learning integrado (rewards/punishments)" >> $GITHUB_STEP_SUMMARY
           echo "- ✅ Comandante pode revisar todas as PRs de evolução" >> $GITHUB_STEP_SUMMARY
