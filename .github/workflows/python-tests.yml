@@ -69,10 +69,13 @@ jobs:
         uv run pytest -W ignore::DeprecationWarning --cov=app tests/
 
     - name: Enable Auto-Merge on PR
-      if: github.event_name == 'pull_request_target'
+      if: github.event_name == 'pull_request_target' && github.event.pull_request.head.repo.full_name == github.repository
       env:
         GH_TOKEN: ${{ github.token }}
       run: |
         PR_NUMBER="${{ github.event.pull_request.number }}"
         echo "Enabling auto-merge for PR #$PR_NUMBER"
-        gh pr merge "$PR_NUMBER" --auto --merge --repo "${{ github.repository }}" || true
+        if ! gh pr merge "$PR_NUMBER" --auto --merge --repo "${{ github.repository }}"; then
+          echo "Warning: Failed to enable auto-merge. This may be due to branch protection rules or missing permissions."
+          echo "PR will need to be merged manually."
+        fi
