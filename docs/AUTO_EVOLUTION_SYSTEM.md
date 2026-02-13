@@ -74,6 +74,8 @@ Serviço responsável por:
 - Encontrar a próxima missão alcançável
 - Detectar PRs de auto-evolução (evitar loop infinito)
 - Calcular métricas de sucesso
+- Marcar missões como completas automaticamente
+- Auto-completar missões já finalizadas e buscar a próxima
 
 **Principais métodos:**
 
@@ -83,13 +85,21 @@ from app.application.services.auto_evolution import AutoEvolutionService
 # Inicializar serviço
 auto_evolution = AutoEvolutionService()
 
-# Encontrar próxima missão
+# Encontrar próxima missão (método básico)
 mission = auto_evolution.find_next_mission()
 # Retorna: {
 #   'mission': {...},
 #   'section': 'AGORA',
 #   'priority': 'high'
 # }
+
+# Encontrar próxima missão com auto-complete (recomendado)
+# Detecta missões já completas, marca-as no ROADMAP e busca a próxima
+mission = auto_evolution.find_next_mission_with_auto_complete()
+
+# Marcar missão como completa manualmente
+success = auto_evolution.mark_mission_as_completed("Graceful failure em instalações de pip")
+# Retorna: True se marcada com sucesso
 
 # Verificar se PR é de auto-evolução
 is_auto = auto_evolution.is_auto_evolution_pr(
@@ -371,11 +381,64 @@ O status de evolução pode ser visualizado:
 2. Missões têm status correto (🔄, 📋)?
 3. Há missões não completadas?
 
+### Problema: Jarvis tenta repetidamente resolver missão já completa
+
+**Solução:**
+O sistema agora usa `find_next_mission_with_auto_complete()` que:
+1. Detecta quando uma missão já está completa
+2. Automaticamente marca a missão no ROADMAP.md como ✅
+3. Move para a próxima missão no mesmo ciclo
+
+Se o problema persistir:
+1. Verifique se o workflow usa `find_next_mission_with_auto_complete()`
+2. Verifique logs para ver se a marcação automática está funcionando
+3. Manualmente marque a missão no ROADMAP.md como completa
+
+## Auto-Completion de Missões
+
+### O que é?
+
+O sistema de auto-completion detecta quando uma missão marcada como 🔄 (em progresso) ou 📋 (planejada) já foi completada, e automaticamente:
+1. Atualiza o ROADMAP.md marcando a missão como ✅
+2. Busca a próxima missão disponível
+3. Continua o ciclo de evolução sem intervenção humana
+
+### Como funciona?
+
+```python
+# Workflow usa este método (com auto-complete)
+next_mission = auto_evolution.find_next_mission_with_auto_complete()
+
+# Internamente:
+# 1. Busca próxima missão
+# 2. Verifica se já está completa (heurísticas)
+# 3. Se completa: marca no ROADMAP e busca próxima
+# 4. Repete até encontrar missão não completa ou esgotar opções
+```
+
+### Vantagens
+
+- **Evita loops cognitivos**: Jarvis não fica preso tentando resolver missões já completas
+- **Auto-atualização do ROADMAP**: Mantém a documentação sincronizada
+- **Eficiência**: Reduz ciclos de evolução desperdiçados
+- **Transparência**: Logs mostram quando missões são auto-completadas
+
+### Limitações Atuais
+
+O método `is_mission_likely_completed()` é atualmente um placeholder que retorna `False`.
+Implementações futuras podem incluir:
+- Análise de código para detectar features implementadas
+- Verificação de testes relacionados
+- Análise de histórico do Git
+- Validação de commits recentes
+
 ## Desenvolvimento Futuro
 
 ### Planejado
+- [x] Auto-completion de missões já finalizadas
 - [ ] Integração completa com GitHub Copilot Agent para implementação automática
 - [ ] Análise de viabilidade antes de tentar evolução
+- [ ] Heurísticas avançadas para detectar missões completas
 - [ ] A/B testing de diferentes estratégias de evolução
 - [ ] Dashboard web para visualização de evolução
 

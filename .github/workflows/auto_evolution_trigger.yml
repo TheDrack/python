@@ -242,8 +242,11 @@ jobs:
           
               auto_evolution = AutoEvolutionService()
           
-              # Buscar próxima missão
-              next_mission = auto_evolution.find_next_mission()
+              # Buscar próxima missão com auto-complete
+              # Este método detecta missões já completas, marca-as automaticamente,
+              # e busca a próxima missão disponível
+              print('🔍 Buscando próxima missão (com auto-complete)...')
+              next_mission = auto_evolution.find_next_mission_with_auto_complete()
           
               if next_mission:
                   mission_data = next_mission['mission']
