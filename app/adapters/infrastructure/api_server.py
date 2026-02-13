@@ -1121,6 +1121,31 @@ def create_api_server(assistant_service: AssistantService, extension_manager: Ex
             }
         }
         
+        // Generate time-based greeting
+        function getGreeting() {
+            const hour = new Date().getHours();
+            let timeGreeting;
+            
+            if (hour >= 5 && hour < 12) {
+                timeGreeting = 'Bom dia';
+            } else if (hour >= 12 && hour < 18) {
+                timeGreeting = 'Boa tarde';
+            } else {
+                timeGreeting = 'Boa noite';
+            }
+            
+            const welcomeMessages = [
+                'Bem-vindo de volta',
+                'É bom ter você de volta',
+                'Prazer em vê-lo novamente',
+                'Sistemas online e prontos'
+            ];
+            
+            const randomWelcome = welcomeMessages[Math.floor(Math.random() * welcomeMessages.length)];
+            
+            return `${timeGreeting}. ${randomWelcome}.`;
+        }
+        
         // Initialize Web Speech API for V.A.S.
         if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
             const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -1332,6 +1357,11 @@ def create_api_server(assistant_service: AssistantService, extension_manager: Ex
             loginModal.classList.remove('active');
             mainInterface.classList.remove('hidden');
             commandInput.focus();
+            
+            // Greet the user when HUD opens
+            const greeting = getGreeting();
+            addMessage(greeting, 'jarvis');
+            speak(greeting);
         }
         
         // Activity monitoring
