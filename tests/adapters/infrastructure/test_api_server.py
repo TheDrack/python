@@ -64,6 +64,10 @@ class TestAPIServer:
         assert "speechSynthesis" in response.text
         # Verify reactor loading animation
         assert "reactor" in response.text
+        # Verify wake word support - should include WAKE_WORDS array and fetchWakeWord function
+        assert "WAKE_WORDS" in response.text
+        assert "fetchWakeWord" in response.text
+        assert "const WAKE_WORDS = ['jarvis']" in response.text
     
     def test_root_head(self, client):
         """Test root HEAD endpoint for monitoring"""
