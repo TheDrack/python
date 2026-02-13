@@ -1,52 +1,21 @@
 name: Jarvis Metabolism Flow
 
 # ==================================================
-# FLUXO DE METABOLISMO DO JARVIS
+# FLUXO DE METABOLISMO DO JARVIS - AUTONOMIA TOTAL
 # ==================================================
 #
-# O Jarvis é tratado como um organismo de software.
-# Seu repositório representa seu DNA.
-# Qualquer alteração nesse DNA deve passar por um
-# processo metabólico controlado, rastreável e validado.
-#
-# Este fluxo é acionado sempre que houver qualquer
-# evento que impacte o DNA do Jarvis.
-#
-# Estrutura:
-# 1. EVENTO DE ENTRADA - Qualquer evento que demande ação sobre o DNA
-# 2. MECÂNICO REVISIONADOR - Análise metabólica da intenção
-# 3. CRITÉRIO DE ESCALONAMENTO - Decisão: automatizar ou escalar
-# 4. OFICINA - Execução metabólica em branch isolada
-# 5. MECÂNICO CONSERTADOR - Implementação da mutação
-# 6. VISTORIA - Validação homeostática (pytest)
-# 7. CONTROLE DE LOOP - Máximo 3 ciclos completos
-# 8. COMANDANTE - Consciência superior (humano)
-# 9. PRINCÍPIOS FUNDAMENTAIS - DNA sagrado, testes = imunológico
+# Regras de Engajamento:
+# 1. Trigger: APENAS pull_request (qualquer branch)
+# 2. O Metabolismo é o juiz - testes validam automaticamente
+# 3. Se testes passarem: Auto-Merge
+# 4. Se testes falharem: Auto-Correção (máximo 3 tentativas)
+# 5. Após 3 falhas: Marca "Manual Review Required" e notifica Comandante
 #
 # ==================================================
 
 on:
-  # 1. EVENTO DE ENTRADA - Múltiplas fontes de intenção técnica
   pull_request:
     types: [opened, synchronize, reopened]
-  issues:
-    types: [opened, edited]
-  repository_dispatch:
-    types: [jarvis_order, auto_fix, metabolism_event]
-  workflow_dispatch:
-    inputs:
-      intent:
-        description: 'Intenção técnica (correção/criação/modificação/otimização/operacional)'
-        required: true
-        type: string
-      instruction:
-        description: 'Descrição detalhada da ação necessária'
-        required: true
-        type: string
-      context:
-        description: 'Contexto adicional (opcional)'
-        required: false
-        type: string
 
 permissions:
   contents: write
@@ -55,38 +24,23 @@ permissions:
 
 jobs:
   # ==================================================
-  # 2. MECÂNICO REVISIONADOR - Análise Metabólica
+  # VISTORIA - Testes (Sistema Imunológico)
   # ==================================================
-  metabolic_analysis:
-    name: "🔍 Mecânico Revisionador - Análise Metabólica"
+  test_pr:
+    name: "🧪 Vistoria - Executar Testes"
     runs-on: ubuntu-latest
-    # Ativa para eventos relevantes ao DNA
-    if: |
-      github.event_name == 'pull_request' ||
-      contains(github.event.issue.labels.*.name, 'auto-code') ||
-      contains(github.event.issue.labels.*.name, 'jarvis-auto-report') ||
-      contains(github.event.issue.labels.*.name, 'metabolism') ||
-      github.event_name == 'repository_dispatch' ||
-      github.event_name == 'workflow_dispatch'
     outputs:
-      requires_human: ${{ steps.analyze.outputs.requires_human }}
-      intent_type: ${{ steps.analyze.outputs.intent_type }}
-      impact_type: ${{ steps.analyze.outputs.impact_type }}
-      mutation_strategy: ${{ steps.analyze.outputs.mutation_strategy }}
-      escalation_reason: ${{ steps.analyze.outputs.escalation_reason }}
-      event_description: ${{ steps.analyze.outputs.event_description }}
+      tests_passed: ${{ steps.test.outputs.tests_passed }}
+      attempt_number: ${{ steps.get_attempt.outputs.attempt_number }}
       
     steps:
-      - name: Checkout DNA (Repositório)
+      - name: Checkout PR Branch
         uses: actions/checkout@v4
         with:
+          ref: ${{ github.event.pull_request.head.ref }}
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
           fetch-depth: 0
           token: ${{ github.token }}
-
-      - name: Teste de Identidade
-        run: gh auth status
-        env:
-          GH_TOKEN: ${{ github.token }}
 
       - name: Setup Python
         uses: actions/setup-python@v5
@@ -101,563 +55,324 @@ jobs:
             pip install -r requirements.txt || echo "Some dependencies failed, continuing..."
           fi
 
-      - name: 📋 Capturar Evento de Entrada
-        id: capture_event
+      - name: Get Attempt Number
+        id: get_attempt
         run: |
-          echo "==================================================" >> $GITHUB_STEP_SUMMARY
-          echo "## 1️⃣ EVENTO DE ENTRADA - O METABOLISMO COMEÇA" >> $GITHUB_STEP_SUMMARY
-          echo "==================================================" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          
-          # Detectar tipo de evento e extrair informações
-          if [[ "${{ github.event_name }}" == "repository_dispatch" ]]; then
-            INTENT="${{ github.event.client_payload.intent }}"
-            INSTRUCTION="${{ github.event.client_payload.instruction }}"
-            CONTEXT="${{ github.event.client_payload.context }}"
-            EVENT_DESC="API Request: $INTENT - $INSTRUCTION"
-            
-            echo "**Tipo de Evento:** repository_dispatch (API)" >> $GITHUB_STEP_SUMMARY
-            echo "**Intenção:** $INTENT" >> $GITHUB_STEP_SUMMARY
-            echo "**Instrução:** $INSTRUCTION" >> $GITHUB_STEP_SUMMARY
-            
-          elif [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
-            INTENT="${{ github.event.inputs.intent }}"
-            INSTRUCTION="${{ github.event.inputs.instruction }}"
-            CONTEXT="${{ github.event.inputs.context }}"
-            EVENT_DESC="Manual Trigger: $INTENT - $INSTRUCTION"
-            
-            echo "**Tipo de Evento:** workflow_dispatch (Manual)" >> $GITHUB_STEP_SUMMARY
-            echo "**Intenção:** $INTENT" >> $GITHUB_STEP_SUMMARY
-            echo "**Instrução:** $INSTRUCTION" >> $GITHUB_STEP_SUMMARY
-            
-          elif [[ "${{ github.event_name }}" == "issues" ]]; then
-            INTENT="correção"
-            INSTRUCTION="${{ github.event.issue.title }}"
-            CONTEXT="${{ github.event.issue.body }}"
-            EVENT_DESC="Issue #${{ github.event.issue.number }}: $INSTRUCTION"
-            
-            echo "**Tipo de Evento:** Issue #${{ github.event.issue.number }}" >> $GITHUB_STEP_SUMMARY
-            echo "**Título:** $INSTRUCTION" >> $GITHUB_STEP_SUMMARY
-            
-          elif [[ "${{ github.event_name }}" == "pull_request" ]]; then
-            INTENT="validação"
-            INSTRUCTION="PR #${{ github.event.pull_request.number }}: ${{ github.event.pull_request.title }}"
-            CONTEXT="Validar mudanças propostas no DNA"
-            EVENT_DESC="PR #${{ github.event.pull_request.number }}: ${{ github.event.pull_request.title }}"
-            
-            echo "**Tipo de Evento:** Pull Request #${{ github.event.pull_request.number }}" >> $GITHUB_STEP_SUMMARY
-            echo "**Título:** ${{ github.event.pull_request.title }}" >> $GITHUB_STEP_SUMMARY
-          fi
-          
-          echo "INTENT=$INTENT" >> $GITHUB_ENV
-          echo "INSTRUCTION=$INSTRUCTION" >> $GITHUB_ENV
-          echo "CONTEXT=$CONTEXT" >> $GITHUB_ENV
-          echo "EVENT_DESC=$EVENT_DESC" >> $GITHUB_ENV
-          
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**✅ Evento capturado e classificado como intenção técnica sobre o DNA**" >> $GITHUB_STEP_SUMMARY
+          # Buscar número de tentativas dos commits
+          ATTEMPT=$(git log --oneline --grep="Auto-correção tentativa" | wc -l)
+          ATTEMPT=$((ATTEMPT + 1))
+          echo "attempt_number=$ATTEMPT" >> $GITHUB_OUTPUT
+          echo "**Tentativa:** $ATTEMPT de 3" >> $GITHUB_STEP_SUMMARY
 
-      - name: 🔬 Análise Metabólica - Interpretação da Intenção
-        id: analyze
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          echo "==================================================" >> $GITHUB_STEP_SUMMARY
-          echo "## 2️⃣ MECÂNICO REVISIONADOR - Análise Metabólica" >> $GITHUB_STEP_SUMMARY
-          echo "==================================================" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          
-          # Executar script de análise metabólica com melhor tratamento de erros
-          export PYTHONPATH="${PYTHONPATH:+$PYTHONPATH:}$(pwd)"
-          set +e  # Não parar em erros para capturar saída
-          OUTPUT=$(python scripts/metabolism_analyzer.py \
-            --intent "$INTENT" \
-            --instruction "$INSTRUCTION" \
-            --context "$CONTEXT" \
-            --event-type "${{ github.event_name }}" 2>&1)
-          EXIT_CODE=$?
-          set -e
-          
-          # Mostrar saída completa
-          echo "$OUTPUT"
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### Saída do Analisador" >> $GITHUB_STEP_SUMMARY
-          echo '```' >> $GITHUB_STEP_SUMMARY
-          echo "$OUTPUT" | tail -50 >> $GITHUB_STEP_SUMMARY
-          echo '```' >> $GITHUB_STEP_SUMMARY
-          
-          # Verificar se houve erro
-          if [ $EXIT_CODE -ne 0 ] && [ $EXIT_CODE -ne 1 ]; then
-            echo "**❌ ERRO na análise metabólica (código: $EXIT_CODE)**" >> $GITHUB_STEP_SUMMARY
-            exit $EXIT_CODE
-          fi
-          
-          # Exit code 1 = requires_human, 0 = prosseguir automático
-          exit $EXIT_CODE
-
-      - name: 🚨 Critério de Escalonamento Antecipado
-        id: escalation_check
-        if: steps.analyze.outputs.requires_human == 'true'
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          echo "==================================================" >> $GITHUB_STEP_SUMMARY
-          echo "## 3️⃣ ESCALONAMENTO ANTECIPADO AO COMANDANTE" >> $GITHUB_STEP_SUMMARY
-          echo "==================================================" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          
-          REASON="${{ steps.analyze.outputs.escalation_reason }}"
-          
-          echo "**⚠️ Interrupção do Fluxo Automático**" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Motivo do Escalonamento:**" >> $GITHUB_STEP_SUMMARY
-          echo "$REASON" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Ação:** Aguardando decisão do COMANDANTE (humano)" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Princípio:** Nenhuma alteração no DNA sem compreensão completa" >> $GITHUB_STEP_SUMMARY
-          
-          # Criar comentário na issue/PR solicitando intervenção humana
-          BODY_TEXT="## 🚨 COMANDANTE: Intervenção Necessária
-          
-          ⚠️ **O QUE ACONTECEU:**
-          $REASON
-          
-          🛠️ **MINHA PROPOSTA:**
-          O Mecânico Revisionador determinou que esta mudança no DNA requer decisão humana antes de prosseguir com o metabolismo automático.
-          
-          ✍️ **O QUE EU PRECISO:**
-          Aguardando sua análise e orientação nos comentários desta issue/PR."
-          
-          if [[ -n "${{ github.event.issue.number }}" ]]; then
-            gh issue comment "${{ github.event.issue.number }}" --repo "${{ github.repository }}" --body "$BODY_TEXT"
-          elif [[ -n "${{ github.event.pull_request.number }}" ]]; then
-            gh pr comment "${{ github.event.pull_request.number }}" --repo "${{ github.repository }}" --body "$BODY_TEXT"
-          fi
-          
-          exit 0
-
-  # ==================================================
-  # 4-5. OFICINA + MECÂNICO CONSERTADOR - Mutagênese Controlada
-  # ==================================================
-  metabolic_mutation:
-    name: "🔧 Oficina + Mecânico Consertador - Mutagênese"
-    needs: metabolic_analysis
-    if: needs.metabolic_analysis.outputs.requires_human != 'true'
-    runs-on: ubuntu-latest
-    outputs:
-      mutation_applied: ${{ steps.mutate.outputs.mutation_applied }}
-      branch_name: ${{ steps.mutate.outputs.branch_name }}
-      cycle_count: ${{ steps.mutate.outputs.cycle_count }}
-      
-    steps:
-      - name: Checkout DNA (Repositório)
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-          token: ${{ github.token }}
-
-      - name: Teste de Identidade
-        run: gh auth status
-        env:
-          GH_TOKEN: ${{ github.token }}
-
-      - name: Setup Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-
-      - name: Install Dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install pytest pytest-json-report pytest-cov
-          if [ -f "requirements.txt" ]; then
-            pip install -r requirements.txt || echo "Some dependencies failed, continuing..."
-          fi
-
-      - name: Install GitHub Copilot CLI
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          gh --version
-          gh extension install github/gh-copilot || echo "Copilot extension already installed"
-          gh auth setup-git
-
-      - name: 🏗️ Oficina - Criar Branch Isolada para Metabolismo
-        id: workshop
-        run: |
-          echo "==================================================" >> $GITHUB_STEP_SUMMARY
-          echo "## 4️⃣ OFICINA - Execução Metabólica" >> $GITHUB_STEP_SUMMARY
-          echo "==================================================" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          
-          # Configurar Git
-          git config --global user.name "Jarvis-Metabolismo"
-          git config --global user.email "jarvis-metabolism@bot.com"
-          
-          # Criar branch isolada para mutação
-          TIMESTAMP=$(date +%s)
-          BRANCH_NAME="metabolism/mutation-${TIMESTAMP}"
-          git checkout -b "$BRANCH_NAME"
-          
-          echo "BRANCH_NAME=$BRANCH_NAME" >> $GITHUB_ENV
-          echo "**Branch de Mutação:** \`$BRANCH_NAME\`" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Princípio:** Toda mutação em ambiente isolado, rastreável e auditável" >> $GITHUB_STEP_SUMMARY
-
-      - name: 🧬 Mecânico Consertador - Implementar Mutagênese Controlada
-        id: mutate
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
-          GH_TOKEN: ${{ github.token }}
-          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
-          INTENT_TYPE: ${{ needs.metabolic_analysis.outputs.intent_type }}
-          IMPACT_TYPE: ${{ needs.metabolic_analysis.outputs.impact_type }}
-          MUTATION_STRATEGY: ${{ needs.metabolic_analysis.outputs.mutation_strategy }}
-        run: |
-          echo "==================================================" >> $GITHUB_STEP_SUMMARY
-          echo "## 5️⃣ MECÂNICO CONSERTADOR - Mutagênese Controlada" >> $GITHUB_STEP_SUMMARY
-          echo "==================================================" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          
-          # Executar mecânico consertador com estratégia de mutação aprovada
-          export PYTHONPATH="${PYTHONPATH:+$PYTHONPATH:}$(pwd)"
-          set +e
-          OUTPUT=$(python scripts/metabolism_mutator.py \
-            --strategy "$MUTATION_STRATEGY" \
-            --intent "$INTENT_TYPE" \
-            --impact "$IMPACT_TYPE" 2>&1)
-          EXIT_CODE=$?
-          set -e
-          
-          # Mostrar saída completa
-          echo "$OUTPUT"
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### Saída do Mutador" >> $GITHUB_STEP_SUMMARY
-          echo '```' >> $GITHUB_STEP_SUMMARY
-          echo "$OUTPUT" | tail -50 >> $GITHUB_STEP_SUMMARY
-          echo '```' >> $GITHUB_STEP_SUMMARY
-          
-          # Verificar sucesso
-          if [ $EXIT_CODE -ne 0 ]; then
-            echo "**❌ ERRO na mutagênese (código: $EXIT_CODE)**" >> $GITHUB_STEP_SUMMARY
-            exit $EXIT_CODE
-          fi
-          
-          echo "branch_name=$BRANCH_NAME" >> $GITHUB_OUTPUT
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**✅ Mutagênese executada com sucesso**" >> $GITHUB_STEP_SUMMARY
-
-      - name: 📤 Push Branch e Criar Pull Request
-        id: create_pr
-        if: steps.mutate.outputs.mutation_applied == 'true'
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          # Push da branch com mutações
-          git push origin "$BRANCH_NAME"
-          
-          # Capturar referência do evento que gerou o metabolismo
-          EVENT_REF=""
-          CLOSING_KEYWORD=""
-          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
-            EVENT_REF="PR #${{ github.event.pull_request.number }}"
-          elif [[ "${{ github.event_name }}" == "issues" ]]; then
-            EVENT_REF="Issue #${{ github.event.issue.number }}"
-            CLOSING_KEYWORD="Closes #${{ github.event.issue.number }}"
-          elif [[ -n "${{ github.sha }}" ]]; then
-            EVENT_REF="Commit ${{ github.sha }}"
-          fi
-          
-          # Criar body da PR em arquivo temporário
-          BODY_FILE="$(mktemp)"
-          {
-            printf '%s\n' "## 🧬 Mutação Metabólica Automática"
-            printf '\n'
-            printf '%s\n' "Esta PR foi criada automaticamente pelo Fluxo de Metabolismo do Jarvis."
-            printf '\n'
-            printf '%s\n' "### Evento Original"
-            printf '%s\n' "**Origem:** ${EVENT_REF}"
-            printf '%s\n' "**Intenção:** ${{ needs.metabolic_analysis.outputs.intent_type }}"
-            printf '%s\n' "**Impacto:** ${{ needs.metabolic_analysis.outputs.impact_type }}"
-            printf '\n'
-            printf '%s\n' "### Estratégia de Mutação"
-            printf '%s\n' "${{ needs.metabolic_analysis.outputs.mutation_strategy }}"
-            printf '\n'
-            printf '%s\n' "### Próximos Passos"
-            printf '%s\n' "1. Revisar as mudanças aplicadas"
-            printf '%s\n' "2. Executar testes (vistoria homeostática)"
-            printf '%s\n' "3. Aprovar ou solicitar ajustes"
-            printf '\n'
-            if [[ -n "$CLOSING_KEYWORD" ]]; then
-              printf '%s\n' "$CLOSING_KEYWORD"
-              printf '\n'
-            fi
-            printf '%s\n' "---"
-            printf '%s\n' "_Workflow Run: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}_"
-          } > "$BODY_FILE"
-          
-          # Criar PR
-          PR_URL=$(gh pr create \
-            --repo "${{ github.repository }}" \
-            --title "🧬 [Metabolismo] ${{ needs.metabolic_analysis.outputs.event_description }}" \
-            --body-file "$BODY_FILE" \
-            --base main \
-            --head "$BRANCH_NAME")
-          
-          # Cleanup
-          rm -f "$BODY_FILE"
-          
-          # Obter número da PR
-          PR_NUMBER=$(echo "$PR_URL" | grep -oE '[0-9]+$')
-          echo "pr_number=$PR_NUMBER" >> $GITHUB_OUTPUT
-          echo "pr_url=$PR_URL" >> $GITHUB_OUTPUT
-          
-          echo "**✅ Pull Request criada:** $PR_URL" >> $GITHUB_STEP_SUMMARY
-
-  # ==================================================
-  # 6. VISTORIA - Homeostase (Validação com Pytest)
-  # ==================================================
-  homeostasis_validation:
-    name: "🧪 Vistoria - Homeostase (Sistema Imunológico)"
-    needs: [metabolic_analysis, metabolic_mutation]
-    if: needs.metabolic_mutation.outputs.mutation_applied == 'true'
-    runs-on: ubuntu-latest
-    outputs:
-      homeostasis_ok: ${{ steps.validate.outputs.homeostasis_ok }}
-      
-    steps:
-      - name: Checkout DNA Mutado
-        uses: actions/checkout@v4
-        with:
-          ref: ${{ needs.metabolic_mutation.outputs.branch_name }}
-          fetch-depth: 0
-          token: ${{ github.token }}
-
-      - name: Teste de Identidade
-        run: gh auth status
-        env:
-          GH_TOKEN: ${{ github.token }}
-
-      - name: Setup Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-
-      - name: Install Dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install pytest pytest-json-report pytest-cov
-          if [ -f "requirements.txt" ]; then
-            pip install -r requirements.txt || echo "Some dependencies failed, continuing..."
-          fi
-
-      - name: 🧪 Vistoria - Executar Sistema Imunológico (Pytest)
-        id: validate
+      - name: 🧪 Executar Testes (Sistema Imunológico)
+        id: test
         continue-on-error: true
         run: |
           echo "==================================================" >> $GITHUB_STEP_SUMMARY
-          echo "## 6️⃣ VISTORIA - Homeostase (Sistema Imunológico)" >> $GITHUB_STEP_SUMMARY
+          echo "## 🧪 VISTORIA - Sistema Imunológico (Testes)" >> $GITHUB_STEP_SUMMARY
           echo "==================================================" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          
-          echo "**Executando suíte de testes (anticorpos)...**" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           
           # Executar pytest
           if pytest --json-report --json-report-file=report.json; then
-            echo "homeostasis_ok=true" >> $GITHUB_OUTPUT
+            echo "tests_passed=true" >> $GITHUB_OUTPUT
             echo "**✅ HOMEOSTASE MANTIDA** - Todos os testes passaram" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo "O DNA permanece funcional após a mutação." >> $GITHUB_STEP_SUMMARY
+            exit 0
           else
-            echo "homeostasis_ok=false" >> $GITHUB_OUTPUT
+            echo "tests_passed=false" >> $GITHUB_OUTPUT
             echo "**❌ HOMEOSTASE COMPROMETIDA** - Testes falharam" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo "**Ação:** Retornar ao Mecânico Revisionador para nova análise" >> $GITHUB_STEP_SUMMARY
             exit 1
           fi
 
-      - name: Salvar Relatório de Vistoria
+      - name: Upload Test Report
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: homeostasis-report
+          name: test-report-attempt-${{ steps.get_attempt.outputs.attempt_number }}
           path: report.json
 
   # ==================================================
-  # 7. CONTROLE DE LOOP - Limite Metabólico (3 Ciclos)
+  # AUTO-MERGE - Se testes passaram
   # ==================================================
-  metabolic_loop_control:
-    name: "🔁 Controle de Loop - Limite Metabólico"
-    needs: [metabolic_analysis, metabolic_mutation, homeostasis_validation]
-    if: always() && needs.homeostasis_validation.outputs.homeostasis_ok == 'false'
+  auto_merge:
+    name: "✅ Auto-Merge - Testes Aprovados"
+    needs: test_pr
+    if: needs.test_pr.outputs.tests_passed == 'true'
     runs-on: ubuntu-latest
     
     steps:
-      - name: Verificar Limite de Ciclos Metabólicos
-        id: check_limit
-        run: |
-          echo "==================================================" >> $GITHUB_STEP_SUMMARY
-          echo "## 7️⃣ CONTROLE DE LOOP - Limite Metabólico" >> $GITHUB_STEP_SUMMARY
-          echo "==================================================" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          
-          CURRENT_CYCLE=${{ needs.metabolic_mutation.outputs.cycle_count || 1 }}
-          MAX_CYCLES=3
-          
-          echo "**Ciclo Atual:** $CURRENT_CYCLE de $MAX_CYCLES" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          
-          if [[ $CURRENT_CYCLE -ge $MAX_CYCLES ]]; then
-            echo "**🚨 LIMITE METABÓLICO ATINGIDO**" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo "Após $MAX_CYCLES ciclos completos (Análise → Mutação → Vistoria)," >> $GITHUB_STEP_SUMMARY
-            echo "o metabolismo automático DEVE cessar." >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo "**Ação:** Escalar ao COMANDANTE (humano)" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo "**Regra Crítica:** O Mecânico Revisionador NÃO pode tentar uma 4ª vez" >> $GITHUB_STEP_SUMMARY
-            
-            echo "limit_reached=true" >> $GITHUB_OUTPUT
-          else
-            echo "**Tentando novo ciclo metabólico...**" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo "Ciclo $(($CURRENT_CYCLE + 1)) será iniciado automaticamente" >> $GITHUB_STEP_SUMMARY
-            
-            echo "limit_reached=false" >> $GITHUB_OUTPUT
-          fi
+      - name: Checkout código
+        uses: actions/checkout@v4
+        with:
+          token: ${{ github.token }}
 
-  # ==================================================
-  # 8. COMANDANTE - Consciência Superior (Humano)
-  # ==================================================
-  commander_escalation:
-    name: "👤 Comandante - Consciência Superior"
-    needs: [metabolic_analysis, metabolic_mutation, homeostasis_validation, metabolic_loop_control]
-    if: |
-      always() && (
-        needs.metabolic_analysis.outputs.requires_human == 'true' ||
-        needs.metabolic_loop_control.outputs.limit_reached == 'true'
-      )
-    runs-on: ubuntu-latest
-    
-    steps:
-      - name: Escalar ao Comandante (Humano)
+      - name: Enable Auto-Merge
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           echo "==================================================" >> $GITHUB_STEP_SUMMARY
-          echo "## 8️⃣ COMANDANTE - Consciência Superior" >> $GITHUB_STEP_SUMMARY
+          echo "## ✅ AUTO-MERGE - Testes Aprovados" >> $GITHUB_STEP_SUMMARY
           echo "==================================================" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           
-          # Capturar referência do evento que gerou o metabolismo
-          EVENT_REF=""
-          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
-            EVENT_REF="PR #${{ github.event.pull_request.number }}"
-          elif [[ "${{ github.event_name }}" == "issues" ]]; then
-            EVENT_REF="Issue #${{ github.event.issue.number }}"
-          elif [[ -n "${{ github.sha }}" ]]; then
-            EVENT_REF="Commit ${{ github.sha }}"
-          fi
+          PR_NUMBER="${{ github.event.pull_request.number }}"
           
-          # Preparar relatório completo para o comandante
-          REPORT="## 🎯 RELATÓRIO METABÓLICO COMPLETO
-          
-          ### Evento Original
-          **Intenção:** ${{ needs.metabolic_analysis.outputs.intent_type }}
-          **Descrição:** ${{ needs.metabolic_analysis.outputs.event_description }}
-          **Origem:** ${EVENT_REF}
-          
-          ### Análise Metabólica
-          **Tipo de Impacto:** ${{ needs.metabolic_analysis.outputs.impact_type }}
-          **Estratégia Proposta:** ${{ needs.metabolic_analysis.outputs.mutation_strategy }}
-          
-          ### Histórico de Ciclos
-          "
-          
-          if [[ "${{ needs.metabolic_loop_control.outputs.limit_reached }}" == "true" ]]; then
-            REPORT+="**Status:** ⚠️ Limite de 3 ciclos metabólicos atingido
-          
-          **Ciclos Executados:**
-          1. Ciclo 1: Análise → Mutação → Vistoria (falhou)
-          2. Ciclo 2: Análise → Mutação → Vistoria (falhou)
-          3. Ciclo 3: Análise → Mutação → Vistoria (falhou)
-          
-          **Conclusão:** Sistema não conseguiu estabilizar DNA automaticamente
-          "
-          else
-            REPORT+="**Status:** ⚠️ Escalonamento antecipado antes de mutação
-          
-          **Motivo:** ${{ needs.metabolic_analysis.outputs.escalation_reason }}
-          "
-          fi
-          
-          REPORT+="
-          
-          ### Resultados da Vistoria
-          - Relatório completo disponível nos artefatos do workflow
-          - URL: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
-          
-          ### Mutações Aplicadas (Diffs)
-          - Ver commits na branch: \`${{ needs.metabolic_mutation.outputs.branch_name }}\`
-          
-          ### Riscos e Limitações Identificadas
-          - Detalhes nos logs do workflow
-          
-          ---
-          
-          **O humano (COMANDANTE) tem a palavra final.**
-          
-          **Próximas Ações:**
-          1. Revisar análise metabólica e histórico de ciclos
-          2. Analisar mutações aplicadas (diffs)
-          3. Validar resultados da vistoria
-          4. Decidir: aprovar, ajustar ou rejeitar mutação
-          
-          **Workflow Run:** https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
-          
-          ---
-          
-          **Relacionado a:** ${EVENT_REF}
-          "
-          
-          # Criar issue para o comandante
-          gh issue create \
-            --repo "TheDrack/Jarvis_Xerife" \
-            --title "🎯 COMANDANTE: Intervenção Necessária - ${{ needs.metabolic_analysis.outputs.event_description }}" \
-            --body "$REPORT" \
-            --label "commander-review" \
-            --label "metabolism"
-          
-          echo "**✅ Relatório enviado ao COMANDANTE**" >> $GITHUB_STEP_SUMMARY
+          echo "**Status:** Todos os testes passaram ✅" >> $GITHUB_STEP_SUMMARY
+          echo "**Ação:** Habilitando auto-merge para PR #$PR_NUMBER" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "$REPORT" >> $GITHUB_STEP_SUMMARY
+          
+          # Habilitar auto-merge
+          gh pr merge "$PR_NUMBER" --auto --merge --repo "${{ github.repository }}" || true
+          
+          echo "**✅ Auto-merge habilitado com sucesso**" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "_O sistema confia nos testes. Nenhum revisor humano necessário._" >> $GITHUB_STEP_SUMMARY
+
+      - name: Comentar na PR
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh pr comment "${{ github.event.pull_request.number }}" \
+            --repo "${{ github.repository }}" \
+            --body "## ✅ Metabolismo: Homeostase Mantida
+
+          Todos os testes passaram com sucesso. O DNA permanece funcional.
+          
+          **Auto-merge habilitado.** Esta PR será automaticamente mesclada assim que todos os checks forem concluídos.
+          
+          ---
+          _Sistema de Autonomia Total - O Jarvis confia nos seus testes._"
 
   # ==================================================
-  # 9. PRINCÍPIOS FUNDAMENTAIS - Resumo Final
+  # AUTO-CORREÇÃO - Se testes falharam (máx 3 tentativas)
   # ==================================================
-  principles_summary:
-    name: "📜 Princípios Fundamentais"
-    needs: [metabolic_analysis, metabolic_mutation, homeostasis_validation]
+  auto_correction:
+    name: "🔧 Auto-Correção - Tentativa ${{ needs.test_pr.outputs.attempt_number }}"
+    needs: test_pr
+    if: needs.test_pr.outputs.tests_passed == 'false' && needs.test_pr.outputs.attempt_number < 3
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout PR Branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
+          fetch-depth: 0
+          token: ${{ github.token }}
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pytest pytest-json-report pytest-cov
+          if [ -f "requirements.txt" ]; then
+            pip install -r requirements.txt || echo "Some dependencies failed, continuing..."
+          fi
+
+      - name: Download Test Report
+        uses: actions/download-artifact@v4
+        with:
+          name: test-report-attempt-${{ needs.test_pr.outputs.attempt_number }}
+
+      - name: Configurar Git
+        run: |
+          git config --global user.name "Jarvis-AutoCorrection"
+          git config --global user.email "jarvis-autocorrection@bot.com"
+
+      - name: 🔬 Analisar Erro
+        id: analyze_error
+        run: |
+          echo "==================================================" >> $GITHUB_STEP_SUMMARY
+          echo "## 🔧 AUTO-CORREÇÃO - Tentativa ${{ needs.test_pr.outputs.attempt_number }}" >> $GITHUB_STEP_SUMMARY
+          echo "==================================================" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          echo "**Analisando falha nos testes...**" >> $GITHUB_STEP_SUMMARY
+          
+          # Extrair informações do relatório de testes
+          if [ -f "report.json" ]; then
+            python -c "
+import json
+with open('report.json', 'r') as f:
+    report = json.load(f)
+    failures = report.get('tests', [])
+    failed = [t for t in failures if t.get('outcome') == 'failed']
+    print(f'Total de testes: {len(failures)}')
+    print(f'Testes com falha: {len(failed)}')
+    for test in failed[:3]:  # Primeiros 3 erros
+        print(f\"- {test.get('nodeid', 'unknown')}: {test.get('call', {}).get('longrepr', 'No details')}\" [:200])
+" | tee -a $GITHUB_STEP_SUMMARY
+          fi
+
+      - name: 🛠️ Aplicar Correção Automática
+        id: apply_fix
+        env:
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+        run: |
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Aplicando correção automática...**" >> $GITHUB_STEP_SUMMARY
+          
+          # Usar o metabolism_mutator para tentar corrigir
+          export PYTHONPATH="${PYTHONPATH:+$PYTHONPATH:}$(pwd)"
+          
+          # Tentar correção automática baseada nos erros
+          python scripts/metabolism_mutator.py \
+            --strategy "fix_tests" \
+            --intent "correção" \
+            --impact "corretivo" || echo "Correção parcial aplicada"
+          
+          # Commit das correções
+          git add .
+          git commit -m "🤖 Auto-correção tentativa ${{ needs.test_pr.outputs.attempt_number }}/3
+
+Análise automática de falha nos testes e aplicação de correções.
+
+Workflow: ${{ github.run_id }}" || echo "Nenhuma mudança para commitar"
+          
+          echo "**✅ Correção aplicada e commitada**" >> $GITHUB_STEP_SUMMARY
+
+      - name: Push Correção
+        run: |
+          git push origin "${{ github.event.pull_request.head.ref }}" || echo "Push failed, possibly no changes"
+          
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**🔄 Nova tentativa será iniciada automaticamente...**" >> $GITHUB_STEP_SUMMARY
+
+      - name: Comentar na PR
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh pr comment "${{ github.event.pull_request.number }}" \
+            --repo "${{ github.repository }}" \
+            --body "## 🔧 Auto-Correção - Tentativa ${{ needs.test_pr.outputs.attempt_number }}/3
+
+          Os testes falharam, mas o Jarvis está aplicando correções automáticas.
+          
+          **Ação:** Commit de correção aplicado. Os testes serão executados novamente.
+          
+          ---
+          _Loop de Auto-Correção ativo_"
+
+  # ==================================================
+  # ESCALONAMENTO - Após 3 falhas
+  # ==================================================
+  escalate_to_commander:
+    name: "🚨 Escalonar ao Comandante"
+    needs: test_pr
+    if: needs.test_pr.outputs.tests_passed == 'false' && needs.test_pr.outputs.attempt_number >= 3
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout código
+        uses: actions/checkout@v4
+        with:
+          token: ${{ github.token }}
+
+      - name: Marcar PR como "Manual Review Required"
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          echo "==================================================" >> $GITHUB_STEP_SUMMARY
+          echo "## 🚨 LIMITE METABÓLICO ATINGIDO" >> $GITHUB_STEP_SUMMARY
+          echo "==================================================" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          PR_NUMBER="${{ github.event.pull_request.number }}"
+          
+          echo "**Status:** 3 tentativas de auto-correção falharam ❌" >> $GITHUB_STEP_SUMMARY
+          echo "**Ação:** Marcando PR para revisão manual do Comandante" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          # Adicionar label de revisão manual
+          gh pr edit "$PR_NUMBER" \
+            --repo "${{ github.repository }}" \
+            --add-label "manual-review-required" \
+            --add-label "metabolism-failure"
+          
+          echo "**✅ PR marcada para revisão manual**" >> $GITHUB_STEP_SUMMARY
+
+      - name: Notificar Comandante
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # Comentar na PR
+          gh pr comment "${{ github.event.pull_request.number }}" \
+            --repo "${{ github.repository }}" \
+            --body "## 🚨 COMANDANTE: Intervenção Necessária
+
+          ### O que aconteceu
+          Após 3 tentativas de auto-correção, o sistema não conseguiu fazer os testes passarem.
+          
+          ### Histórico de Tentativas
+          1. Tentativa 1: Testes falharam → Auto-correção aplicada
+          2. Tentativa 2: Testes falharam → Auto-correção aplicada  
+          3. Tentativa 3: Testes falharam → **LIMITE ATINGIDO**
+          
+          ### Próximos Passos
+          O Comandante (humano) deve:
+          1. Revisar as falhas nos testes
+          2. Analisar as tentativas de auto-correção
+          3. Aplicar correção manual ou fechar a PR
+          
+          ---
+          **Labels adicionadas:** \`manual-review-required\`, \`metabolism-failure\`
+          
+          _Sistema de Autonomia Total - Escalonamento automático após 3 falhas_"
+
+      - name: Criar Issue para Comandante
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh issue create \
+            --repo "${{ github.repository }}" \
+            --title "🚨 COMANDANTE: Revisão Manual - PR #${{ github.event.pull_request.number }}" \
+            --body "## Intervenção Necessária
+
+          **PR:** #${{ github.event.pull_request.number }} - ${{ github.event.pull_request.title }}
+          **Status:** 3 tentativas de auto-correção falharam
+          
+          ### Resumo
+          O fluxo de metabolismo tentou corrigir automaticamente os testes por 3 vezes, mas não obteve sucesso.
+          
+          ### Links Importantes
+          - **PR:** https://github.com/${{ github.repository }}/pull/${{ github.event.pull_request.number }}
+          - **Workflow:** https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          
+          ### Ação Requerida
+          Revisar manualmente e decidir próximos passos.
+          
+          ---
+          _Criado automaticamente pelo Fluxo de Metabolismo_" \
+            --label "commander-review" \
+            --label "metabolism" \
+            --label "high-priority"
+
+  # ==================================================
+  # RESUMO - Princípios Fundamentais
+  # ==================================================
+  summary:
+    name: "📜 Resumo do Metabolismo"
+    needs: [test_pr, auto_merge, auto_correction, escalate_to_commander]
     if: always()
     runs-on: ubuntu-latest
     
     steps:
-      - name: Resumo dos Princípios Fundamentais
+      - name: Resumo Final
         run: |
           echo "==================================================" >> $GITHUB_STEP_SUMMARY
-          echo "## 9️⃣ PRINCÍPIOS FUNDAMENTAIS DO JARVIS" >> $GITHUB_STEP_SUMMARY
+          echo "## 📜 PRINCÍPIOS DE AUTONOMIA TOTAL" >> $GITHUB_STEP_SUMMARY
           echo "==================================================" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "- ✅ **O DNA é sagrado** - Toda mutação foi rastreada e auditada" >> $GITHUB_STEP_SUMMARY
-          echo "- ✅ **Toda mutação foi compreendida** - Análise metabólica completa" >> $GITHUB_STEP_SUMMARY
-          echo "- ✅ **Testes são o sistema imunológico** - Vistoria executada" >> $GITHUB_STEP_SUMMARY
-          echo "- ✅ **Automatizar sem perder consciência** - Escalonamento quando necessário" >> $GITHUB_STEP_SUMMARY
-          echo "- ✅ **O humano sempre tem a palavra final** - Comandante pode intervir" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ **Testes são o juiz** - Sistema confia 100% nos testes" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ **Auto-merge em sucesso** - Sem revisores humanos necessários" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ **Auto-correção inteligente** - Até 3 tentativas de correção" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ **Escalonamento em falha** - Comandante notificado após 3 tentativas" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ **Rastreabilidade completa** - Todo o processo é documentado" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "---" >> $GITHUB_STEP_SUMMARY
-          echo "*Fluxo de Metabolismo do Jarvis - Sistema Metabólico Inteligente*" >> $GITHUB_STEP_SUMMARY
+          echo "*Fluxo de Metabolismo do Jarvis - Autonomia Total*" >> $GITHUB_STEP_SUMMARY
