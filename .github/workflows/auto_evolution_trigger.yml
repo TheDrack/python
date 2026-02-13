@@ -271,7 +271,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          token: ${{ secrets.JARVIS_TOKEN_CI || github.token }}
+          token: ${{ secrets.JARVIS_TOKEN_CI != '' && secrets.JARVIS_TOKEN_CI || github.token }}
 
       - name: Setup Python
         uses: actions/setup-python@v5
