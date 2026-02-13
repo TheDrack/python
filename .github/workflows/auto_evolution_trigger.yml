@@ -138,22 +138,19 @@ jobs:
           # Atualizar mapa de conhecimento/documentação
           export PYTHONPATH="${PYTHONPATH:+$PYTHONPATH:}$(pwd)"
           
-          python - << 'PYCODE' || true
-import os
-import json
-from datetime import datetime
-
-# Atualizar AUTO_EVOLUTION_LOG com consolidação
-log_path = 'docs/AUTO_EVOLUTION_LOG.md'
-if os.path.exists(log_path):
-    with open(log_path, 'a') as f:
-        f.write(f'\n\n## Consolidação - {datetime.now().isoformat()}\n')
-        f.write(f'**Status:** Merge para main concluído com sucesso\n')
-        f.write(f'**Commit:** ${{ github.sha }}\n')
-        f.write('**Conhecimento consolidado:** Esta evolução foi integrada ao DNA principal\n')
-
-print('✅ Base de conhecimento atualizada')
-PYCODE
+          cat > /tmp/consolidate.py << 'PYEND'
+          import os
+          from datetime import datetime
+          
+          log_path = 'docs/AUTO_EVOLUTION_LOG.md'
+          if os.path.exists(log_path):
+              with open(log_path, 'a') as f:
+                  f.write('\n\n## Consolidação - ' + datetime.now().isoformat() + '\n')
+                  f.write('**Status:** Merge para main concluído com sucesso\n')
+                  f.write('**Conhecimento consolidado:** Esta evolução foi integrada ao DNA principal\n')
+          print('✅ Base de conhecimento atualizada')
+          PYEND
+          python3 /tmp/consolidate.py || true
           
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**✅ Conhecimento consolidado com sucesso**" >> $GITHUB_STEP_SUMMARY

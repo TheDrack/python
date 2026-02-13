@@ -196,17 +196,24 @@ jobs:
           
           # Extrair informações do relatório de testes
           if [ -f "report.json" ]; then
-            python -c "
-import json
-with open('report.json', 'r') as f:
-    report = json.load(f)
-    failures = report.get('tests', [])
-    failed = [t for t in failures if t.get('outcome') == 'failed']
-    print(f'Total de testes: {len(failures)}')
-    print(f'Testes com falha: {len(failed)}')
-    for test in failed[:3]:  # Primeiros 3 erros
-        print(f\"- {test.get('nodeid', 'unknown')}: {test.get('call', {}).get('longrepr', 'No details')}\" [:200])
-" | tee -a $GITHUB_STEP_SUMMARY
+            echo "Analisando relatório de testes..." >> $GITHUB_STEP_SUMMARY
+            cat > /tmp/analyze_test.py << 'PYEND'
+          import json
+          try:
+              with open('report.json', 'r') as f:
+                  report = json.load(f)
+                  failures = report.get('tests', [])
+                  failed = [t for t in failures if t.get('outcome') == 'failed']
+                  print('Total de testes: ' + str(len(failures)))
+                  print('Testes com falha: ' + str(len(failed)))
+                  for test in failed[:3]:
+                      nodeid = test.get('nodeid', 'unknown')
+                      error_msg = str(test.get('call', {}).get('longrepr', 'No details'))[:200]
+                      print('- ' + nodeid + ': ' + error_msg)
+          except Exception as e:
+              print('Erro ao analisar relatório: ' + str(e))
+          PYEND
+            python3 /tmp/analyze_test.py >> $GITHUB_STEP_SUMMARY || true
           fi
 
       - name: 🛠️ Aplicar Correção Automática
@@ -230,9 +237,9 @@ with open('report.json', 'r') as f:
           git add .
           git commit -m "🤖 Auto-correção tentativa ${{ needs.test_pr.outputs.attempt_number }}/3
 
-Análise automática de falha nos testes e aplicação de correções.
+          Análise automática de falha nos testes e aplicação de correções.
 
-Workflow: ${{ github.run_id }}" || echo "Nenhuma mudança para commitar"
+          Workflow: ${{ github.run_id }}" || echo "Nenhuma mudança para commitar"
           
           echo "**✅ Correção aplicada e commitada**" >> $GITHUB_STEP_SUMMARY
 
