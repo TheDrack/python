@@ -14,7 +14,7 @@ Jarvis é uma plataforma de orquestração de automação pessoal distribuída q
 1. **Estabilizar TaskRunner com Venvs Efêmeros**
    - ✅ Criação e destruição automática de ambientes virtuais
    - ✅ Cache inteligente de dependências
-   - 🔄 Graceful failure em instalações de pip
+   - ✅ Graceful failure em instalações de pip
    - 🔄 Logs estruturados com mission_id, device_id, session_id
 
 2. **Fortalecer Playwright Integration**
@@ -34,6 +34,11 @@ Jarvis é uma plataforma de orquestração de automação pessoal distribuída q
    - ✅ ADRs (Architecture Decision Records)
    - 🔄 Testes de contrato para geofencing
    - 📋 Guias de contribuição atualizados
+
+5. **Auditoria e Observabilidade**
+   - 📋 Implementar log de auditoria para comandos de voz
+   - 📋 Adicionar timeout de 5 segundos em requisições de API externas
+   - 📋 Sistema de métricas de performance para análise de latência
 
 ### Métricas de Sucesso:
 - [ ] 100% das missões com logs estruturados
