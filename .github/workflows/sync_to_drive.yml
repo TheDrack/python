@@ -14,17 +14,28 @@ jobs:
         run: zip -r Jarvis_Xerife-main.zip . -x "*.git*" "venv/*" "__pycache__/*"
 
       - name: Authenticate to Google Cloud
+        id: auth
         uses: google-github-actions/auth@v1
         with:
           credentials_json: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON }}
 
-      - name: Install Google Drive CLI (gdrive)
-        run: |
-          curl -sSL https://github.com/glotlabs/gdrive/releases/download/3.9.1/gdrive_linux-x64.tar.gz | tar -xz
-          chmod +x gdrive
+      - name: Setup Cloud SDK
+        uses: google-github-actions/setup-gcloud@v1
 
       - name: Upload to Google Drive
         run: |
-          # O comando abaixo faz o upload e sobrescreve se o arquivo já existir
-          # Substituindo o ID antigo pelo novo se necessário
-          ./gdrive files upload --parent ${{ secrets.DRIVE_FOLDER_ID }} Jarvis_Xerife-main.zip
+          # Usando o rclone que é nativo em runners e excelente para o Drive
+          sudo apt-get update && sudo apt-get install -y rclone
+          
+          # Configura o rclone para usar a sua conta de serviço
+          mkdir -p ~/.config/rclone
+          cat <<EOF > ~/.config/rclone/rclone.conf
+          [gdrive]
+          type = drive
+          scope = drive
+          service_account_contents = ${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON }}
+          root_folder_id = ${{ secrets.DRIVE_FOLDER_ID }}
+          EOF
+          
+          # Faz o upload forçando a sobrescrita
+          rclone copyto Jarvis_Xerife-main.zip gdrive:Jarvis_Xerife-main.zip
