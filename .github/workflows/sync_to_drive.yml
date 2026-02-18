@@ -1,3 +1,23 @@
+name: Sync JARVIS to Google Drive
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Create ZIP
+        run: zip -r Jarvis_Xerife-main.zip . -x "*.git*" "venv/*" "__pycache__/*"
+
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install google-api-python-client google-auth-httplib2 google-auth-oauthlib
+
       - name: Upload to Drive
         shell: python
         env:
