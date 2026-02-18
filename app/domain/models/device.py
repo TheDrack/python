@@ -26,6 +26,13 @@ class Device(SQLModel, table=True):
     last_ip: Optional[str] = Field(default=None, nullable=True)  # Last known IP address
     last_seen: datetime = Field(default_factory=datetime.now, nullable=False)
     created_at: datetime = Field(default_factory=datetime.now, nullable=False)
+    vendor_brand: str | None = None
+    vulnerabilities: list[str] = []
+    conversion_potential: float = 0.0  # 0.0 a 1.0
+    is_recruitable: bool = False
+    last_threat_scan: datetime | None = None
+    inherited_location: bool = False # Define se a localização vem de um vizinho
+
 
 
 class Capability(SQLModel, table=True):
