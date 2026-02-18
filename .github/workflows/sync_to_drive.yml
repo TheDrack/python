@@ -12,7 +12,6 @@ jobs:
 
       - name: Create ZIP
         run: |
-          # Zipando e ignorando pastas desnecessárias
           zip -r Jarvis_Xerife-main.zip . -x "*.git*" "venv/*" "__pycache__/*" "node_modules/*"
 
       - name: Upload to Google Drive
