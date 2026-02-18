@@ -130,7 +130,11 @@ jobs:
   consolidate_knowledge:
     name: "📚 Consolidar Conhecimento"
     needs: check_trigger_conditions
-    if: needs.check_trigger_conditions.outputs.merge_source == 'auto-evolution'
+    # CORREÇÃO: Alterado para validar o sucesso do job anterior em vez de uma string instável
+    if: |
+      always() && 
+      needs.check_trigger_conditions.result == 'success' && 
+      github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     
     steps:
@@ -153,7 +157,8 @@ jobs:
       - name: Instalar dependências
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirements.txt || echo "Some dependencies failed, continuing..."
+          pip install -r requirements.txt || echo "Aviso: Algumas dependências falharam, mas prosseguindo..."
+
 
       - name: 📚 Atualizar Base de Conhecimento
         run: |
