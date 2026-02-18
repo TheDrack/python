@@ -2,9 +2,10 @@
 """Device and Capability models for distributed orchestration"""
 
 from datetime import datetime
-from typing import Optional
+from typing import Optional, List
+import json
 
-from sqlmodel import Field, SQLModel
+from sqlmodel import Field, SQLModel, Column, JSON
 
 
 class Device(SQLModel, table=True):
@@ -27,12 +28,17 @@ class Device(SQLModel, table=True):
     last_seen: datetime = Field(default_factory=datetime.now, nullable=False)
     created_at: datetime = Field(default_factory=datetime.now, nullable=False)
     vendor_brand: str | None = None
-    vulnerabilities: list[str] = []
+    
+    # CORREÇÃO AQUI: Mapeando a lista para JSON para compatibilidade com SQLite
+    vulnerabilities: List[str] = Field(
+        default=[], 
+        sa_column=Column(JSON)
+    )
+    
     conversion_potential: float = 0.0  # 0.0 a 1.0
     is_recruitable: bool = False
     last_threat_scan: datetime | None = None
     inherited_location: bool = False # Define se a localização vem de um vizinho
-
 
 
 class Capability(SQLModel, table=True):
@@ -60,7 +66,7 @@ class CommandResult(SQLModel, table=True):
     __tablename__ = "command_results"
 
     id: Optional[int] = Field(default=None, primary_key=True)
-    command_id: int = Field(nullable=False, index=True)  # References interactions.id (Interaction table in infrastructure layer). No FK constraint to avoid circular dependency between domain and infrastructure layers.
+    command_id: int = Field(nullable=False, index=True)
     executor_device_id: Optional[int] = Field(foreign_key="devices.id", nullable=True, index=True)
     result_data: str = Field(default="{}", nullable=False)  # JSON string for result data
     success: bool = Field(default=False, nullable=False)
