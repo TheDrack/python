@@ -129,21 +129,20 @@ jobs:
           git checkout -b "auto-evolution/mission-$(date +%s)"
           export PYTHONPATH="${PYTHONPATH:+$PYTHONPATH:}$(pwd)"
           
-          # 1. Mutação (Ação do Agente)
-          python scripts/metabolism_mutator.py --strategy "minimal_change" --roadmap-context "$(cat mission_context.txt)"
+          # 1. Mutação (Injetando os argumentos obrigatórios: intent e impact)
+          python scripts/metabolism_mutator.py \
+            --strategy "minimal_change" \
+            --intent "auto-evolution-mission" \
+            --impact "functional-improvement" \
+            --roadmap-context "$(cat mission_context.txt)"
           
-          # 2. Testes (Ambiente/Feedback)
+          # 2. Testes (Feedback do Ambiente)
           if pytest --json-report --json-report-file=test_report.json; then
-             # 3. Sucesso: Aplica Recompensa Positiva
-             echo "✅ Sucesso! Aplicando Recompensa..."
-             # Aqui você chamaria seu script de rewards se ele existir: 
-             # python scripts/rewards.py --status "success"
+             echo "✅ Sucesso! Aplicando Recompensa Positiva..."
              git add .
              git commit -m "[Auto-Evolution] Mission Accomplished - RL Reward Positive"
              git push origin HEAD
           else
-             # 3. Falha: Aplica Punição e registra erro para não repetir
-             echo "❌ Falha! Aplicando Punição..."
-             # python scripts/rewards.py --status "failure"
+             echo "❌ Falha! Aplicando Punição e abortando ciclo..."
              exit 1
           fi
