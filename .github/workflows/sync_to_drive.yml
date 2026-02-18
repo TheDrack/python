@@ -13,9 +13,18 @@ jobs:
       - name: Create ZIP
         run: zip -r Jarvis_Xerife-main.zip . -x "*.git*" "venv/*" "__pycache__/*"
 
-      - name: Upload to Google Drive
-        uses: Tofunmi-fart/upload-to-google-drive@v1.0.1
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v1
         with:
-          credentials: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON }}
-          folder_id: ${{ secrets.DRIVE_FOLDER_ID }}
-          file_path: Jarvis_Xerife-main.zip
+          credentials_json: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON }}
+
+      - name: Install Google Drive CLI (gdrive)
+        run: |
+          curl -sSL https://github.com/glotlabs/gdrive/releases/download/3.9.1/gdrive_linux-x64.tar.gz | tar -xz
+          chmod +x gdrive
+
+      - name: Upload to Google Drive
+        run: |
+          # O comando abaixo faz o upload e sobrescreve se o arquivo já existir
+          # Substituindo o ID antigo pelo novo se necessário
+          ./gdrive files upload --parent ${{ secrets.DRIVE_FOLDER_ID }} Jarvis_Xerife-main.zip
