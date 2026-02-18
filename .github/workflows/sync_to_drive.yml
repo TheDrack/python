@@ -14,10 +14,8 @@ jobs:
         run: zip -r Jarvis_Xerife-main.zip . -x "*.git*" "venv/*" "__pycache__/*"
 
       - name: Upload to Google Drive
-        uses: adityak74/google-drive-upload-git-action@main
+        uses: Tofunmi-fart/upload-to-google-drive@v1.0.1
         with:
-          # Convertendo o JSON puro para Base64 antes de enviar para a Action
           credentials: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON }}
-          filename: "Jarvis_Xerife-main.zip"
-          folderId: ${{ secrets.DRIVE_FOLDER_ID }}
-          overwrite: "true"
+          folder_id: ${{ secrets.DRIVE_FOLDER_ID }}
+          file_path: Jarvis_Xerife-main.zip
