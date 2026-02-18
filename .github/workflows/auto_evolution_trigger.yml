@@ -125,24 +125,49 @@ jobs:
       - name: 🤖 Executar Ciclo de Reinforcement Learning
         env:
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          # Injeta a descrição da missão para o mutador não ficar "cego"
+          ISSUE_BODY: ${{ needs.find_next_mission.outputs.mission_description }}
         run: |
           git checkout -b "auto-evolution/mission-$(date +%s)"
           export PYTHONPATH="${PYTHONPATH:+$PYTHONPATH:}$(pwd)"
           
-          # 1. Mutação (Injetando os argumentos obrigatórios: intent e impact)
+          # 1. Mutação
+          # Adicionei o set +e para o script não matar o workflow se não houver mudanças
+          set +e
           python scripts/metabolism_mutator.py \
             --strategy "minimal_change" \
             --intent "auto-evolution-mission" \
             --impact "functional-improvement" \
             --roadmap-context "$(cat mission_context.txt)"
-          
-          # 2. Testes (Feedback do Ambiente)
+          MUTATOR_EXIT=$?
+          set -e
+
+          # 2. Verificação de Mudanças Reais
+          if [ -z "$(git status --porcelain)" ]; then
+             echo "⚠️ Nenhuma mudança detectada. A missão pode já estar completa."
+             # Se não mudou nada, não falhamos o workflow, apenas avisamos e encerramos.
+             exit 0 
+          fi
+
+          # 3. Testes (Feedback do Ambiente)
           if pytest --json-report --json-report-file=test_report.json; then
              echo "✅ Sucesso! Aplicando Recompensa Positiva..."
              git add .
              git commit -m "[Auto-Evolution] Mission Accomplished - RL Reward Positive"
              git push origin HEAD
           else
-             echo "❌ Falha! Aplicando Punição e abortando ciclo..."
+             echo "❌ Falha nos testes! Aplicando Punição..."
+             exit 1
+          fi
+
+
+          # 3. Testes (Feedback do Ambiente)
+          if pytest --json-report --json-report-file=test_report.json; then
+             echo "✅ Sucesso! Aplicando Recompensa Positiva..."
+             git add .
+             git commit -m "[Auto-Evolution] Mission Accomplished - RL Reward Positive"
+             git push origin HEAD
+          else
+             echo "❌ Falha nos testes! Aplicando Punição..."
              exit 1
           fi
