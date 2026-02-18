@@ -125,14 +125,17 @@ jobs:
       - name: 🤖 Executar Ciclo de Reinforcement Learning
         env:
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
-          # Injeta a descrição da missão para o mutador não ficar "cego"
           ISSUE_BODY: ${{ needs.find_next_mission.outputs.mission_description }}
         run: |
-          git checkout -b "auto-evolution/mission-$(date +%s)"
+          # 1. Preparação
+          git config --global user.name "Jarvis-AutoEvolution"
+          git config --global user.email "jarvis@bot.com"
+          
+          BRANCH_NAME="auto-evolution/mission-$(date +%s)"
+          git checkout -b "$BRANCH_NAME"
           export PYTHONPATH="${PYTHONPATH:+$PYTHONPATH:}$(pwd)"
           
-          # 1. Mutação
-          # Adicionei o set +e para o script não matar o workflow se não houver mudanças
+          # 2. Mutação (O Conserto do DNA)
           set +e
           python scripts/metabolism_mutator.py \
             --strategy "minimal_change" \
@@ -142,32 +145,26 @@ jobs:
           MUTATOR_EXIT=$?
           set -e
 
-          # 2. Verificação de Mudanças Reais
+          # 3. Verificação de Mudanças + Testes
+          # O git add -A garante que até os arquivos que estavam no .gitignore (antes da nossa correção) sejam vistos
+          git add -A 
+
           if [ -z "$(git status --porcelain)" ]; then
-             echo "⚠️ Nenhuma mudança detectada. A missão pode já estar completa."
-             # Se não mudou nada, não falhamos o workflow, apenas avisamos e encerramos.
-             exit 0 
+             echo "⚠️ Sem mudanças reais no DNA. Encerrando."
+             exit 0
           fi
 
-          # 3. Testes (Feedback do Ambiente)
+          # 4. Feedback do Ambiente (Testes)
+          echo "🧪 Iniciando Testes de Validação..."
           if pytest --json-report --json-report-file=test_report.json; then
-             echo "✅ Sucesso! Aplicando Recompensa Positiva..."
-             git add .
+             echo "✅ Sucesso! DNA Saudável. Consolidando Evolução..."
              git commit -m "[Auto-Evolution] Mission Accomplished - RL Reward Positive"
-             git push origin HEAD
+             # Usamos o push forçado para garantir que a branch suba sem conflitos
+             git push origin "$BRANCH_NAME"
+             
+             # Opcional: Aqui o JARVIS poderia abrir um PR automaticamente
           else
-             echo "❌ Falha nos testes! Aplicando Punição..."
-             exit 1
-          fi
-
-
-          # 3. Testes (Feedback do Ambiente)
-          if pytest --json-report --json-report-file=test_report.json; then
-             echo "✅ Sucesso! Aplicando Recompensa Positiva..."
-             git add .
-             git commit -m "[Auto-Evolution] Mission Accomplished - RL Reward Positive"
-             git push origin HEAD
-          else
-             echo "❌ Falha nos testes! Aplicando Punição..."
+             echo "❌ Falha nos testes! Aplicando Punição (Descartando Mutação)..."
+             # Não commitamos código quebrado no DNA principal
              exit 1
           fi
