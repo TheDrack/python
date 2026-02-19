@@ -77,16 +77,13 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          # Captura robusta do número da PR para evitar erro de branch
           PR_NUMBER="${{ github.event.pull_request.number || github.event.number }}"
           REPO="${{ github.repository }}"
           
           if [ -n "$PR_NUMBER" ] && [ "$PR_NUMBER" != "null" ]; then
             gh pr edit "$PR_NUMBER" --add-label "commander-review" --repo "$REPO"
             gh pr comment "$PR_NUMBER" --repo "$REPO" --body "## 🚨 INTERVENÇÃO NECESSÁRIA
-            O metabolismo atingiu o limite de segurança.
-            - **Motivo**: ${{ env.stop_healing == 'true' && 'Risco Arquitetural' || 'Falha persistente' }}
-            _Verifique os logs para restaurar a homeostase._"
-          else
-            echo "Falha detectada fora de contexto de PR. Verifique a branch principal."
+            O metabolismo identificou um cenário que exige sua supervisão.
+            - **Motivo**: ${{ env.stop_healing == 'true' && 'Risco Arquitetural Detectado' || 'Falha persistente' }}
+            _Analise os logs para restaurar a homeostase._"
           fi
