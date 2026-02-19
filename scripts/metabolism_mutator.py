@@ -51,16 +51,25 @@ class MetabolismMutator:
                 "https://api.groq.com/openai/v1/chat/completions",
                 headers={"Authorization": f"Bearer {api_key}"},
                 json={
-                    "model": "llama3-70b-8192", # Modelo estável
+                    "model": "llama3-70b-8192",
                     "messages": [{"role": "user", "content": prompt}],
                     "temperature": 0.2,
                     "response_format": {"type": "json_object"}
                 }
             )
-            data = response.json()
-            content = json.loads(data['choices'][0]['message']['content'])
             
-            # Telemetria para o Dashboard
+            data = response.json()
+            
+            # --- BLINDAGEM DE RESPOSTA ---
+            if 'choices' not in data:
+                logger.error(f"❌ Resposta inválida da Groq: {data}")
+                # Se for erro de cota, o log vai mostrar aqui
+                return {'can_auto_implement': False}
+            # -----------------------------
+
+            content_str = data['choices'][0]['message']['content']
+            content = json.loads(content_str)
+            
             usage = data.get('usage', {})
             content['usage'] = {
                 'total_tokens': usage.get('total_tokens', 0),
@@ -68,8 +77,9 @@ class MetabolismMutator:
             }
             return content
         except Exception as e:
-            logger.error(f"❌ Falha: {e}")
+            logger.error(f"❌ Erro crítico no brainstorm: {e}")
             return {'can_auto_implement': False}
+
 
 
     def _update_evolution_dashboard(self, mission_name: str, tokens: int, cost: float):
