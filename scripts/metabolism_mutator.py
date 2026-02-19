@@ -14,25 +14,30 @@ class MetabolismMutator:
         issue_body = os.getenv('ISSUE_BODY', 'Evolução')
         api_key = os.getenv('GROQ_API_KEY')
         
-        try: import requests
-        except: 
+        try:
+            import requests
+        except ImportError:
             import subprocess
             subprocess.check_call([sys.executable, "-m", "pip", "install", "requests"])
             import requests
 
         target_file = "app/application/services/task_runner.py"
         path = self.repo_path / target_file
+        
+        if not path.exists():
+            logger.error(f"Arquivo não encontrado: {target_file}")
+            return {'success': False}
+
         current_code = path.read_text(encoding='utf-8')
         
-        # Pedimos o código E o resumo das alterações
-        prompt = f"Missão: {issue_body}\nRoadmap: {roadmap_context}\nRetorne um JSON com: 'code' (código completo) e 'summary' (lista em markdown das mudanças em PT-BR).\nCÓDIGO ATUAL:\n{current_code}"
+        prompt = f"Missão: {issue_body}\nRoadmap: {roadmap_context}\nRetorne um JSON com: 'code' (string com código completo) e 'summary' (string markdown das mudanças).\nCÓDIGO ATUAL:\n{current_code}"
         
         try:
             resp = requests.post(self.groq_url, headers={"Authorization": f"Bearer {api_key}"},
                 json={
                     "model": "llama-3.3-70b-versatile",
                     "messages": [
-                        {"role": "system", "content": "Você é um Engenheiro de Software Senior. Responda APENAS com JSON."},
+                        {"role": "system", "content": "Você é um Engenheiro Senior. Responda APENAS com JSON puro. O campo 'summary' deve ser uma string única."},
                         {"role": "user", "content": prompt}
                     ],
                     "response_format": {"type": "json_object"},
@@ -40,25 +45,38 @@ class MetabolismMutator:
                 }, timeout=60)
             
             data = resp.json()
-            content = json.loads(data['choices'][0]['message']['content'])
-            new_code = content['code']
-            summary = content.get('summary', "Evolução do DNA aplicada.")
+            content_raw = data['choices'][0]['message']['content']
+            
+            # Converte o conteúdo para dicionário de forma segura
+            content = json.loads(content_raw)
+            
+            new_code = content.get('code', "")
+            summary = content.get('summary', "")
+
+            # Se a IA enviou o sumário como lista, converte para string markdown
+            if isinstance(summary, list):
+                summary = "\n".join([f"- {item}" for item in summary])
 
             if "class TaskRunner" in new_code:
                 path.write_text(new_code, encoding='utf-8')
-                # Salvamos o resumo em um arquivo temporário para o Workflow ler
-                (self.repo_path / "mutation_summary.txt").write_text(summary, encoding='utf-8')
-                return {'success': True, 'mutation_applied': True}
+                # Garante que o sumário seja salvo como string
+                (self.repo_path / "mutation_summary.txt").write_text(str(summary), encoding='utf-8')
+                logger.info(f"DNA mutado com sucesso.")
+                return {'success': True}
         except Exception as e:
-            logger.error(f"Erro: {e}")
+            logger.error(f"Falha na mutação: {e}")
         return {'success': False}
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--strategy', required=True); parser.add_argument('--intent', required=True)
-    parser.add_argument('--impact', required=True); parser.add_argument('--roadmap-context', default="")
+    parser.add_argument('--strategy', required=True)
+    parser.add_argument('--intent', required=True)
+    parser.add_argument('--impact', required=True)
+    parser.add_argument('--roadmap-context', default="")
     args = parser.parse_args()
-    res = MetabolismMutator().apply_mutation(args.strategy, args.intent, args.impact, args.roadmap_context)
-    if os.getenv('GITHUB_OUTPUT'):
-        with open(os.getenv('GITHUB_OUTPUT'), 'a') as f:
-            f.write(f"mutation_applied={str(res.get('mutation_applied', False)).lower()}\n")
+    
+    mutator = MetabolismMutator()
+    res = mutator.apply_mutation(args.strategy, args.intent, args.impact, args.roadmap_context)
+    # Se falhar, forçamos o exit code 0 para o workflow não travar, 
+    # mas o git status vazio impedirá a PR se nada mudar.
+    sys.exit(0)
