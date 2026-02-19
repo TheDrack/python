@@ -203,9 +203,10 @@ class MetabolismMutator:
             logger.error(f"❌ Falha no brainstorm: {e}")
             return {'can_auto_implement': False}
 
-
+    # Certifique-se de que NÃO existe um 'try:' perdido aqui em cima sem o seu 'except'
     def _update_evolution_dashboard(self, mission_name: str, tokens: int, cost: float):
         """Atualiza o Dashboard de Evolução no README.md"""
+       
         logger.info("🏆 Atualizando Dashboard de Evolução...")
         readme_path = self.repo_path / "README.md"
         if not readme_path.exists(): return
