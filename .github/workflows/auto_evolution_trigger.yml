@@ -154,7 +154,7 @@ jobs:
             gh pr create --title "🧬 Evolução: $ISSUE_BODY" \
                          --body "### ✅ Evolução Concluída\n- **Missão:** $ISSUE_BODY\n- **Status:** DNA Validado e Saudável." \
                          --base main --head "$BRANCH_NAME"
-else
+          else
             echo "❌ [FALHA] DNA Instável. Erro de Coleta/Execução (Code $TEST_EXIT_CODE):"
             echo "-------------------------------------------------------"
             # Mostramos o TOPO do arquivo se for erro 2, ou o FIM se forem falhas de teste
