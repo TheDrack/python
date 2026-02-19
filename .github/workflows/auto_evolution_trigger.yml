@@ -119,14 +119,16 @@ jobs:
         run: |
           git config --global user.name "Jarvis-AutoEvolution"
           git config --global user.email "jarvis@bot.com"
-          # INSTALAÇÃO COMPLETA DOS ANTICORPOS
-          pip install pytest pytest-json-report pytest-cov requests
-          pip install -r requirements.txt || echo "Aviso: Algumas dependências falharam, mas continuaremos..."
+          # Adicionamos pytest-asyncio para suportar as funções async da LLM
+          pip install pytest pytest-json-report pytest-cov pytest-asyncio requests
+          pip install -r requirements.txt || echo "Aviso: Dependências parciais."
 
       - name: 🤖 Executar Ciclo de Reinforcement Learning
         env:
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
-          ISSUE_BODY: ${{ needs.find_next_mission.outputs.mission_description }}
+          # Injetamos uma flag para avisar os testes que estamos em modo Auto-Evolução
+          AUTO_EVOLUTION_MODE: "true"
+          PYTHONPATH: .
         run: |
           BRANCH_NAME="auto-evolution/mission-$(date +%s)"
           git checkout -b "$BRANCH_NAME"
