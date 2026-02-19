@@ -107,7 +107,7 @@ class MetabolismMutator:
             logger.warning(f"⚠️ Erro ao atualizar dashboard: {e}")
 
     def _reactive_mutation(self, mission_analysis: Dict[str, Any]) -> Dict[str, Any]:
-        """Aplica a mutação de código real nos arquivos alvo"""
+        """Aplica a mutação de código com validação rigorosa de sintaxe"""
         logger.info("⚡ Executando Mutação Autônoma...")
         files_changed = []
         api_key = os.getenv('GROQ_API_KEY')
@@ -117,46 +117,48 @@ class MetabolismMutator:
             if not file_path.exists(): continue
             
             current_code = file_path.read_text(encoding='utf-8')
-            prompt = f"""
-            Como Programador Sênior, implemente as seguintes ações no código abaixo:
-            AÇÕES: {mission_analysis.get('required_actions')}
-            
-            REGRAS:
-            - Retorne APENAS o código completo atualizado.
-            - Não use blocos de Markdown (```).
-            - Mantenha a compatibilidade com os testes existentes.
+            prompt = f"Melhore este código seguindo estas ações: {mission_analysis.get('required_actions')}\n\nCÓDIGO ATUAL:\n{current_code}"
 
-            CÓDIGO ATUAL:
-            {current_code}
-            """
-
-            
             try:
                 import requests
                 resp = requests.post(
-                    "https://api.groq.com/openai/v1/chat/completions",
+                    "[https://api.groq.com/openai/v1/chat/completions](https://api.groq.com/openai/v1/chat/completions)",
                     headers={"Authorization": f"Bearer {api_key}"},
                     json={
                         "model": "llama-3.3-70b-versatile",
                         "messages": [
-                            {"role": "system", "content": "Você é um programador sênior. Responda APENAS com o código puro, sem markdown."},
+                            {"role": "system", "content": "Você é um compilador humano. Responda EXCLUSIVAMENTE com código Python. Proibido usar Markdown, blocos de código (```) ou explicações. Se houver texto extra, a missão falha."},
                             {"role": "user", "content": prompt}
-                        ]
+                        ],
+                        "temperature": 0.1 # Menor temperatura = mais precisão
                     }
                 )
-                new_code = resp.json()['choices'][0]['message']['content']
-                new_code = re.sub(r'```python\n|```', '', new_code)
                 
-                file_path.write_text(new_code.strip(), encoding='utf-8')
-                files_changed.append(file_path_str)
+                raw_content = resp.json()['choices'][0]['message']['content']
+                
+                # Limpeza agressiva: remove blocos de código se a IA desobedecer
+                new_code = re.sub(r'```(?:python)?\n?', '', raw_content)
+                new_code = new_code.replace('```', '').strip()
+                
+                # --- VALIDAÇÃO DE ANTICORPOS (Sintaxe) ---
+                try:
+                    compile(new_code, file_path_str, 'exec')
+                    file_path.write_text(new_code, encoding='utf-8')
+                    files_changed.append(file_path_str)
+                    logger.info(f"✅ DNA do arquivo {file_path_str} validado e atualizado.")
+                except SyntaxError as se:
+                    logger.error(f"⚠️ Mutação rejeitada para {file_path_str}: Erro de Sintaxe Gerado: {se}")
+                    # Aqui poderíamos salvar um log do erro para análise
+                
             except Exception as e:
-                logger.error(f"❌ Erro ao mutar {file_path_str}: {e}")
+                logger.error(f"❌ Erro crítico ao mutar {file_path_str}: {e}")
 
         return {
             'success': len(files_changed) > 0,
             'mutation_applied': len(files_changed) > 0,
             'files_changed': files_changed
         }
+
 
     def apply_mutation(self, strategy: str, intent: str, impact: str, roadmap_context: str = None) -> Dict[str, Any]:
         """Coordena o ciclo de mutação"""
