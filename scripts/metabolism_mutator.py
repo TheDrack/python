@@ -229,7 +229,9 @@ class MetabolismMutator:
                 "https://api.groq.com/openai/v1/chat/completions",
                 headers={"Authorization": f"Bearer {api_key}"},
                 json={
-                    "model": "llama-3.3-70b-specdec",
+                    "model":
+"llama3-70b-8192",  # Modelo estável da Groq
+",
                     "messages": [{"role": "user", "content": prompt}],
                     "temperature": 0.1,
                     "response_format": {"type": "json_object"}
