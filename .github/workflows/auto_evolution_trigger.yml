@@ -53,9 +53,8 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-          
+
       - name: 📦 Instalar Dependências de Análise
-        # Resolve o erro 'No module named sqlmodel'
         run: pip install sqlmodel pydantic requests
 
       - name: 🎯 Seleção de Missão
@@ -71,7 +70,6 @@ jobs:
               
               if next_mission:
                   m_data = next_mission['mission']
-                  # Limpeza de caracteres que quebram o Shell/Env do GitHub
                   desc = m_data["description"].replace(chr(10), " ").replace("'", "").replace('"', "")
                   
                   with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
@@ -117,7 +115,6 @@ jobs:
         run: |
           git config --global user.name "Jarvis-AutoEvolution"
           git config --global user.email "jarvis@bot.com"
-          # Adicionado pytest-asyncio para resolver o erro de funções async
           pip install pytest pytest-json-report pytest-cov pytest-asyncio requests sqlmodel pydantic
           pip install -r requirements.txt || true
 
@@ -132,7 +129,6 @@ jobs:
           git checkout -b "$BRANCH_NAME"
           export PYTHONPATH="${PYTHONPATH:+$PYTHONPATH:}$(pwd)"
           
-          # 1. MUTAGÊNESE (Cérebro)
           echo "🧠 [IA] Iniciando mutação do DNA..."
           python scripts/metabolism_mutator.py \
             --strategy "minimal_change" \
@@ -146,32 +142,31 @@ jobs:
             exit 0
           fi
 
-          # 2. VALIDAÇÃO (Anticorpos) - Silenciosa e Organizada
           echo "🧪 [TESTES] Validando integridade do novo DNA..."
-          
-          # Executa o pytest jogando a sujeira para um log e salvando o resultado em JSON
           unset GROQ_API_KEY OPENAI_API_KEY GEMINI_API_KEY
           pytest --json-report --json-report-file=test_report.json > pytest_log.txt 2>&1
           TEST_EXIT_CODE=$?
 
           if [ $TEST_EXIT_CODE -eq 0 ]; then
             echo "✅ [SUCESSO] DNA Saudável. Sumário: $(tail -n 1 pytest_log.txt)"
-            
             git commit -m "[Auto-Evolution] Mission Accomplished - RL Reward Positive"
             git push origin "$BRANCH_NAME"
-            
-            # PR com corpo limpo
             gh pr create --title "🧬 Evolução: $ISSUE_BODY" \
-                         --body "### ✅ Evolução Concluída
-                         - **Missão:** $ISSUE_BODY
-                         - **Status:** DNA Validado e Saudável.
-                         - *O relatório técnico detalhado está disponível nos artefatos do Workflow.*" \
+                         --body "### ✅ Evolução Concluída\n- **Missão:** $ISSUE_BODY\n- **Status:** DNA Validado e Saudável." \
                          --base main --head "$BRANCH_NAME"
           else
-  echo "❌ [FALHA] DNA Instável. O erro foi este:"
-  echo "-------------------------------------------------------"
-  # Isso vai procurar a linha que começa com 'E ' (onde o pytest explica o erro)
-  grep -E "^E  |FAILED" pytest_log.txt | tail -n 10
-  echo "-------------------------------------------------------"
-  exit 1
-fi
+            echo "❌ [FALHA] DNA Instável. O erro foi este:"
+            echo "-------------------------------------------------------"
+            grep -E "^E  |FAILED" pytest_log.txt | tail -n 15
+            echo "-------------------------------------------------------"
+            exit 1
+          fi
+
+      - name: 📦 Arquivar Evidências
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: technical-report-${{ github.run_id }}
+          path: |
+            pytest_log.txt
+            test_report.json
