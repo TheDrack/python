@@ -95,7 +95,7 @@ jobs:
           path: mission_context.txt
 
   # ==================================================
-  # 3. EVOLUÇÃO: Mutação e Testes
+  # 3. EVOLUÇÃO: Mutação Autônoma (Sem bloqueio de testes locais)
   # ==================================================
   attempt_evolution:
     name: "🧬 Tentar Evolução Autônoma"
@@ -115,15 +115,13 @@ jobs:
         run: |
           git config --global user.name "Jarvis-AutoEvolution"
           git config --global user.email "jarvis@bot.com"
-          pip install pytest pytest-json-report pytest-cov pytest-asyncio requests sqlmodel pydantic
-          pip install -r requirements.txt || true
+          pip install requests sqlmodel pydantic
 
-      - name: 🤖 RL Cycle
+      - name: 🤖 Ciclo de Mutação
         env:
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           ISSUE_BODY: ${{ needs.find_next_mission.outputs.mission_description }}
-          PYTEST_ASYNCIO_MODE: "auto" 
         run: |
           BRANCH_NAME="auto-evolution/mission-$(date +%s)"
           git checkout -b "$BRANCH_NAME"
@@ -142,39 +140,10 @@ jobs:
             exit 0
           fi
 
-          echo "🧪 [TESTES] Validando integridade do novo DNA..."
-          unset GROQ_API_KEY OPENAI_API_KEY GEMINI_API_KEY
-          # Executa o pytest e captura TUDO
-          pytest --json-report --json-report-file=test_report.json > pytest_log.txt 2>&1
-          TEST_EXIT_CODE=$?
-
-          if [ $TEST_EXIT_CODE -eq 0 ]; then
-            echo "✅ [SUCESSO] DNA Saudável. Sumário: $(tail -n 1 pytest_log.txt)"
-            git commit -m "[Auto-Evolution] Mission Accomplished - RL Reward Positive"
-            git push origin "$BRANCH_NAME"
-            gh pr create --title "🧬 Evolução: $ISSUE_BODY" \
-                         --body "### ✅ Evolução Concluída\n- **Missão:** $ISSUE_BODY\n- **Status:** DNA Validado e Saudável." \
-                         --base main --head "$BRANCH_NAME"
-          else
-            echo "❌ [FALHA] DNA Instável. Analisando Log Técnico (Code $TEST_EXIT_CODE):"
-            echo "-------------------------------------------------------"
-            # Prioridade 1: Mostrar falhas de teste (FAILED)
-            if grep -q "FAILED" pytest_log.txt; then
-               grep -A 20 -B 5 "FAILED" pytest_log.txt
-            # Prioridade 2: Mostrar erros de importação/traceback
-            else
-               tail -n 50 pytest_log.txt
-            fi
-            echo "-------------------------------------------------------"
-            exit 1
-          fi
-
-
-      - name: 📦 Arquivar Evidências
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: technical-report-${{ github.run_id }}
-          path: |
-            pytest_log.txt
-            test_report.json
+          echo "🚀 [PUSH] Enviando Evolução para Revisão..."
+          git commit -m "[Auto-Evolution] DNA Mutated - Awaiting CI Validation"
+          git push origin "$BRANCH_NAME"
+          
+          gh pr create --title "🧬 Evolução: $ISSUE_BODY" \
+                       --body "### ✅ Nova Mutação Proposta\n- **Missão:** $ISSUE_BODY\n- **Status:** DNA Mutado. Aguardando validação de integridade no CI principal." \
+                       --base main --head "$BRANCH_NAME"
