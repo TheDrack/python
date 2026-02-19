@@ -150,15 +150,20 @@ jobs:
              exit 0
           fi
 
-          # 4. Feedback do Ambiente (Testes)
-          echo "🧪 Iniciando Testes de Validação..."
-          # Rodamos o pytest limpando as variáveis de API apenas para a execução dos testes
-          if GROQ_API_KEY="" OPENAI_API_KEY="" GEMINI_API_KEY="" pytest --json-report --json-report-file=test_report.json; then
-            echo "✅ Sucesso! DNA Saudável. Consolidando Evolução..."
 
-             git commit -m "[Auto-Evolution] Mission Accomplished - RL Reward Positive"
-             git push origin "$BRANCH_NAME"
+          # 4. Feedback do Ambiente (Testes)
+          echo "🧪 Iniciando Testes de Validação com Isolamento Total..."
+          
+          # Usamos subshell () com unset para garantir que as chaves sumam de verdade para o Pytest
+          if (unset GROQ_API_KEY OPENAI_API_KEY GEMINI_API_KEY && pytest --json-report --json-report-file=test_report.json); then
+            echo "✅ Sucesso! DNA Saudável. Consolidando Evolução..."
+            
+            # Precisamos garantir que estamos na branch certa e com as configs de git
+            git add -A
+            git commit -m "[Auto-Evolution] Mission Accomplished - RL Reward Positive"
+            git push origin "$BRANCH_NAME"
           else
-             echo "❌ Falha nos testes! Punição aplicada."
-             exit 1
+            echo "❌ Falha nos testes! O novo DNA é instável."
+            exit 1
           fi
+
