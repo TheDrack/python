@@ -150,20 +150,33 @@ jobs:
              exit 0
           fi
 
-
           # 4. Feedback do Ambiente (Testes)
           echo "🧪 Iniciando Testes de Validação com Isolamento Total..."
           
-          # Usamos subshell () com unset para garantir que as chaves sumam de verdade para o Pytest
           if (unset GROQ_API_KEY OPENAI_API_KEY GEMINI_API_KEY && pytest --json-report --json-report-file=test_report.json); then
             echo "✅ Sucesso! DNA Saudável. Consolidando Evolução..."
             
-            # Precisamos garantir que estamos na branch certa e com as configs de git
+            # Removemos o test_report.json do commit para não sujar o histórico
             git add -A
+            git reset test_report.json 2>/dev/null || true
+            
             git commit -m "[Auto-Evolution] Mission Accomplished - RL Reward Positive"
             git push origin "$BRANCH_NAME"
+
+            # ABERTURA AUTOMÁTICA DE PR
+            echo "pull-request: Criando PR para a missão..."
+            gh pr create --title "🧬 Evolução: Mission Accomplished ($BRANCH_NAME)" \
+                         --body "O JARVIS completou a missão com sucesso. DNA validado por 619+ testes." \
+                         --base main --head "$BRANCH_NAME"
           else
             echo "❌ Falha nos testes! O novo DNA é instável."
             exit 1
           fi
 
+      # Guardamos o relatório como um artefato oficial do GitHub (limpo e acessível)
+      - name: Arquivar Relatório de Testes
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-report-${{ github.run_id }}
+          path: test_report.json
