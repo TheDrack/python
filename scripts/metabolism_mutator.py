@@ -200,25 +200,20 @@ class MetabolismMutator:
         }
     
     def _engineering_brainstorm(self, issue_body: str, roadmap_context: str) -> Dict[str, Any]:
-        """Brainstorming de IA Robusto via Groq"""
-        logger.info("🧠 Iniciando Brainstorming de IA via Groq...")
+        """Brainstorming de IA com Telemetria de Tokens"""
+        logger.info("🧠 Iniciando Brainstorming de IA via Groq (Llama-3-70b)...")
         
         api_key = os.getenv('GROQ_API_KEY')
-        if not api_key:
-            logger.error("❌ GROQ_API_KEY não encontrada.")
-            return {'can_auto_implement': False}
-
         prompt = f"""
-        Você é o Motor de Evolução do JARVIS. Analise a missão e o roadmap abaixo e decida quais arquivos devem ser alterados.
+        Você é o Motor de Evolução do JARVIS.
+        MISSÃO: {issue_body}
+        CONTEXTO: {roadmap_context}
         
-        MISSÃO ATUAL: {issue_body}
-        ROADMAP: {roadmap_context}
-        
-        Responda ESTRITAMENTE um objeto JSON:
+        Responda APENAS um JSON:
         {{
-            "mission_type": "evolution",
-            "target_files": ["caminho/relativo/do/arquivo.py"],
-            "required_actions": ["descrição técnica do que mudar"],
+            "mission_type": "structured_logging",
+            "target_files": ["app/application/services/task_runner.py"],
+            "required_actions": ["Adicionar mission_id, device_id nos logs"],
             "can_auto_implement": true
         }}
         """
@@ -229,25 +224,29 @@ class MetabolismMutator:
                 "https://api.groq.com/openai/v1/chat/completions",
                 headers={"Authorization": f"Bearer {api_key}"},
                 json={
-                    "model":
-"llama3-70b-8192",  # Modelo estável da Groq
-
+                    "model": "llama3-70b-8192",
                     "messages": [{"role": "user", "content": prompt}],
                     "temperature": 0.1,
                     "response_format": {"type": "json_object"}
-                },
-                timeout=30
+                }
             )
             
-            resp_data = response.json()
-            if 'choices' not in resp_data:
-                logger.error(f"❌ Erro na API Groq: {resp_data}")
-                return {'can_auto_implement': False}
-                
-            analysis = json.loads(resp_data['choices'][0]['message']['content'])
-            return analysis
+            data = response.json()
+            # --- TELEMETRIA DE CONSUMO ---
+            usage = data.get('usage', {})
+            prompt_tokens = usage.get('prompt_tokens', 0)
+            completion_tokens = usage.get('completion_tokens', 0)
+            total_tokens = prompt_tokens + completion_tokens
+            # Estimativa de custo baseada no preço da Groq ($0.70 por 1M tokens)
+            cost_estimate = (total_tokens / 1_000_000) * 0.70
+            
+            logger.info(f"📊 Telemetria: {total_tokens} tokens consumidos (~${cost_estimate:.6f})")
+            # -----------------------------
+
+            content = data['choices'][0]['message']['content']
+            return json.loads(content)
         except Exception as e:
-            logger.error(f"❌ Falha crítica no brainstorm: {e}")
+            logger.error(f"❌ Falha no brainstorm: {e}")
             return {'can_auto_implement': False}
 
     def _reactive_mutation(self, mission_analysis: Dict[str, Any]) -> Dict[str, Any]:
