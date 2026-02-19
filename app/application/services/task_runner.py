@@ -38,8 +38,16 @@ class TaskRunner:
                 s_log.error("Timeout na missão")
                 # O CÓDIGO 124 QUE OS TESTES EXIGEM
                 return MissionResult(mission.mission_id, False, "", "Timeout", 124, time.time()-start_time)
+            except subprocess.CalledProcessError as e:
+                s_log.error(f"Erro na missão: {str(e)}")
+                return MissionResult(mission.mission_id, False, "", str(e), e.returncode, time.time()-start_time)
         except Exception as e:
             s_log.error(f"Erro na missão: {str(e)}")
             return MissionResult(mission.mission_id, False, "", str(e), 1, time.time()-start_time)
         finally:
             s_log.info("Missão finalizada")
+            try:
+                import shutil
+                shutil.rmtree(tmp)
+            except Exception as e:
+                s_log.error(f"Erro ao remover diretório temporário: {str(e)}")
