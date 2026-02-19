@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import os
 import sys
 import json
@@ -133,11 +134,9 @@ class MetabolismMutator:
 Sua saída deve ser EXCLUSIVAMENTE o código Python completo e funcional.
 REGRAS DE SEGURANÇA:
 1. Verifique o fechamento de todos os parênteses (), colchetes [] e chaves {}.
-2. Mantenha a estrutura de classes original.
-3. Não adicione comentários explicativos.
-4. Se o código for longo, garanta que o final do arquivo (EOF) seja alcançado sem truncamento.
-5. Se você não puder garantir a integridade total, não responda."""},
-
+2. NÃO TRUNQUE O CÓDIGO. Se o código for longo, termine-o completamente.
+3. Mantenha a estrutura de classes original.
+4. Responda APENAS com código, sem blocos de markdown ou explicações."""},
                             {"role": "user", "content": prompt}
                         ],
                         "temperature": 0.1
@@ -146,10 +145,11 @@ REGRAS DE SEGURANÇA:
 
                 raw_content = resp.json()['choices'][0]['message']['content']
 
-                # Limpeza de possíveis resíduos de Markdown
-                new_code = re.sub(r'```(?:python)?\n?', '', raw_content)
-                new_code = new_code.replace('```', '').strip()
-
+                # Limpeza robusta de Markdown
+                new_code = raw_content
+                if "```" in new_code:
+                    new_code = re.sub(r'```(?:python)?', '', new_code).strip()
+                
                 # --- VALIDAÇÃO DE ANTICORPOS (Sintaxe) ---
                 try:
                     compile(new_code, file_path_str, 'exec')
