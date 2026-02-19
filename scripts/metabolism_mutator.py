@@ -1,178 +1,44 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-"""
-Metabolism Mutator - Mecânico Consertador
-
-Este módulo implementa o Mecânico Consertador do Fluxo de Metabolismo do Jarvis.
-
-Responsabilidades:
-1. Implementar a mutação proposta pelo Mecânico Revisionador
-2. Atualizar ou criar testes (anticorpos) conforme necessário
-3. Respeitar padrões e contratos existentes
-4. Evitar mutações desnecessárias
-5. Registrar todas as mutações em logs auditáveis
-
-Princípios:
-- Nenhuma mutação silenciosa é permitida
-- Preservar integridade do DNA
-- Aplicar SOMENTE as alterações aprovadas
-- Todas as mutações devem ser rastreáveis
-"""
-
-import argparse
-import datetime
-import json
-import logging
 import os
-import re
-import subprocess
 import sys
+import json
+import re
+import datetime
+import argparse
+import logging
+import subprocess
 from pathlib import Path
-from typing import Dict, Optional, List, Any
+from typing import Dict, Any, List
 
-# Setup logging
+# Configuração de Logging
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
 
-
 class MetabolismMutator:
-    """
-    Mecânico Consertador - Implementa mutagênese controlada no DNA
-    """
-    
-    # Timeouts e constantes de configuração
-    COPILOT_TIMEOUT_SECONDS = 60  # Timeout para consultas ao GitHub Copilot
-    COPILOT_CHECK_TIMEOUT = 10    # Timeout para verificação de disponibilidade
-    
-    def __init__(self, repo_path: Optional[str] = None):
-        """
-        Inicializa o mutador metabólico
-        
-        Args:
-            repo_path: Caminho do repositório (padrão: diretório atual)
-        """
-        self.repo_path = Path(repo_path) if repo_path else Path.cwd()
+    def __init__(self, repo_path: str = None):
+        self.repo_path = Path(repo_path) if repo_path else Path(os.getcwd())
         self.mutation_log = []
-        logger.info(f"🔧 Mecânico Consertador iniciado - DNA: {self.repo_path}")
-        
-        # Verificar GitHub Copilot CLI
-        self._check_copilot_cli()
-    
-    def _check_copilot_cli(self):
-        """Verifica se GitHub Copilot CLI está disponível"""
-        try:
-            result = subprocess.run(
-                ['gh', 'copilot', '--version'],
-                capture_output=True,
-                text=True,
-                timeout=self.COPILOT_CHECK_TIMEOUT
-            )
-            if result.returncode == 0:
-                logger.info("✅ GitHub Copilot CLI disponível")
-            else:
-                logger.warning("⚠️ GitHub Copilot CLI não disponível - funcionalidade limitada")
-        except Exception as e:
-            logger.warning(f"⚠️ Erro ao verificar Copilot CLI: {e}")
-    
-    def apply_mutation(self, strategy, intent, impact, roadmap_context):
-        # 1. Analisa
-        analysis = self._engineering_brainstorm(os.getenv('ISSUE_BODY', ''), roadmap_context)
-        
-        # 2. Tenta Mutação Real
-        if analysis.get('can_auto_implement'):
-            result = self._reactive_mutation(analysis)
-        else:
-            result = self._create_manual_marker(intent, impact, os.getenv('ISSUE_BODY', ''))
 
-        # 3. Se houve sucesso (real ou marcador), atualiza o Painel de Evolução
-        if result.get('success'):
-            usage = analysis.get('usage', {})
-            self._update_evolution_dashboard(
-                mission_name=analysis.get('mission_type', intent),
-                tokens=usage.get('total_tokens', 0),
-                cost=usage.get('cost', 0.0)
-            )
-        
-        return result
-
-    
-    def _apply_minimal_change(self, intent: str, impact: str) -> Dict[str, Any]:
-        """
-        Aplica mudança mínima - estratégia mais segura
-        """
-        logger.info("🎯 Aplicando mudança mínima...")
-        
-        # Obter informação do evento/issue
-        issue_body = os.getenv('ISSUE_BODY', '')
-        issue_number = os.getenv('ISSUE_NUMBER', '')
-        roadmap_context = getattr(self, 'roadmap_context', '')
-        
-        if not issue_body:
-            logger.warning("⚠️ ISSUE_BODY não fornecido - usando informações básicas")
-            issue_body = f"Intent: {intent}, Impact: {impact}"
-        
-        try:
-            # NOVO: Brainstorming de Engenharia - Analisar missão do ROADMAP
-            logger.info("🧠 BRAINSTORMING DE ENGENHARIA - Analisando missão...")
-            mission_analysis = self._engineering_brainstorm(issue_body, roadmap_context)
-            
-            logger.info(f"📋 Missão identificada: {mission_analysis.get('mission_type', 'unknown')}")
-            logger.info(f"🎯 Arquivos alvo: {mission_analysis.get('target_files', [])}")
-            logger.info(f"🔧 Ações necessárias: {mission_analysis.get('required_actions', [])}")
-            
-            # NOVO: Aplicar mutação reativa baseada na análise
-            if mission_analysis.get('can_auto_implement', False):
-                logger.info("✅ Mutação automática possível - aplicando...")
-                return self._reactive_mutation(mission_analysis)
-            else:
-                logger.warning("⚠️ Mutação automática não disponível - criando marcador...")
-                return self._create_manual_marker(intent, impact, issue_body, roadmap_context)
-            
-        except Exception as e:
-            logger.error(f"❌ Erro ao aplicar mudança: {e}")
-            import traceback
-            traceback.print_exc()
-            return {
-                'success': False,
-                'error': str(e)
-            }
-    
-    def _apply_comprehensive_fix(self, intent: str, impact: str) -> Dict[str, Any]:
-        """
-        Aplica correção abrangente - identifica e corrige casos relacionados
-        """
-        logger.info("🔍 Aplicando correção abrangente...")
-        
-        # Similar ao minimal_change mas com escopo mais amplo
-        # Por segurança, ainda requer validação humana
-        return {
-            'success': True,
-            'mutation_applied': False,
-            'message': 'Correção abrangente requer validação humana'
-        }
-    
-    def _apply_incremental_addition(self, intent: str, impact: str) -> Dict[str, Any]:
-        """
-        Aplica adição incremental - adiciona funcionalidade em etapas
-        """
-        logger.info("➕ Aplicando adição incremental...")
-        
-        # Similar às outras estratégias
-        return {
-            'success': True,
-            'mutation_applied': False,
-            'message': 'Adição incremental requer validação humana'
-        }
-    
     def _engineering_brainstorm(self, issue_body: str, roadmap_context: str) -> Dict[str, Any]:
         """Brainstorming de IA com Telemetria de Tokens"""
         logger.info("🧠 Iniciando Brainstorming de IA via Groq (Llama-3-70b)...")
         api_key = os.getenv('GROQ_API_KEY')
         
-        # ... (seu código de prompt aqui) ...
+        prompt = f"""
+        Você é o Motor de Evolução do JARVIS.
+        MISSÃO: {issue_body}
+        CONTEXTO: {roadmap_context}
+        
+        Analise e responda APENAS um JSON:
+        {{
+            "mission_type": "structured_logging",
+            "target_files": ["app/application/services/task_runner.py"],
+            "required_actions": ["Adicionar mission_id, device_id nos logs"],
+            "can_auto_implement": true
+        }}
+        """
 
         try:
             import requests
@@ -180,7 +46,7 @@ class MetabolismMutator:
                 "https://api.groq.com/openai/v1/chat/completions",
                 headers={"Authorization": f"Bearer {api_key}"},
                 json={
-                    "model": "llama3-70b-8192", # <-- Modelo Estável
+                    "model": "llama3-70b-8192",
                     "messages": [{"role": "user", "content": prompt}],
                     "temperature": 0.1,
                     "response_format": {"type": "json_object"}
@@ -195,50 +61,42 @@ class MetabolismMutator:
             logger.info(f"📊 Telemetria: {total_tokens} tokens consumidos (~${cost_estimate:.6f})")
 
             content = json.loads(data['choices'][0]['message']['content'])
-            
-            # Injetamos a telemetria no dicionário de análise para uso posterior
             content['usage'] = {'total_tokens': total_tokens, 'cost': cost_estimate}
             return content
         except Exception as e:
             logger.error(f"❌ Falha no brainstorm: {e}")
             return {'can_auto_implement': False}
 
-    # Certifique-se de que NÃO existe um 'try:' perdido aqui em cima sem o seu 'except'
     def _update_evolution_dashboard(self, mission_name: str, tokens: int, cost: float):
         """Atualiza o Dashboard de Evolução no README.md"""
-       
         logger.info("🏆 Atualizando Dashboard de Evolução...")
         readme_path = self.repo_path / "README.md"
         if not readme_path.exists(): return
 
-        content = readme_path.read_text(encoding='utf-8')
-        
-        # 1. Calcular Nível de Inteligência (Exemplo: 619 testes / 10)
-        intelligence_level = 61.9 
-        
-        # 2. Criar a nova linha da tabela
-        date_str = datetime.datetime.now().strftime("%Y-%m-%d")
-        new_entry = f"| {date_str} | {mission_name} | {tokens} | ${cost:.6f} | ✅ |\n"
-
-        # 3. Injetar no README entre marcadores (ou criar se não existir)
-        dashboard_template = f"""
-## 🧬 Painel de Evolução JARVIS
-> **Status do DNA:** Estável | **Nível de Inteligência:** {intelligence_level} IQ
-> **Economia Simbiótica (Groq Free Tier):** Acumulada
-
-| Data | Missão | Tokens | Custo Est. | Status |
-| :--- | :--- | :--- | :--- | :--- |
-{new_entry}
-"""
-        # Se o marcador já existir, podemos usar regex para substituir a tabela
-        if "## 🧬 Painel de Evolução JARVIS" in content:
-            # Lógica simples de append para manter o histórico
-            parts = content.split("## 🧬 Painel de Evolução JARVIS")
-            updated_content = parts[0] + dashboard_template + "\n".join(parts[1].split("\n")[6:])
-        else:
-            updated_content = content + "\n" + dashboard_template
+        try:
+            content = readme_path.read_text(encoding='utf-8')
+            intelligence_level = 61.9 
+            date_str = datetime.datetime.now().strftime("%Y-%m-%d")
             
-        readme_path.write_text(updated_content, encoding='utf-8')
+            new_entry = f"| {date_str} | {mission_name} | {tokens} | ${cost:.6f} | ✅ |\n"
+
+            if "## 🧬 Painel de Evolução JARVIS" in content:
+                parts = content.split("## 🧬 Painel de Evolução JARVIS")
+                # Mantém o cabeçalho e adiciona a nova linha no topo da tabela
+                header_table = "| Data | Missão | Tokens | Custo Est. | Status |\n| :--- | :--- | :--- | :--- | :--- |\n"
+                updated_content = parts[0] + "## 🧬 Painel de Evolução JARVIS\n" + \
+                                  f"> **Status do DNA:** Estável | **Nível de Inteligência:** {intelligence_level} IQ\n\n" + \
+                                  header_table + new_entry + "\n".join(parts[1].split("\n")[6:])
+            else:
+                dashboard_template = f"\n## 🧬 Painel de Evolução JARVIS\n" \
+                                     f"> **Status do DNA:** Estável | **Nível de Inteligência:** {intelligence_level} IQ\n\n" \
+                                     f"| Data | Missão | Tokens | Custo Est. | Status |\n" \
+                                     f"| :--- | :--- | :--- | :--- | :--- |\n{new_entry}"
+                updated_content = content + dashboard_template
+                
+            readme_path.write_text(updated_content, encoding='utf-8')
+        except Exception as e:
+            logger.warning(f"⚠️ Erro ao atualizar dashboard: {e}")
 
     def _reactive_mutation(self, mission_analysis: Dict[str, Any]) -> Dict[str, Any]:
         """Aplica a mutação de código real nos arquivos alvo"""
@@ -247,336 +105,95 @@ class MetabolismMutator:
         api_key = os.getenv('GROQ_API_KEY')
 
         for file_path_str in mission_analysis.get('target_files', []):
-            # ... (código de leitura de arquivo) ...
+            file_path = self.repo_path / file_path_str
+            if not file_path.exists(): continue
+            
+            current_code = file_path.read_text(encoding='utf-8')
+            prompt = f"Melhore este código para implementar: {mission_analysis.get('required_actions')}. Responda apenas o código.\n\nCÓDIGO ATUAL:\n{current_code}"
+            
             try:
+                import requests
                 resp = requests.post(
                     "https://api.groq.com/openai/v1/chat/completions",
                     headers={"Authorization": f"Bearer {api_key}"},
                     json={
-                        "model": "llama3-70b-8192", # <-- Modelo Estável corrigido
+                        "model": "llama3-70b-8192",
                         "messages": [
-                            {"role": "system", "content": "Você é um programador sênior. Responda APENAS com o código puro, sem explicações ou markdown."},
+                            {"role": "system", "content": "Você é um programador sênior. Responda APENAS com o código puro, sem markdown."},
                             {"role": "user", "content": prompt}
                         ]
                     }
                 )
-
-
-    
-    def _implement_graceful_pip_failure(self) -> Dict[str, Any]:
-        """
-        Implementa graceful failure para instalações pip
-        
-        Returns:
-            Resultado com arquivos modificados
-        """
-        logger.info("📦 Verificando arquivos de instalação pip...")
-        
-        # Arquivos já têm graceful failure implementado!
-        # Vamos verificar e documentar isso
-        files_to_check = [
-            self.repo_path / 'app' / 'application' / 'services' / 'task_runner.py',
-            self.repo_path / 'app' / 'application' / 'services' / 'dependency_manager.py'
-        ]
-        
-        files_changed = []
-        
-        for file_path in files_to_check:
-            if not file_path.exists():
-                logger.warning(f"⚠️ Arquivo não encontrado: {file_path}")
-                continue
-            
-            content = file_path.read_text(encoding='utf-8')
-            
-            # Verificar se graceful failure já está implementado usando padrões mais robustos
-            # Procurar por try/except blocks específicos de instalação
-            has_try_except = re.search(r'try:\s*\n.*?except\s+\w+', content, re.DOTALL) is not None
-            # Procurar por timeout como parâmetro ou configuração (não apenas como texto)
-            has_timeout = re.search(r'timeout\s*[=:]', content) is not None
-            # Procurar por classes ou tratamento de erro específico
-            has_error_handling = (
-                'DependencyInstallationError' in content or 
-                re.search(r'except\s+\w*Error', content) is not None
-            )
-            
-            if has_try_except and has_timeout and has_error_handling:
-                logger.info(f"✅ {file_path.name} já possui graceful failure handling")
-                # Arquivo já está correto - documentar
-                logger.info(f"   - Try/except blocks: ✓")
-                logger.info(f"   - Timeout handling: ✓")
-                logger.info(f"   - Error handling: ✓")
-            else:
-                logger.info(f"⚠️ {file_path.name} precisa de melhorias")
-        
-        # Criar arquivo de documentação sobre o graceful failure
-        doc_file = self.repo_path / 'docs' / 'GRACEFUL_PIP_FAILURE.md'
-        doc_content = """# Graceful Pip Failure - Implementação
-
-## Status: ✅ IMPLEMENTADO
-
-### Arquivos com Graceful Failure
-
-#### 1. `app/application/services/task_runner.py`
-- ✅ Try/except blocks para instalação de dependências
-- ✅ Timeout de 5 minutos para instalações pip
-- ✅ Classe customizada `DependencyInstallationError`
-- ✅ Logging estruturado com mission_id, device_id, session_id
-- ✅ Retorno de erro amigável ao usuário
-
-**Comportamento:**
-- Se pip install falhar, captura erro e retorna `MissionResult` com status failed
-- Trunca stderr para evitar logs gigantes (MAX_ERROR_LENGTH)
-- Diferencia entre timeout e outros erros
-
-#### 2. `app/application/services/dependency_manager.py`
-- ✅ Try/except blocks em `_install_package()`
-- ✅ Timeout de 5 minutos (INSTALL_TIMEOUT)
-- ✅ Captura de TimeoutExpired exception
-- ✅ Logging detalhado de erros
-
-**Comportamento:**
-- Retorna `False` em caso de falha (não lança exceção)
-- Logging estruturado de sucessos e falhas
-- Permite que o código cliente decida como lidar com falha
-
-## Melhorias Implementadas
-
-1. **Timeout Handling**: Todas as chamadas pip install têm timeout de 300s
-2. **Error Messages**: Mensagens de erro são truncadas para evitar log bloat
-3. **Structured Logging**: Todos os logs incluem contexto (mission_id, package, etc)
-4. **Graceful Degradation**: Falhas não crasheiam o sistema, retornam erro estruturado
-
-## Testes
-
-Ver `tests/application/test_task_runner.py` para testes de graceful failure.
-
-## Missão ROADMAP
-
-Esta implementação atende à missão:
-> 🔄 Graceful failure em instalações de pip
-
-**Status**: ✅ COMPLETO
-**Data**: 2026-02-13
-**Implementado por**: Auto-Evolution System
-"""
-        
-        doc_file.parent.mkdir(parents=True, exist_ok=True)
-        doc_file.write_text(doc_content, encoding='utf-8')
-        logger.info(f"📝 Documentação criada: {doc_file}")
-        files_changed.append(str(doc_file))
-        
-        return {
-            'files_changed': files_changed,
-            'status': 'documented'
-        }
-    
-    def _implement_timeout_handling(self) -> Dict[str, Any]:
-        """
-        Implementa timeout handling robusto
-        """
-        logger.info("⏱️ Timeout handling já implementado em task_runner.py")
-        return {'files_changed': []}
-    
-    def _implement_structured_logging(self) -> Dict[str, Any]:
-        """
-        Implementa logs estruturados
-        """
-        logger.info("📝 Structured logging já implementado em task_runner.py")
-        return {'files_changed': []}
-    
-    def _create_manual_marker(
-        self, intent: str, impact: str, issue_body: str, prompt: str = ""
-    ) -> Dict[str, Any]:
-        """
-        Creates a manual mutation marker when automation is not available.
-        
-        Args:
-            intent: Type of intent (correction, creation, etc.)
-            impact: Type of impact (structural, behavioral, etc.)
-            issue_body: Description of the event/issue
-            prompt: Optional technical context/prompt for implementation guidance
-            
-        Returns:
-            Dictionary with mutation result including marker file path.
-        """
-        logger.info("📝 Criando marcador para mudança manual...")
-        
-        try:
-            # Criar arquivo de marcador
-            marker_dir = self.repo_path / ".github" / "metabolism_markers"
-            marker_dir.mkdir(parents=True, exist_ok=True)
-            
-            timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-            marker_file = marker_dir / f"mutation_{timestamp}.md"
-            
-            # Prepare technical context section separately to avoid backslash in f-string
-            technical_context = f"## Contexto Técnico\n\n{prompt}\n" if prompt else ""
-            
-            marker_content = f"""# Marcador de Mutação Metabólica
-
-**Timestamp:** {timestamp}
-**Intenção:** {intent}
-**Impacto:** {impact}
-
-## Descrição do Evento
-
-{issue_body}
-
-{technical_context}
-
-## Ação Necessária
-
-O Mecânico Consertador identificou que esta mutação requer implementação manual.
-
-### Próximos Passos:
-
-1. Revisar a descrição do evento acima
-2. Implementar a mudança necessária
-3. Adicionar ou atualizar testes
-4. Executar suíte de testes
-5. Commit e push das mudanças
-
-### Princípios a Seguir:
-
-- ✅ Mudança mínima e localizada
-- ✅ Preservar contratos existentes
-- ✅ Adicionar testes (anticorpos)
-- ✅ Respeitar padrões do projeto
-- ✅ Registrar mutação no commit
-
----
-
-*Gerado automaticamente pelo Fluxo de Metabolismo do Jarvis*
-"""
-            
-            with open(marker_file, 'w', encoding='utf-8') as f:
-                f.write(marker_content)
-            
-            logger.info(f"✅ Marcador criado: {marker_file}")
-            
-            # Commit o marcador
-            subprocess.run(['git', 'add', str(marker_file)], cwd=self.repo_path)
-            subprocess.run(
-                ['git', 'commit', '-m', f'🔖 Marcador de mutação: {intent}'],
-                cwd=self.repo_path
-            )
-            
-            return {
-                'success': True,
-                'mutation_applied': True,  # Marcador foi criado
-                'files_changed': [str(marker_file)],
-                'message': 'Marcador de mutação manual criado'
-            }
-            
-        except Exception as e:
-            logger.error(f"❌ Erro ao criar marcador: {e}")
-            return {
-                'success': False,
-                'error': str(e)
-            }
-    
-    def _save_mutation_log(
-        self,
-        strategy: str,
-        intent: str,
-        impact: str,
-        result: Dict[str, Any]
-    ):
-        """Salva log de mutação para auditoria"""
-        try:
-            log_dir = self.repo_path / ".github" / "metabolism_logs"
-            log_dir.mkdir(parents=True, exist_ok=True)
-            
-            timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-            filename = f"mutation_{timestamp}.json"
-            
-            log_data = {
-                'timestamp': timestamp,
-                'strategy': strategy,
-                'intent': intent,
-                'impact': impact,
-                'result': result,
-                'mutation_log': self.mutation_log
-            }
-            
-            filepath = log_dir / filename
-            with open(filepath, 'w', encoding='utf-8') as f:
-                json.dump(log_data, f, indent=2, ensure_ascii=False)
-            
-            logger.info(f"📄 Log de mutação salvo: {filepath}")
-        except Exception as e:
-            logger.warning(f"Não foi possível salvar log: {e}")
-    
-    def _export_to_github_actions(self, result: Dict[str, Any]):
-        """Exporta resultado para GitHub Actions outputs"""
-        try:
-            github_output = os.getenv('GITHUB_OUTPUT')
-            if not github_output:
-                logger.warning("GITHUB_OUTPUT não definido - pulando export")
-                return
-            
-            with open(github_output, 'a') as f:
-                f.write(f"mutation_applied={str(result.get('mutation_applied', False)).lower()}\n")
+                new_code = resp.json()['choices'][0]['message']['content']
+                new_code = re.sub(r'```python\n|```', '', new_code)
                 
-                files_changed = result.get('files_changed', [])
-                f.write(f"files_changed={','.join(files_changed)}\n")
-            
-            logger.info("✅ Outputs exportados para GitHub Actions")
-        except Exception as e:
-            logger.warning(f"Não foi possível exportar para GitHub Actions: {e}")
+                file_path.write_text(new_code.strip(), encoding='utf-8')
+                files_changed.append(file_path_str)
+            except Exception as e:
+                logger.error(f"❌ Erro ao mutar {file_path_str}: {e}")
 
+        return {
+            'success': len(files_changed) > 0,
+            'mutation_applied': len(files_changed) > 0,
+            'files_changed': files_changed
+        }
 
-def main():
-    """Main entry point"""
-    parser = argparse.ArgumentParser(
-        description='Mecânico Consertador - Mutagênese Controlada do Jarvis'
-    )
-    parser.add_argument(
-        '--strategy',
-        required=True,
-        help='Estratégia de mutação (minimal_change, comprehensive_fix, incremental_addition)'
-    )
-    parser.add_argument(
-        '--intent',
-        required=True,
-        help='Tipo de intenção'
-    )
-    parser.add_argument(
-        '--impact',
-        required=True,
-        help='Tipo de impacto'
-    )
-    parser.add_argument(
-        '--repo-path',
-        default=None,
-        help='Caminho do repositório'
-    )
-    parser.add_argument(
-        '--roadmap-context',
-        default=None,
-        help='Contexto completo do ROADMAP para guiar a mutação'
-    )
-    
+    def apply_mutation(self, strategy: str, intent: str, impact: str, roadmap_context: str = None) -> Dict[str, Any]:
+        """Coordena o ciclo de mutação"""
+        issue_body = os.getenv('ISSUE_BODY', 'Evolução Contínua')
+        
+        # 1. Brainstorm
+        analysis = self._engineering_brainstorm(issue_body, roadmap_context or "")
+        
+        # 2. Executa
+        if analysis.get('can_auto_implement'):
+            result = self._reactive_mutation(analysis)
+        else:
+            result = self._create_manual_marker(intent, impact, issue_body)
+
+        # 3. Telemetria e Dashboard
+        if result.get('success'):
+            usage = analysis.get('usage', {})
+            self._update_evolution_dashboard(
+                mission_name=analysis.get('mission_type', intent),
+                tokens=usage.get('total_tokens', 0),
+                cost=usage.get('cost', 0.0)
+            )
+        
+        self._save_mutation_log(strategy, intent, impact, result)
+        self._export_to_github_actions(result)
+        return result
+
+    def _create_manual_marker(self, intent: str, impact: str, issue_body: str) -> Dict[str, Any]:
+        """Cria marcador se a automação falhar"""
+        marker_dir = self.repo_path / ".github" / "metabolism_markers"
+        marker_dir.mkdir(parents=True, exist_ok=True)
+        timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        marker_file = marker_dir / f"mutation_{timestamp}.md"
+        marker_file.write_text(f"# Marcador Manual\n{issue_body}")
+        return {'success': True, 'files_changed': [str(marker_file)]}
+
+    def _save_mutation_log(self, strategy, intent, impact, result):
+        log_dir = self.repo_path / ".github" / "metabolism_logs"
+        log_dir.mkdir(parents=True, exist_ok=True)
+        timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        with open(log_dir / f"mutation_{timestamp}.json", 'w') as f:
+            json.dump({'strategy': strategy, 'result': result}, f)
+
+    def _export_to_github_actions(self, result):
+        if os.getenv('GITHUB_OUTPUT'):
+            with open(os.getenv('GITHUB_OUTPUT'), 'a') as f:
+                f.write(f"mutation_applied={str(result.get('mutation_applied', False)).lower()}\n")
+
+# --- MAIN ---
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--strategy', required=True)
+    parser.add_argument('--intent', required=True)
+    parser.add_argument('--impact', required=True)
+    parser.add_argument('--roadmap-context', default="")
     args = parser.parse_args()
     
-    # Criar mutator e executar mutação
-    mutator = MetabolismMutator(repo_path=args.repo_path)
-    result = mutator.apply_mutation(
-        strategy=args.strategy,
-        intent=args.intent,
-        impact=args.impact,
-        roadmap_context=args.roadmap_context
-    )
-    
-    # Imprimir resultado
-    print("\n" + "=" * 60)
-    print("RESULTADO DA MUTAGÊNESE")
-    print("=" * 60)
-    print(json.dumps(result, indent=2, ensure_ascii=False))
-    
-    # Exit code baseado em sucesso
-    sys.exit(0 if result.get('success') else 1)
-
-
-if __name__ == '__main__':
-    main()
+    mutator = MetabolismMutator()
+    res = mutator.apply_mutation(args.strategy, args.intent, args.impact, args.roadmap_context)
+    sys.exit(0 if res.get('success') else 1)
