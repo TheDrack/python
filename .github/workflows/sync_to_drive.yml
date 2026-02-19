@@ -26,11 +26,12 @@ jobs:
           DRIVE_FOLDER_ID: ${{ secrets.DRIVE_FOLDER_ID }}
           PYTHONPATH: ${{ github.workspace }}
         run: |
-          if [ -f "app/adapters/infrastructure/drive_sync.py" ]; then
-            python app/adapters/infrastructure/drive_sync.py
-          elif [ -f "app/infrastructure/drive_sync.py" ]; then
-            python app/infrastructure/drive_sync.py
+          # 🎯 Ajustado para o nome correto: consolidator.py
+          if [ -f "app/adapters/infrastructure/consolidator.py" ]; then
+            python app/adapters/infrastructure/consolidator.py
+          elif [ -f "app/infrastructure/consolidator.py" ]; then
+            python app/infrastructure/consolidator.py
           else
-            echo "❌ Erro: drive_sync.py não encontrado."
+            echo "❌ Erro: consolidator.py não encontrado."
             exit 1
           fi

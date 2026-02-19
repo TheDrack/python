@@ -34,7 +34,7 @@ jobs:
       - name: 🔧 Instalar Dependências
         run: |
           uv venv --python 3.13
-          uv pip install pytest pytest-json-report pytest-cov requests sqlmodel pydantic groq python-jose[cryptography] bcrypt google-api-python-client google-auth-httplib2 google-auth-oauthlib
+          uv pip install pytest pytest-json-report pytest-cov requests sqlmodel pydantic groq python-jose[cryptography] bcrypt
           echo "PYTHONPATH=$PYTHONPATH:$(pwd)" >> $GITHUB_ENV
 
       - name: 🧪 Executar Pytest
