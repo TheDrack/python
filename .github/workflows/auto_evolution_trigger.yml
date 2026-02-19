@@ -154,10 +154,15 @@ jobs:
             gh pr create --title "🧬 Evolução: $ISSUE_BODY" \
                          --body "### ✅ Evolução Concluída\n- **Missão:** $ISSUE_BODY\n- **Status:** DNA Validado e Saudável." \
                          --base main --head "$BRANCH_NAME"
-          else
-            echo "❌ [FALHA] DNA Instável. O erro foi este:"
+else
+            echo "❌ [FALHA] DNA Instável. Erro de Coleta/Execução (Code $TEST_EXIT_CODE):"
             echo "-------------------------------------------------------"
-            grep -E "^E  |FAILED" pytest_log.txt | tail -n 15
+            # Mostramos o TOPO do arquivo se for erro 2, ou o FIM se forem falhas de teste
+            if [ $TEST_EXIT_CODE -eq 2 ]; then
+               head -n 25 pytest_log.txt
+            else
+               grep -E "^E  |FAILED" pytest_log.txt | tail -n 15
+            fi
             echo "-------------------------------------------------------"
             exit 1
           fi
