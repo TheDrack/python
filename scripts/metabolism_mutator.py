@@ -129,13 +129,15 @@ class MetabolismMutator:
                     json={
                         "model": "llama-3.3-70b-versatile",
                         "messages": [
-                            {"role": "system", "content": """Você é o Engenheiro de Evolução do JARVIS.
-REGRAS DE OURO PARA MUTAÇÃO:
-1. NUNCA altere a assinatura (parâmetros) de métodos públicos ou construtores (__init__) que já existem. 
-2. Se precisar de novos parâmetros, eles DEVEM ter valores padrão (ex: sandbox_mode=False).
-3. Preserve todos os nomes de classes e métodos.
-4. O código deve ser compatível com a versão anterior para não quebrar os testes existentes.
-5. Responda apenas com o código puro."""},
+                            {"role": "system", "content": """Você é o Arquiteto de Evolução do JARVIS.
+Sua saída deve ser EXCLUSIVAMENTE o código Python completo e funcional.
+REGRAS DE SEGURANÇA:
+1. Verifique o fechamento de todos os parênteses (), colchetes [] e chaves {}.
+2. Mantenha a estrutura de classes original.
+3. Não adicione comentários explicativos.
+4. Se o código for longo, garanta que o final do arquivo (EOF) seja alcançado sem truncamento.
+5. Se você não puder garantir a integridade total, não responda."""},
+
                             {"role": "user", "content": prompt}
                         ],
                         "temperature": 0.1
