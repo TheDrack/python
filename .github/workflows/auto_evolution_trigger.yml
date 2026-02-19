@@ -126,13 +126,14 @@ jobs:
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           ISSUE_BODY: ${{ needs.find_next_mission.outputs.mission_description }}
-          # Força o pytest a rodar funções async automaticamente
           PYTEST_ASYNCIO_MODE: "auto" 
         run: |
           BRANCH_NAME="auto-evolution/mission-$(date +%s)"
           git checkout -b "$BRANCH_NAME"
           export PYTHONPATH="${PYTHONPATH:+$PYTHONPATH:}$(pwd)"
           
+          # 1. MUTAGÊNESE (Cérebro)
+          echo "🧠 [IA] Iniciando mutação do DNA..."
           python scripts/metabolism_mutator.py \
             --strategy "minimal_change" \
             --intent "auto-evolution-mission" \
@@ -141,16 +142,44 @@ jobs:
           
           git add -A
           if [ -z "$(git status --porcelain)" ]; then
-            echo "⚠️ Nenhuma mutação aplicada no código."
+            echo "⚠️ [STATUS] Nenhuma mudança detectada pela IA."
             exit 0
           fi
 
-          # Roda os testes com o plugin asyncio ativo
-          if (unset GROQ_API_KEY OPENAI_API_KEY GEMINI_API_KEY && pytest); then
+          # 2. VALIDAÇÃO (Anticorpos) - Silenciosa e Organizada
+          echo "🧪 [TESTES] Validando integridade do novo DNA..."
+          
+          # Executa o pytest jogando a sujeira para um log e salvando o resultado em JSON
+          unset GROQ_API_KEY OPENAI_API_KEY GEMINI_API_KEY
+          pytest --json-report --json-report-file=test_report.json > pytest_log.txt 2>&1
+          TEST_EXIT_CODE=$?
+
+          if [ $TEST_EXIT_CODE -eq 0 ]; then
+            echo "✅ [SUCESSO] DNA Saudável. Sumário: $(tail -n 1 pytest_log.txt)"
+            
             git commit -m "[Auto-Evolution] Mission Accomplished - RL Reward Positive"
             git push origin "$BRANCH_NAME"
-            gh pr create --title "🧬 Evolução: $ISSUE_BODY" --body "Processo autônomo concluído. Testes async validados." --base main --head "$BRANCH_NAME"
+            
+            # PR com corpo limpo
+            gh pr create --title "🧬 Evolução: $ISSUE_BODY" \
+                         --body "### ✅ Evolução Concluída
+                         - **Missão:** $ISSUE_BODY
+                         - **Status:** DNA Validado e Saudável.
+                         - *O relatório técnico detalhado está disponível nos artefatos do Workflow.*" \
+                         --base main --head "$BRANCH_NAME"
           else
-            echo "❌ Mutação falhou nos testes (Integridade ou Async)."
+            echo "❌ [FALHA] DNA Instável. Erros detectados:"
+            grep "FAILED" pytest_log.txt | head -n 5 # Mostra apenas os top 5 erros para não poluir
             exit 1
           fi
+
+      # 3. RELATÓRIO (Arquivo Separado)
+      - name: 📦 Arquivar Evidências Técnicas
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: evolution-technical-report
+          path: |
+            pytest_log.txt
+            test_report.json
+            mission_context.txt
