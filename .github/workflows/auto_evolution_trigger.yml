@@ -126,9 +126,10 @@ jobs:
       - name: 🤖 Executar Ciclo de Reinforcement Learning
         env:
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
-          # Injetamos uma flag para avisar os testes que estamos em modo Auto-Evolução
+          # Esta é a chave mestra que faltava para o 'gh pr create'
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }} 
+          ISSUE_BODY: ${{ needs.find_next_mission.outputs.mission_description }}
           AUTO_EVOLUTION_MODE: "true"
-          PYTHONPATH: .
         run: |
           BRANCH_NAME="auto-evolution/mission-$(date +%s)"
           git checkout -b "$BRANCH_NAME"
