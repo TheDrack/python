@@ -10,13 +10,18 @@
      }
 
      async init() {
-       this.browser = await playwright.chromium.launch();
+       this.browser = await playwright.chromium.launch({ headless: true });
        this.context = await this.browser.newContext();
        this.page = await this.context.newPage();
      }
 
      async execute(script) {
-       return await this.page.evaluate(script);
+       try {
+         return await this.page.evaluate(script);
+       } catch (error) {
+         console.error('Erro ao executar script:', error);
+         throw error;
+       }
      }
 
      async close() {
