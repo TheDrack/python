@@ -168,18 +168,10 @@ jobs:
                          - *O relatório técnico detalhado está disponível nos artefatos do Workflow.*" \
                          --base main --head "$BRANCH_NAME"
           else
-            echo "❌ [FALHA] DNA Instável. Erros detectados:"
-            grep "FAILED" pytest_log.txt | head -n 5 # Mostra apenas os top 5 erros para não poluir
-            exit 1
-          fi
-
-      # 3. RELATÓRIO (Arquivo Separado)
-      - name: 📦 Arquivar Evidências Técnicas
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: evolution-technical-report
-          path: |
-            pytest_log.txt
-            test_report.json
-            mission_context.txt
+  echo "❌ [FALHA] DNA Instável. O erro foi este:"
+  echo "-------------------------------------------------------"
+  # Isso vai procurar a linha que começa com 'E ' (onde o pytest explica o erro)
+  grep -E "^E  |FAILED" pytest_log.txt | tail -n 10
+  echo "-------------------------------------------------------"
+  exit 1
+fi
