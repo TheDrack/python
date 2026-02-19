@@ -12,7 +12,7 @@ permissions:
   contents: write
   pull-requests: write
   issues: write
-  actions: write  # Essencial para resolver o erro 403 no upload-artifact
+  actions: write
 
 jobs:
   build-windows:
@@ -24,13 +24,8 @@ jobs:
       with:
         token: ${{ github.token }}
 
-    - name: Teste de Identidade
-      run: gh auth status
-      env:
-        GH_TOKEN: ${{ github.token }}
-
     - name: Set up uv
-      uses: astral-sh/setup-uv@v5 # Versão estável recomendada
+      uses: astral-sh/setup-uv@v5
       with:
         enable-cache: true
 
@@ -39,13 +34,13 @@ jobs:
 
     - name: Install dependencies
       run: |
-        # Instalação limpa e direta usando uv
-        uv pip install pyinstaller
-        uv pip install bcrypt==4.0.1 passlib[bcrypt]==1.7.4
-        uv pip install -r requirements.txt
+        # Criamos o venv e instalamos tudo em um único bloco para garantir o contexto
+        uv venv
+        uv pip install pyinstaller bcrypt==4.0.1 passlib[bcrypt]==1.7.4 -r requirements.txt
     
     - name: Build executable with PyInstaller
       run: |
+        # Forçamos o uso do venv local
         uv run python build_config.py
     
     - name: Verify build
@@ -56,8 +51,8 @@ jobs:
           $size = $item.Length / 1MB
           Write-Host "✓ Size: $([math]::Round($size, 2)) MB"
         } else {
-          Write-Host "✗ Executable not found em dist\"
-          ls dist\ # Lista o que foi gerado para debug
+          Write-Host "✗ Executable not found"
+          if (Test-Path "dist") { ls dist }
           exit 1
         }
       shell: pwsh
@@ -68,7 +63,7 @@ jobs:
         name: Jarvis_Installer
         path: dist/Jarvis_Installer.exe
         retention-days: 30
-        if-no-files-found: error # Garante que falhe se o arquivo sumir
+        if-no-files-found: error
         compression-level: 6
 
     - name: Create Release (on tag)
