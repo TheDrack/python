@@ -84,7 +84,7 @@ class TaskRunner:
                     metadata={"script_path": str(script_file), "persistent": mission.keep_alive}
                 )
             except subprocess.TimeoutExpired as e:
-                # CORREÇÃO PARA O TESTE: Retornar 124
+                # ESSA LINHA CORRIGE O TESTE (EXIT CODE 124)
                 return MissionResult(
                     mission_id=mission.mission_id, success=False, stdout=e.stdout.decode() if e.stdout else "",
                     stderr="Timeout", exit_code=124, execution_time=time.time() - start_time,
