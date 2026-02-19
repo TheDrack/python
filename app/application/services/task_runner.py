@@ -1,4 +1,3 @@
-
 import logging, subprocess, sys, tempfile, time
 from pathlib import Path
 from app.domain.models.mission import Mission, MissionResult
@@ -48,4 +47,3 @@ class TaskRunner:
                 shutil.rmtree(tmp)
             except Exception as e:
                 s_log.error(f"Erro ao remover diretório temporário: {str(e)}")
-   
