@@ -231,7 +231,7 @@ class MetabolismMutator:
                 json={
                     "model":
 "llama3-70b-8192",  # Modelo estável da Groq
-",
+
                     "messages": [{"role": "user", "content": prompt}],
                     "temperature": 0.1,
                     "response_format": {"type": "json_object"}
