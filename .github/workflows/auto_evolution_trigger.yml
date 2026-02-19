@@ -150,11 +150,11 @@ jobs:
              exit 0
           fi
 
-      # 4. Feedback do Ambiente (Testes)
-      echo "🧪 Iniciando Testes de Validação..."
-      # Rodamos o pytest limpando as variáveis de API apenas para a execução dos testes
-      if GROQ_API_KEY="" OPENAI_API_KEY="" GEMINI_API_KEY="" pytest --json-report --json-report-file=test_report.json; then
-         echo "✅ Sucesso! DNA Saudável. Consolidando Evolução..."
+          # 4. Feedback do Ambiente (Testes)
+          echo "🧪 Iniciando Testes de Validação..."
+          # Rodamos o pytest limpando as variáveis de API apenas para a execução dos testes
+          if GROQ_API_KEY="" OPENAI_API_KEY="" GEMINI_API_KEY="" pytest --json-report --json-report-file=test_report.json; then
+            echo "✅ Sucesso! DNA Saudável. Consolidando Evolução..."
 
              git commit -m "[Auto-Evolution] Mission Accomplished - RL Reward Positive"
              git push origin "$BRANCH_NAME"
