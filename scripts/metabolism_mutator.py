@@ -20,67 +20,60 @@ class MetabolismMutator:
     def __init__(self, repo_path: str = None):
         self.repo_path = Path(repo_path) if repo_path else Path(os.getcwd())
         self.mutation_log = []
-
     def _engineering_brainstorm(self, issue_body: str, roadmap_context: str) -> Dict[str, Any]:
-        """IA decide o que e onde mudar sem vício em logs"""
-        logger.info("🧠 Brainstorming de Evolução...")
+        """IA decide o que mudar usando o modelo mais recente e resiliente"""
+        import time
+        logger.info("🧠 Brainstorming de Evolução (Modelo: Llama-3.3-70b-Versatile)...")
         api_key = os.getenv('GROQ_API_KEY')
         
         prompt = f"""
-        Você é o Motor de Evolução do JARVIS. 
+        Você é o Arquiteto de Evolução do JARVIS. 
         CONTEXTO: {roadmap_context}
         MISSÃO: {issue_body}
-
-        TAREFA:
-        1. Identifique o arquivo .py mais relevante para esta missão em 'app/'.
-        2. Planeje uma mudança funcional real (não apenas logs).
-        3. Se a missão for sobre 'logs estruturados', mude como os dados são passados nos arquivos de serviço.
-        
         Responda APENAS um JSON:
         {{
             "mission_type": "functional_upgrade",
             "target_files": ["app/application/services/task_runner.py"],
-            "required_actions": ["Implementar passagem de mission_id e device_id no construtor e logs"],
+            "required_actions": ["descrição técnica aqui"],
             "can_auto_implement": true
         }}
         """
 
-        try:
-            import requests
-            response = requests.post(
-                "https://api.groq.com/openai/v1/chat/completions",
-                headers={"Authorization": f"Bearer {api_key}"},
-                json={
-                    "model": "llama3-70b-8192",
-                    "messages": [{"role": "user", "content": prompt}],
-                    "temperature": 0.2,
-                    "response_format": {"type": "json_object"}
+        for attempt in range(3):  # Sistema de 3 tentativas
+            try:
+                import requests
+                response = requests.post(
+                    "https://api.groq.com/openai/v1/chat/completions",
+                    headers={"Authorization": f"Bearer {api_key}"},
+                    json={
+                        "model": "llama-3.3-70b-versatile", # <-- Modelo Novo
+                        "messages": [{"role": "user", "content": prompt}],
+                        "temperature": 0.2,
+                        "response_format": {"type": "json_object"}
+                    }
+                )
+                data = response.json()
+                
+                if 'choices' not in data:
+                    if 'error' in data and 'rate_limit' in data['error']['type']:
+                        logger.warning(f"⏳ Rate Limit. Tentativa {attempt + 1}/3. Aguardando...")
+                        time.sleep(15)
+                        continue
+                    logger.error(f"❌ Erro na API Groq: {data}")
+                    return {'can_auto_implement': False}
+
+                content = json.loads(data['choices'][0]['message']['content'])
+                usage = data.get('usage', {})
+                content['usage'] = {
+                    'total_tokens': usage.get('total_tokens', 0),
+                    'cost': (usage.get('total_tokens', 0) / 1_000_000) * 0.70
                 }
-            )
-            
-            data = response.json()
-            
-            # --- BLINDAGEM DE RESPOSTA ---
-            if 'choices' not in data:
-                logger.error(f"❌ Resposta inválida da Groq: {data}")
-                # Se for erro de cota, o log vai mostrar aqui
-                return {'can_auto_implement': False}
-            # -----------------------------
-
-            content_str = data['choices'][0]['message']['content']
-            content = json.loads(content_str)
-            
-            usage = data.get('usage', {})
-            content['usage'] = {
-                'total_tokens': usage.get('total_tokens', 0),
-                'cost': (usage.get('total_tokens', 0) / 1_000_000) * 0.70
-            }
-            return content
-        except Exception as e:
-            logger.error(f"❌ Erro crítico no brainstorm: {e}")
-            return {'can_auto_implement': False}
-
-
+                return content
+            except Exception as e:
+                logger.error(f"❌ Erro na tentativa {attempt + 1}: {e}")
+                time.sleep(5)
+        
+        return {'can_auto_implement': False}
 
     def _update_evolution_dashboard(self, mission_name: str, tokens: int, cost: float):
         """Atualiza o Dashboard de Evolução no README.md"""
@@ -144,7 +137,7 @@ class MetabolismMutator:
                     "https://api.groq.com/openai/v1/chat/completions",
                     headers={"Authorization": f"Bearer {api_key}"},
                     json={
-                        "model": "llama3-70b-8192",
+                        "model": "llama-3.3-70b-versatile",
                         "messages": [
                             {"role": "system", "content": "Você é um programador sênior. Responda APENAS com o código puro, sem markdown."},
                             {"role": "user", "content": prompt}
