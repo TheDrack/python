@@ -208,7 +208,7 @@
       "id": "CAP-019",
       "title": "Identify mission-critical capabilities",
       "description": "Determine which functions are essential for the primary mission objectives.",
-      "status": "partial",
+      "status": "complete",
       "auto": true,
       "priority": 2,
       "depends_on": [
