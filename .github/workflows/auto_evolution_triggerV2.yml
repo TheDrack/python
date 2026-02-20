@@ -1,4 +1,4 @@
-name: Auto Evolution Trigger
+name: Auto Evolution Trigger V2
 
 on:
   push:
@@ -12,7 +12,7 @@ permissions:
 
 jobs:
   evolution_cycle:
-    name: "🧬 Ciclo de Evolução Unificado"
+    name: "🧬 Ciclo Unificado JARVIS"
     runs-on: ubuntu-latest
     steps:
       - name: Checkout código
@@ -25,11 +25,11 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: 📦 Instalar Dependências (Uma única vez)
+      - name: 📦 Instalar Dependências
         run: |
           pip install sqlmodel pydantic requests
 
-      - name: 🧠 Fase 1: Orquestração e Sincronia
+      - name: 🧠 Orquestração e Sincronia
         id: sync
         run: |
           export PYTHONPATH="${PYTHONPATH:+$PYTHONPATH:}$(pwd)"
@@ -38,48 +38,36 @@ jobs:
           try:
               from app.application.services.auto_evolutionV2 import AutoEvolutionServiceV2
               auto = AutoEvolutionServiceV2()
+              
               commit_msg = os.popen("git log -1 --pretty=%B").read()
               
+              # Se o commit for uma sincronização, encerra para evitar loop
               if "[Auto-Evolution]" in commit_msg:
-                  print("🎯 Sincronizando inventário...")
-                  next_m = auto.find_next_mission()
-                  if next_m and auto.mark_mission_as_completed(next_m['id']):
-                      os.system("git config --global user.name 'Jarvis-AutoEvolution'")
-                      os.system("git config --global user.email 'jarvis@bot.com'")
-                      os.system("git add data/capabilities.json")
-                      os.system("git commit -m '[Auto-Evolution] Inventory Synchronized ✅' || echo 'No changes'")
-                      os.system("git push origin main")
-                  sys.exit(0) # Para o fluxo aqui após sincronizar
+                  print("🎯 Inventário já sincronizado.")
+                  with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
+                      f.write("run_mutation=false\n")
+                  sys.exit(0)
               
-              print("🚀 Iniciando busca por nova missão...")
               next_mission = auto.find_next_mission()
               if next_mission:
-                  with open('mission_context.txt', 'w') as f:
+                  # Gera o contexto para os próximos passos
+                  with open('mission_context.txt', 'w', encoding='utf-8') as f:
                       f.write(auto.get_roadmap_context(next_mission))
+                  
                   with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
                       f.write(f"mission_desc={next_mission['id']}: {next_mission['title']}\n")
                       f.write("run_mutation=true\n")
               else:
                   print("Nenhuma missão pendente.")
+                  with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
+                      f.write("run_mutation=false\n")
           except Exception as e:
-              print(f"Erro na Orquestração: {e}")
+              print(f"Erro Crítico: {e}")
               sys.exit(1)
           PYCODE
 
-      - name: 🔬 Fase 2: Análise de Risco (Metabolismo)
+      - name: 🤖 Mutação de DNA
         if: steps.sync.outputs.run_mutation == 'true'
-        id: analyzer
-        env:
-          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
-        run: |
-          python scripts/metabolism_analyzer.py \
-            --intent "auto-evolution" \
-            --instruction "${{ steps.sync.outputs.mission_desc }}" \
-            --context "$(cat mission_context.txt)" \
-            --repo-path "."
-
-      - name: 🤖 Fase 3: Mutação de DNA
-        if: steps.sync.outputs.run_mutation == 'true' && steps.analyzer.outputs.requires_human == 'false'
         env:
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -99,10 +87,13 @@ jobs:
             --roadmap-context "$(cat mission_context.txt)"
           
           git add -A
+          # Só faz commit e PR se houver mudança real no código
           if [ -n "$(git status --porcelain)" ]; then
             git commit -m "[Auto-Evolution] DNA Mutated: $ISSUE_BODY"
             git push origin "$BRANCH_NAME"
             gh pr create --title "🧬 Evolução: $ISSUE_BODY" \
                          --body "Evolução automática baseada no inventário JSON." \
                          --base main --head "$BRANCH_NAME"
+          else
+            echo "Nenhuma mudança de DNA detectada."
           fi
