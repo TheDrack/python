@@ -108,7 +108,7 @@
       "id": "CAP-010",
       "title": "Distinguish technical error from conceptual limitation",
       "description": "Analyze failures to determine if they stem from code bugs or fundamental design constraints.",
-      "status": "partial",
+      "status": "complete",
       "auto": true,
       "priority": 1,
       "depends_on": [],
