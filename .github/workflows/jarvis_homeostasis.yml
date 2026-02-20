@@ -1,83 +1,48 @@
 name: "🧬 JARVIS: Homeostase e Auto-Cura"
 
 on:
-  push:
+  pull_request:
     branches: [ main ]
-  pull_request_target:
-    branches: [ main ]
-    types: [opened, synchronize, reopened]
-
-concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: true
 
 permissions:
   contents: write
   pull-requests: write
-  issues: write
-  actions: write
 
 jobs:
   homeostasis:
-    name: "🧪 Vistoria e Auto-Cura"
-    if: (github.event_name == 'pull_request_target') || (github.event_name == 'push' && !contains(github.event.head_commit.message, '🤖 [Auto-Cura]'))
     runs-on: ubuntu-latest
-
     steps:
-      - name: 🛰️ Checkout
-        uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event.pull_request.head.sha || github.sha }}
-          repository: ${{ github.event.pull_request.head.repo.full_name || github.repository }}
-          fetch-depth: 0
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
 
-      - name: 📦 Setup Environment (UV)
-        uses: astral-sh/setup-uv@v5
-        with:
-          enable-cache: true
-
-      - name: 🔧 Instalar Dependências
+      - name: 🔧 Setup
         run: |
-          uv venv --python 3.13
-          uv pip install pytest pytest-json-report pytest-cov requests sqlmodel pydantic groq python-jose[cryptography] bcrypt
+          uv venv
+          uv pip install pytest pytest-json-report requests sqlmodel pydantic groq
           echo "PYTHONPATH=$PYTHONPATH:$(pwd)" >> $GITHUB_ENV
 
-      - name: 🧪 Executar Pytest
-        id: run_tests
-        continue-on-error: true
-        run: |
-          uv run pytest --json-report --json-report-file=report_1.json tests/
-
-
-      - name: 🔬 Análise de Risco (Mecânico)
-        id: risk_check
-        run: |
-          uv run python scripts/metabolism_analyzer.py --intent "auto-evolution" --instruction "Validar autonomia" --repo-path "." > analysis_result.txt
-          if grep -q '"requires_human": true' analysis_result.txt; then
-            echo "HIGH_RISK=true" >> $GITHUB_ENV
-          else
-            echo "HIGH_RISK=false" >> $GITHUB_ENV
-          fi
-
-      - name: ✅ Auto-Merge (Protocolo Voz do Dono)
-        if: steps.run_tests.outcome == 'success' && github.event.pull_request.number != null
+      - name: 🧪 Testes e Auto-Cura (Loop)
         env:
-          GH_TOKEN: ${{ github.token }}
-          PR_AUTHOR: ${{ github.event.pull_request.user.login }}
-          COMMANDER: "TheDrack"
-          PR_NUMBER: ${{ github.event.pull_request.number }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
         run: |
-          echo "🔬 Autor Detectado: '$PR_AUTHOR'"
-          echo "🔬 Nível de Risco: '${{ env.HIGH_RISK }}'"
-          
-          # Ajuste de robustez: Compara strings de forma segura
-          if [ "$PR_AUTHOR" = "$COMMANDER" ]; then
-            echo "🫡 Voz do Dono detectada. Ignorando análise de risco."
-            gh pr merge "$PR_NUMBER" --auto --merge --repo "${{ github.repository }}"
-          elif [ "${{ env.HIGH_RISK }}" = "false" ]; then
-            echo "✅ Risco baixo validado pelo Mecânico. Procedendo com merge automático."
-            gh pr merge "$PR_NUMBER" --auto --merge --repo "${{ github.repository }}"
+          # Tentativa 1
+          uv run pytest --json-report --json-report-file=report.json tests/ || (
+            # Se falhar, Mutador age (Retry 1)
+            uv run python scripts/metabolism_mutator.py --strategy "minimal_change" --intent "fix-test-failure"
+            uv run pytest --json-report --json-report-file=report.json tests/ || (
+              # Se falhar denovo, Mutador age (Retry 2)
+              uv run python scripts/metabolism_mutator.py --strategy "minimal_change" --intent "fix-test-failure"
+              uv run pytest tests/
+            )
+          )
+
+      - name: 🔬 Risco e Merge
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          uv run python scripts/metabolism_analyzer.py --intent "auto-evolution" --repo-path "." > analysis.txt
+          if [ "${{ github.event.pull_request.user.login }}" = "TheDrack" ] || ! grep -q '"requires_human": true' analysis.txt; then
+            gh pr merge ${{ github.event.pull_request.number }} --auto --merge
           else
-            echo "⚠️ Merge Retido: Autor '$PR_AUTHOR' não é o Comandante e o risco é '${{ env.HIGH_RISK }}'."
-            exit 0
+            exit 1
           fi
