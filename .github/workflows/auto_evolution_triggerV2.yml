@@ -1,4 +1,4 @@
-name: Auto Evolution Trigger V2
+name: Auto Evolution Trigger
 
 on:
   push:
@@ -29,7 +29,7 @@ jobs:
         run: |
           pip install sqlmodel pydantic requests
 
-      - name: 🧠 Orquestração e Sincronia
+      - name: 🧠 Fase 1: Orquestração e Sincronia
         id: sync
         run: |
           export PYTHONPATH="${PYTHONPATH:+$PYTHONPATH:}$(pwd)"
@@ -39,21 +39,40 @@ jobs:
               from app.application.services.auto_evolutionV2 import AutoEvolutionServiceV2
               auto = AutoEvolutionServiceV2()
               
-              commit_msg = os.popen("git log -1 --pretty=%B").read()
+              # Puxa o histórico recente para verificar se o último commit foi nosso
+              last_commit_msg = os.popen("git log -1 --pretty=%B").read()
+              last_author = os.popen("git log -1 --pretty=%an").read()
               
-              # Se o commit for uma sincronização, encerra para evitar loop
-              if "[Auto-Evolution]" in commit_msg:
-                  print("🎯 Inventário já sincronizado.")
+              print(f"DEBUG: Último commit: {last_commit_msg.strip()} por {last_author}")
+
+              # CRÍTICO: Se o commit contém a marca ou foi feito pelo bot, sincronizamos
+              if "[Auto-Evolution]" in last_commit_msg or "Jarvis-AutoEvolution" in last_author:
+                  print("🎯 Identificado commit de evolução. Sincronizando Inventário...")
+                  
+                  # Na V2, precisamos identificar qual missão foi concluída. 
+                  # Vamos olhar o título do commit para extrair o ID (ex: CAP-002)
+                  import re
+                  match = re.search(r'CAP-\d+', last_commit_msg)
+                  if match:
+                      cap_id = match.group()
+                      if auto.mark_mission_as_completed(cap_id):
+                          print(f"✅ Missão {cap_id} marcada como completa no JSON.")
+                          os.system("git config --global user.name 'Jarvis-AutoEvolution'")
+                          os.system("git config --global user.email 'jarvis@bot.com'")
+                          os.system("git add data/capabilities.json")
+                          os.system("git commit -m '[Auto-Evolution] Inventory Synchronized ✅' || echo 'No changes'")
+                          os.system("git push origin main")
+                  
+                  # Para o fluxo aqui para evitar o loop
                   with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
                       f.write("run_mutation=false\n")
                   sys.exit(0)
               
+              # Se não for auto-evolução, busca a próxima missão
               next_mission = auto.find_next_mission()
               if next_mission:
-                  # Gera o contexto para os próximos passos
                   with open('mission_context.txt', 'w', encoding='utf-8') as f:
                       f.write(auto.get_roadmap_context(next_mission))
-                  
                   with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
                       f.write(f"mission_desc={next_mission['id']}: {next_mission['title']}\n")
                       f.write("run_mutation=true\n")
@@ -62,9 +81,10 @@ jobs:
                   with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
                       f.write("run_mutation=false\n")
           except Exception as e:
-              print(f"Erro Crítico: {e}")
+              print(f"Erro Crítico na Sincronia: {e}")
               sys.exit(1)
           PYCODE
+
 
       - name: 🤖 Mutação de DNA
         if: steps.sync.outputs.run_mutation == 'true'
