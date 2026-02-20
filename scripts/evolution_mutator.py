@@ -28,12 +28,10 @@ def evolve():
         print(f"🧠 JARVIS analisando arquitetura para: {issue_body}...")
         arch_decision = core.ask_jarvis(system_arch, user_arch)
         
-        # Log para depuração em caso de falha
         print(f"DEBUG: Resposta do Arquiteto: {arch_decision}")
 
         target_file = arch_decision.get('target_file')
 
-        # Fallback: Se a IA errar a chave, procuramos qualquer valor que termine em .py
         if not target_file:
             print("⚠️ Chave 'target_file' ausente. Iniciando varredura de recuperação...")
             for value in arch_decision.values():
@@ -55,4 +53,30 @@ def evolve():
             "Retorne APENAS um JSON válido. O campo 'code' deve conter o código completo.\n"
             "Use \\n para quebras de linha e \\\" para aspas internas."
         )
-        user_eng = f"OBJETIVO: {issue_body}\nARQU
+        
+        # CORREÇÃO: Usando aspas triplas para evitar o erro de string não terminada
+        user_eng = f"""OBJETIVO: {issue_body}
+ARQUIVO: {target_file}
+CÓDIGO ATUAL:
+{current_code}"""
+
+        print(f"🧬 Gerando mutação de DNA em: {target_file}")
+        mutation = core.ask_jarvis(system_eng, user_eng)
+
+        new_code = mutation.get('code', '')
+        summary = mutation.get('summary', 'Evolução aplicada.')
+
+        if len(new_code.strip()) > 20:
+            path.write_text(new_code, encoding='utf-8')
+            Path("mutation_summary.txt").write_text(str(summary), encoding='utf-8')
+            print(f"✅ Evolução Concluída: {target_file}")
+        else:
+            print("❌ Erro: Código gerado insuficiente.")
+            sys.exit(1)
+
+    except Exception as e:
+        print(f"❌ Falha Crítica no Ciclo de Evolução: {str(e)}")
+        sys.exit(1)
+
+if __name__ == "__main__":
+    evolve()
