@@ -3,7 +3,6 @@ import argparse
 import os
 import sys
 import json
-import re
 from pathlib import Path
 from app.application.services.metabolism_core import MetabolismCore
 
@@ -20,12 +19,9 @@ def evolve():
 
     # --- PASSO 1: ARQUITETURA ---
     system_arch = (
-        "Você é o Arquiteto Senior do ecossistema JARVIS.\n"
-        "Responda EXCLUSIVAMENTE em formato JSON.\n"
-        "Determine o arquivo alvo para a implementação da capacidade.\n"
-        "Estrutura: {\"target_file\": \"caminho/do/arquivo.py\", \"reason\": \"motivo\"}"
+        "Você é o Arquiteto Senior do JARVIS. Responda APENAS JSON.\n"
+        "Determine o arquivo alvo: {'target_file': 'path/file.py', 'reason': 'motivo'}"
     )
-
     user_arch = f"MISSÃO: {issue_body}\nCONTEXTO: {args.roadmap_context}"
 
     try:
@@ -40,42 +36,32 @@ def evolve():
         path.parent.mkdir(parents=True, exist_ok=True)
         current_code = path.read_text(encoding='utf-8') if path.exists() else "# Novo componente JARVIS"
 
-        # --- PASSO 2: ENGENHARIA (Com proteção de JSON) ---
+        # --- PASSO 2: ENGENHARIA ---
         system_eng = (
             "Você é o Engenheiro Senior do JARVIS.\n"
-            "Sua resposta deve ser um JSON puro e válido.\n"
-            "O campo 'code' deve conter o código completo. "
-            "IMPORTANTE: Use escapes de string adequados (\\n para quebras de linha, \\\" para aspas) para garantir que o JSON não quebre."
+            "Retorne APENAS um JSON válido. O campo 'code' deve conter o código completo.\n"
+            "Use \\n para quebras de linha e \\\" para aspas internas."
         )
-
-        user_eng = f"""
-        OBJETIVO: {issue_body}
-        ARQUIVO: {target_file}
-        CÓDIGO ATUAL:
-        {current_code}
-
-        Retorne EXCLUSIVAMENTE este JSON:
-        {{
-          "code": "string_do_codigo_completo",
-          "summary": "resumo_das_mudancas"
-        }}
-        """
+        user_eng = f"OBJETIVO: {issue_body}\nARQUIVO: {target_file}\nCÓDIGO ATUAL:\n{current_code}"
 
         print(f"🧬 Gerando mutação de DNA em: {target_file}")
         mutation = core.ask_jarvis(system_eng, user_eng)
 
-        # Extração segura do código para evitar erros de parser
         new_code = mutation.get('code', '')
         summary = mutation.get('summary', 'Evolução aplicada.')
 
         if len(new_code.strip()) > 20:
-            # Garantimos que quebras de linha literais (se houver) sejam tratadas
             path.write_text(new_code, encoding='utf-8')
             Path("mutation_summary.txt").write_text(str(summary), encoding='utf-8')
             print(f"✅ Evolução Concluída: {target_file}")
         else:
-            print("❌ Erro: Código gerado muito curto ou inválido.")
+            print("❌ Erro: Código gerado insuficiente.")
             sys.exit(1)
 
     except Exception as e:
-        # Tenta capturar se o erro foi de parser JSON para dar um feedback melhor
+        # CORREÇÃO: Bloco preenchido para evitar IndentationError
+        print(f"❌ Falha Crítica no Ciclo de Evolução: {str(e)}")
+        sys.exit(1)
+
+if __name__ == "__main__":
+    evolve()
