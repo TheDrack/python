@@ -15,8 +15,8 @@ permissions:
 jobs:
   homeostasis:
     name: "🧪 Vistoria e Auto-Cura"
-    # Aspas simples garantem que o GitHub não se perca com os parênteses e exclamações
-    if: '${{ !contains(github.event.head_commit.message, "[Auto-Cura]") && !contains(github.event.head_commit.message, "[Auto-Evolution]") }}'
+    # Condição simplificada para evitar erro de indexação
+    if: github.actor != 'github-actions[bot]'
     runs-on: ubuntu-latest
 
     steps:
@@ -43,24 +43,23 @@ jobs:
         run: |
           ATTEMPT=1
           SUCCESS=false
-          FINAL_MSG="Iniciado"
+          FINAL_MSG="Sem erros"
 
           while [ $ATTEMPT -le 2 ]; do
             echo "🧪 Tentativa $ATTEMPT..."
             
-            # Se o teste passar, sucesso absoluto
             if uv run pytest --json-report --json-report-file=report.json tests/; then
-              echo "✅ Sistema saudável."
+              echo "✅ Testes aprovados."
               SUCCESS=true
               FINAL_MSG="Sucesso"
               break
             fi
             
-            # Se falhou, prepara log curto para o Mecânico
+            # Extração de log segura para o Mecânico
             ERR_DATA=$(cat report.json | jq -c '.tests[] | select(.outcome == "failed") | {id: .nodeid, msg: .call.crash.message}' | head -c 500)
             
-            # Consulta ao Mecânico Revisionador
-            RISK_OUT=$(uv run python scripts/metabolism_analyzer.py --intent "self-healing" --instruction "Reparo" --context "Log: $ERR_DATA")
+            # Análise de Risco
+            RISK_OUT=$(uv run python scripts/metabolism_analyzer.py --intent "self-healing" --instruction "Reparo" --context "Err: $ERR_DATA")
             
             if echo "$RISK_OUT" | grep -q '"requires_human": true'; then
               FINAL_MSG=$(echo $RISK_OUT | jq -r '.reason')
@@ -68,7 +67,7 @@ jobs:
               break
             fi
 
-            # Tentativa de Cura via Mutator
+            # Cura Automática
             uv run python scripts/self_healing_mutator.py --report "report.json"
             
             git config --global user.name "Jarvis-AutoEvolution"
