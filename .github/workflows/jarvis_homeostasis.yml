@@ -1,11 +1,11 @@
 name: "🧬 JARVIS: Homeostase e Auto-Cura"
 
 on:
-  push:
-    branches: [ main ]
-  pull_request_target:
+  pull_request:
     branches: [ main ]
     types: [opened, synchronize, reopened]
+  push:
+    branches: [ main ]
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
@@ -20,18 +20,15 @@ permissions:
 jobs:
   homeostasis:
     name: "🧪 Vistoria e Auto-Cura"
-    if: (github.event_name == 'pull_request_target') || (github.event_name == 'push' && !contains(github.event.head_commit.message, '🤖 [Auto-Cura]'))
     runs-on: ubuntu-latest
-
     steps:
       - name: 🛰️ Checkout
         uses: actions/checkout@v4
         with:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
-          repository: ${{ github.event.pull_request.head.repo.full_name || github.repository }}
           fetch-depth: 0
 
-      - name: 📦 Setup Environment (UV)
+      - name: 📦 Setup Environment
         uses: astral-sh/setup-uv@v5
         with:
           enable-cache: true
@@ -42,14 +39,27 @@ jobs:
           uv pip install pytest pytest-json-report pytest-cov requests sqlmodel pydantic groq python-jose[cryptography] bcrypt
           echo "PYTHONPATH=$PYTHONPATH:$(pwd)" >> $GITHUB_ENV
 
-      - name: 🧪 Executar Pytest
-        id: run_tests
+      - name: 🧪 Executar Testes (Tentativa 1)
+        id: test_1
         continue-on-error: true
+        run: uv run pytest --json-report --json-report-file=report_1.json tests/
+
+      - name: 🩹 Auto-Cura (Retry 1)
+        if: steps.test_1.outcome == 'failure'
+        id: heal_1
+        env:
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
         run: |
-          uv run pytest --json-report --json-report-file=report_1.json tests/
+          uv run python scripts/metabolism_mutator.py --strategy "minimal_change" --intent "fix-test-failure" --impact "critical"
+          uv run pytest --json-report --json-report-file=report_2.json tests/
 
+      - name: 🧪 Executar Testes (Tentativa 2)
+        if: steps.test_1.outcome == 'failure' && steps.heal_1.outcome == 'failure'
+        id: test_2
+        continue-on-error: true
+        run: uv run pytest --json-report --json-report-file=report_3.json tests/
 
-      - name: 🔬 Análise de Risco (Mecânico)
+      - name: 🔬 Análise de Risco Final
         id: risk_check
         run: |
           uv run python scripts/metabolism_analyzer.py --intent "auto-evolution" --instruction "Validar autonomia" --repo-path "." > analysis_result.txt
@@ -60,24 +70,16 @@ jobs:
           fi
 
       - name: ✅ Auto-Merge (Protocolo Voz do Dono)
-        if: steps.run_tests.outcome == 'success' && github.event.pull_request.number != null
+        if: (steps.test_1.outcome == 'success' || steps.test_2.outcome == 'success') && github.event_name == 'pull_request'
         env:
           GH_TOKEN: ${{ github.token }}
           PR_AUTHOR: ${{ github.event.pull_request.user.login }}
           COMMANDER: "TheDrack"
           PR_NUMBER: ${{ github.event.pull_request.number }}
         run: |
-          echo "🔬 Autor Detectado: '$PR_AUTHOR'"
-          echo "🔬 Nível de Risco: '${{ env.HIGH_RISK }}'"
-          
-          # Ajuste de robustez: Compara strings de forma segura
-          if [ "$PR_AUTHOR" = "$COMMANDER" ]; then
-            echo "🫡 Voz do Dono detectada. Ignorando análise de risco."
-            gh pr merge "$PR_NUMBER" --auto --merge --repo "${{ github.repository }}"
-          elif [ "${{ env.HIGH_RISK }}" = "false" ]; then
-            echo "✅ Risco baixo validado pelo Mecânico. Procedendo com merge automático."
+          if [ "$PR_AUTHOR" = "$COMMANDER" ] || [ "${{ env.HIGH_RISK }}" = "false" ]; then
             gh pr merge "$PR_NUMBER" --auto --merge --repo "${{ github.repository }}"
           else
-            echo "⚠️ Merge Retido: Autor '$PR_AUTHOR' não é o Comandante e o risco é '${{ env.HIGH_RISK }}'."
-            exit 0
+            echo "⚠️ Risco detectado ou erro persistente. Aguardando Comandante."
+            exit 1
           fi
