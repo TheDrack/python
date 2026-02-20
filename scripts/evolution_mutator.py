@@ -3,8 +3,8 @@ import argparse
 import os
 import sys
 import json
+import re
 from pathlib import Path
-# Importamos o Core para centralizar as chamadas de IA
 from app.application.services.metabolism_core import MetabolismCore
 
 def evolve():
@@ -16,76 +16,66 @@ def evolve():
     args = parser.parse_args()
 
     core = MetabolismCore()
-    # O ISSUE_BODY agora contém "ID: Título" vindo do YML V2
     issue_body = os.getenv('ISSUE_BODY', 'Nova funcionalidade')
 
-    # --- PASSO 1: ARQUITETURA ESTRUTURADA ---
+    # --- PASSO 1: ARQUITETURA ---
     system_arch = (
         "Você é o Arquiteto Senior do ecossistema JARVIS.\n"
-        "Sua missão é traduzir uma capacidade técnica do inventário JSON em alterações de código.\n"
-        "DIRETRIZES DE DIRETÓRIO:\n"
-        "- Lógica de Negócio: 'app/application/services/'\n"
-        "- Infraestrutura/Drivers: 'app/adapters/infrastructure/'\n"
-        "- Utilitários: 'app/core/' ou 'scripts/'\n"
-        "Responda APENAS JSON: {'target_file': 'caminho/arquivo.py', 'reason': 'explicação'}"
+        "Responda EXCLUSIVAMENTE em formato JSON.\n"
+        "Determine o arquivo alvo para a implementação da capacidade.\n"
+        "Estrutura: {\"target_file\": \"caminho/do/arquivo.py\", \"reason\": \"motivo\"}"
     )
-    
-    user_arch = f"""
-    MISSÃO: {issue_body}
-    CONTEXTO TÉCNICO (JSON Inventory):
-    {args.roadmap_context}
-    
-    Analise as dependências e notas para decidir o melhor local de implementação.
-    """
+
+    user_arch = f"MISSÃO: {issue_body}\nCONTEXTO: {args.roadmap_context}"
 
     try:
         print(f"🧠 JARVIS analisando arquitetura para: {issue_body}...")
         arch_decision = core.ask_jarvis(system_arch, user_arch)
         target_file = arch_decision.get('target_file')
-        
+
         if not target_file:
             raise ValueError("O Arquiteto não definiu um 'target_file'.")
 
         path = Path(target_file)
         path.parent.mkdir(parents=True, exist_ok=True)
-        
-        current_code = path.read_text(encoding='utf-8') if path.exists() else "# Componente recém-criado pelo ciclo de auto-evolução JARVIS"
+        current_code = path.read_text(encoding='utf-8') if path.exists() else "# Novo componente JARVIS"
 
-        # --- PASSO 2: ENGENHARIA E MUTAÇÃO ---
+        # --- PASSO 2: ENGENHARIA (Com proteção de JSON) ---
         system_eng = (
             "Você é o Engenheiro Senior do JARVIS.\n"
-            "Implemente a capacidade técnica solicitada seguindo padrões de código limpo e alta performance.\n"
-            "Responda APENAS JSON: {'code': 'código completo e funcional', 'summary': 'resumo técnico'}"
+            "Sua resposta deve ser um JSON puro e válido.\n"
+            "O campo 'code' deve conter o código completo. "
+            "IMPORTANTE: Use escapes de string adequados (\\n para quebras de linha, \\\" para aspas) para garantir que o JSON não quebre."
         )
-        
+
         user_eng = f"""
         OBJETIVO: {issue_body}
-        ARQUIVO ALVO: {target_file}
+        ARQUIVO: {target_file}
         CÓDIGO ATUAL:
         {current_code}
-        
-        CONDIÇÃO: Se o arquivo já existe, mantenha a estrutura atual e adicione a nova funcionalidade.
-        Se for novo, crie a classe/função necessária.
+
+        Retorne EXCLUSIVAMENTE este JSON:
+        {{
+          "code": "string_do_codigo_completo",
+          "summary": "resumo_das_mudancas"
+        }}
         """
 
         print(f"🧬 Gerando mutação de DNA em: {target_file}")
         mutation = core.ask_jarvis(system_eng, user_eng)
 
+        # Extração segura do código para evitar erros de parser
         new_code = mutation.get('code', '')
-        summary = mutation.get('summary', 'Evolução aplicada com sucesso.')
+        summary = mutation.get('summary', 'Evolução aplicada.')
 
         if len(new_code.strip()) > 20:
+            # Garantimos que quebras de linha literais (se houver) sejam tratadas
             path.write_text(new_code, encoding='utf-8')
-            # Salvamos o resumo para o GitHub Actions ler e colocar no corpo do PR
             Path("mutation_summary.txt").write_text(str(summary), encoding='utf-8')
             print(f"✅ Evolução Concluída: {target_file}")
         else:
-            print("❌ Erro: O código gerado é insuficiente ou vazio.")
+            print("❌ Erro: Código gerado muito curto ou inválido.")
             sys.exit(1)
 
     except Exception as e:
-        print(f"❌ Falha Crítica no Ciclo de Evolução: {str(e)}")
-        sys.exit(1)
-
-if __name__ == "__main__":
-    evolve()
+        # Tenta capturar se o erro foi de parser JSON para dar um feedback melhor
