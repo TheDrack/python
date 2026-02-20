@@ -28,7 +28,7 @@ def consolidate_project(output_file="CORE_LOGIC_CONSOLIDATED.txt"):
     return output_file
 
 def upload_to_drive(file_path):
-    """Faz o upload do arquivo para o Google Drive respeitando a cota do proprietário da pasta."""
+    """Sincroniza o arquivo com o Drive corrigindo erros de Cota e Bad Request."""
     try:
         json_raw = os.environ['G_JSON'].strip()
         folder_id = os.environ['DRIVE_FOLDER_ID'].strip()
@@ -40,38 +40,33 @@ def upload_to_drive(file_path):
         service = build('drive', 'v3', credentials=creds)
 
         file_name = os.path.basename(file_path)
-        media = MediaFileUpload(file_path, mimetype='text/plain', resumable=True)
+        # 🎯 Sem resumable para evitar erro 400 em arquivos pequenos
+        media = MediaFileUpload(file_path, mimetype='text/plain')
 
-        # 🔍 Busca se o arquivo já existe na pasta específica
+        # 🔍 Localiza o arquivo alvo
         query = f"name='{file_name}' and '{folder_id}' in parents and trashed = false"
         results = service.files().list(q=query, fields="files(id)").execute()
         files = results.get('files', [])
 
         if files:
             file_id = files[0]['id']
-            # 🔄 Atualiza o conteúdo. Como o arquivo está na SUA pasta, 
-            # ele usa o SEU espaço, resolvendo o erro 403 quota.
+            # 🔄 Update puro (apenas mídia) para herdar cota do Comandante
             service.files().update(
-                fileId=file_id, 
+                fileId=file_id,
                 media_body=media
             ).execute()
             print(f"✅ Sucesso: {file_name} atualizado (ID: {file_id}).")
         else:
-            # ✨ Cria o arquivo definindo explicitamente o 'parent' como a sua pasta
-            file_metadata = {
-                'name': file_name, 
-                'parents': [folder_id]
-            }
+            # ✨ Criação inicial se não existir
+            file_metadata = {'name': file_name, 'parents': [folder_id]}
             file = service.files().create(
-                body=file_metadata, 
-                media_body=media, 
+                body=file_metadata,
+                media_body=media,
                 fields='id'
             ).execute()
             print(f"✨ Sucesso: Novo arquivo criado (ID: {file.get('id')}).")
 
     except Exception as e:
-        # Erro 403 storageQuotaExceeded é mitigado ao garantir que o arquivo 
-        # "nasça" ou "viva" dentro de uma pasta que a Service Account não é dona.
         print(f"❌ Erro na sincronização: {str(e)}")
         exit(1)
 
