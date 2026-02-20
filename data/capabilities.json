@@ -220,7 +220,7 @@
       "id": "CAP-020",
       "title": "Identify redundant capabilities",
       "description": "Detect overlapping functions that can be consolidated for efficiency.",
-      "status": "pending",
+      "status": "complete",
       "auto": true,
       "priority": 2,
       "depends_on": [
