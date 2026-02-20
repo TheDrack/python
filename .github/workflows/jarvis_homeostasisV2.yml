@@ -15,7 +15,8 @@ permissions:
 jobs:
   homeostasis:
     name: "🧪 Vistoria e Auto-Cura"
-    if: github.actor != 'github-actions[bot]'
+    # Permite disparar por PRs do bot, mas evita loop de auto-cura
+    if: "!contains(github.event.head_commit.message, '[Auto-Cura]')"
     runs-on: ubuntu-latest
 
     steps:
@@ -23,16 +24,16 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          token: ${{ secrets.JARVIS_PAT || secrets.GITHUB_TOKEN }}
 
       - name: 📦 Setup UV
         uses: astral-sh/setup-uv@v5
         with:
           enable-cache: true
 
-      - name: 🔧 Instalação do Motor JARVIS
+      - name: 🔧 Instalação do DNA
         run: |
           uv venv --python 3.13
-          # Instalando dependências vitais detectadas nos logs de erro
           uv pip install pytest pytest-json-report pytest-cov pytest-asyncio \
                          pydantic pydantic-settings cryptography httpx \
                          sqlmodel groq python-dotenv requests
@@ -49,57 +50,48 @@ jobs:
 
           while [ $ATTEMPT -le 2 ]; do
             echo "🧪 Tentativa $ATTEMPT..."
-            
-            # Executa pytest. O '|| true' garante que o script não morra aqui se o teste falhar
             uv run pytest --json-report --json-report-file=report.json tests/ || true
             
-            # Se o pytest passou (exit code 0), marcamos sucesso
-            if [ $? -eq 0 ] && [ -f report.json ] && [ "$(jq '.summary.passed' report.json)" != "0" ]; then
-              echo "✅ Sistema Estável."
+            if [ -f report.json ] && [ "$(jq '.summary.failed // 0' report.json)" == "0" ] && [ "$(jq '.summary.errors // 0' report.json)" == "0" ]; then
               SUCCESS=true
               FINAL_MSG="Sucesso"
               break
             fi
             
-            echo "🔬 Analisando erros (Coleta ou Execução)..."
-            
-            # Captura Erros de Coleta (os que travaram o JARVIS antes) ou Erros de Teste
+            # Captura de erros para o Mecânico
             if [ -f report.json ]; then
-              # Tenta pegar erros de teste, se não houver, pega erros de coleta
               ERR_DATA=$(jq -c '.tests[] | select(.outcome=="failed" or .outcome=="error") | {id:.nodeid, m:.call.crash.message}' report.json | head -c 800)
               [ -z "$ERR_DATA" ] && ERR_DATA=$(jq -c '.collectors[] | select(.result=="error") | {id:.nodeid, m:.longrepr}' report.json | head -c 800)
             fi
 
-            [ -z "$ERR_DATA" ] && ERR_DATA="Erro de ambiente ou dependência não registrada no JSON."
-
-            # Mecânico avalia o estrago
-            RISK_OUT=$(uv run python scripts/metabolism_analyzer.py --intent "self-healing" --instruction "Corrigir falha" --context "LOG_ERRO: $ERR_DATA")
+            RISK_OUT=$(uv run python scripts/metabolism_analyzer.py --intent "self-healing" --instruction "Validar" --context "$ERR_DATA")
             
             if echo "$RISK_OUT" | grep -q '"requires_human": true'; then
               FINAL_MSG=$(echo $RISK_OUT | jq -r '.reason')
               break
             fi
 
-            echo "🩹 Aplicando Auto-Cura..."
             uv run python scripts/self_healing_mutator.py --report "report.json"
-            
             git config --global user.name "Jarvis-AutoEvolution"
             git config --global user.email "jarvis@bot.com"
             git add -A
             git commit -m "🤖 [Auto-Cura] Tentativa #$ATTEMPT" || echo "Sem mudanças"
-            
             ATTEMPT=$((ATTEMPT+1))
           done
 
           echo "final_status=$SUCCESS" >> $GITHUB_OUTPUT
           echo "FINAL_REASON=$FINAL_MSG" >> $GITHUB_ENV
 
-      - name: ✅ Auto-Merge
+      - name: ✅ Auto-Merge (Segurança Garantida)
+        # SÓ realiza o merge se o status final for SUCCESS=true
         if: steps.healing_process.outputs.final_status == 'true' && github.event.pull_request.number != null
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.JARVIS_PAT || secrets.GITHUB_TOKEN }}
         run: |
-          if [ "${{ github.event.pull_request.user.login }}" = "TheDrack" ]; then
+          # Aceita merge se for você ou se for a Auto-Evolução (após passar nos testes)
+          AUTHOR="${{ github.event.pull_request.user.login }}"
+          if [ "$AUTHOR" = "TheDrack" ] || [ "$AUTHOR" = "github-actions[bot]" ]; then
+            echo "🫡 Vistoria aprovada para $AUTHOR. Realizando Merge..."
             gh pr merge ${{ github.event.pull_request.number }} --auto --merge
           fi
 
@@ -108,5 +100,6 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh issue create --title "🚨 Homeostase V2: Intervenção Requerida" --body "O sistema falhou. Motivo: ${{ env.FINAL_REASON }}"
+          gh issue create --title "🚨 Homeostase: Bloqueio em ${{ github.event.pull_request.title }}" \
+            --body "A PR não passou na vistoria técnica. Motivo: ${{ env.FINAL_REASON }}"
           exit 1
