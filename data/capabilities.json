@@ -14,7 +14,7 @@
       "id": "CAP-002",
       "title": "Classify capabilities by status: nonexistent, partial, complete",
       "description": "Systematically categorize the development state of each identified capability.",
-      "status": "partial",
+      "status": "complete",
       "auto": true,
       "priority": 1,
       "depends_on": ["CAP-001"],
