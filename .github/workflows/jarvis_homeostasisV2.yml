@@ -15,7 +15,8 @@ permissions:
 jobs:
   homeostasis:
     name: "🧪 Vistoria e Auto-Cura"
-    if: "!contains(github.event.head_commit.message, '[Auto-Cura]') && !contains(github.event.head_commit.message, '[Auto-Evolution]')"
+    # Aspas simples garantem que o GitHub não se perca com os parênteses e exclamações
+    if: '${{ !contains(github.event.head_commit.message, "[Auto-Cura]") && !contains(github.event.head_commit.message, "[Auto-Evolution]") }}'
     runs-on: ubuntu-latest
 
     steps:
@@ -42,66 +43,58 @@ jobs:
         run: |
           ATTEMPT=1
           SUCCESS=false
-          REASON="Testes OK"
+          FINAL_MSG="Iniciado"
 
           while [ $ATTEMPT -le 2 ]; do
-            echo "🧪 Tentativa de Teste $ATTEMPT..."
+            echo "🧪 Tentativa $ATTEMPT..."
             
-            # 1. Tenta rodar os testes. Se passar, SUCESSO e para aqui.
+            # Se o teste passar, sucesso absoluto
             if uv run pytest --json-report --json-report-file=report.json tests/; then
-              echo "✅ SUCESSO: O sistema está saudável."
+              echo "✅ Sistema saudável."
               SUCCESS=true
-              REASON="Sucesso"
+              FINAL_MSG="Sucesso"
               break
             fi
             
-            echo "🔬 Falha detectada. Consultando o Mecânico..."
+            # Se falhou, prepara log curto para o Mecânico
+            ERR_DATA=$(cat report.json | jq -c '.tests[] | select(.outcome == "failed") | {id: .nodeid, msg: .call.crash.message}' | head -c 500)
             
-            # 2. Prepara contexto para o Mecânico (apenas se houver erro)
-            ERR_DATA=$(cat report.json | jq -c '.tests[] | select(.outcome == "failed") | {id: .nodeid, msg: .call.crash.message}' | head -c 800)
-            
-            RISK_OUT=$(uv run python scripts/metabolism_analyzer.py \
-              --intent "self-healing" \
-              --instruction "Análise de erro" \
-              --context "Contexto expandido para análise: $ERR_DATA")
+            # Consulta ao Mecânico Revisionador
+            RISK_OUT=$(uv run python scripts/metabolism_analyzer.py --intent "self-healing" --instruction "Reparo" --context "Log: $ERR_DATA")
             
             if echo "$RISK_OUT" | grep -q '"requires_human": true'; then
-              REASON=$(echo $RISK_OUT | jq -r '.reason')
-              echo "⚠️ BLOQUEIO: Mecânico exige humano: $REASON"
+              FINAL_MSG=$(echo $RISK_OUT | jq -r '.reason')
               SUCCESS=false
               break
             fi
 
-            echo "🩹 Aplicando Cura Automática..."
+            # Tentativa de Cura via Mutator
             uv run python scripts/self_healing_mutator.py --report "report.json"
             
             git config --global user.name "Jarvis-AutoEvolution"
             git config --global user.email "jarvis@bot.com"
             git add -A
-            git commit -m "🤖 [Auto-Cura] Correção Aplicada (Tentativa $ATTEMPT)" || echo "No changes"
+            git commit -m "🤖 [Auto-Cura] Tentativa #$ATTEMPT" || echo "Sem mudanças"
             
             ATTEMPT=$((ATTEMPT+1))
           done
 
           echo "final_status=$SUCCESS" >> $GITHUB_OUTPUT
-          echo "FINAL_REASON=$REASON" >> $GITHUB_ENV
+          echo "FINAL_REASON=$FINAL_MSG" >> $GITHUB_ENV
 
-      - name: ✅ Finalização: Auto-Merge
+      - name: ✅ Auto-Merge
         if: steps.healing_process.outputs.final_status == 'true' && github.event.pull_request.number != null
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           if [ "${{ github.event.pull_request.user.login }}" = "TheDrack" ]; then
-            echo "🫡 Voz do Dono: Realizando Merge Automático."
             gh pr merge ${{ github.event.pull_request.number }} --auto --merge
           fi
 
-      - name: 🚨 Finalização: Escalação
-        # Só abre issue se o status final for falha E não for sucesso ignorado
+      - name: 🚨 Escalação
         if: steps.healing_process.outputs.final_status == 'false' && env.FINAL_REASON != 'Sucesso'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh issue create --title "🚨 Homeostase V2: Intervenção Requerida (@TheDrack)" \
-            --body "O sistema falhou após as tentativas de cura. Motivo: ${{ env.FINAL_REASON }}"
+          gh issue create --title "🚨 Homeostase V2: @TheDrack" --body "Falha persistente. Motivo: ${{ env.FINAL_REASON }}"
           exit 1
