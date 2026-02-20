@@ -118,7 +118,7 @@
       "id": "CAP-011",
       "title": "Request human intervention only when required",
       "description": "Minimize noise by contacting the operator only for critical decisions or unresolvable deadlocks.",
-      "status": "partial",
+      "status": "complete",
       "auto": true,
       "priority": 1,
       "depends_on": [],
