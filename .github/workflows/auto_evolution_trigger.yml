@@ -157,3 +157,75 @@ jobs:
           path: |
             capability_context.txt
             .github/metabolism_logs/
+# ==================================================
+  # 3. EVOLUÇÃO: Mutação baseada em Capability
+  # ==================================================
+  attempt_evolution:
+    name: "🧬 Executar Mutação por Capability"
+    needs: find_and_analyze
+    if: |
+      needs.find_and_analyze.outputs.has_mission == 'true' &&
+      needs.find_and_analyze.outputs.requires_human == 'false'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Download Context
+        uses: actions/download-artifact@v4
+        with:
+          name: capability-context
+
+      - name: Setup Env
+        run: |
+          git config --global user.name "Jarvis-AutoEvolution"
+          git config --global user.email "jarvis@bot.com"
+          pip install requests pydantic sqlmodel
+
+      - name: 🤖 Mutação de DNA por Capability
+        env:
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CAPABILITY_ID: ${{ needs.find_and_analyze.outputs.capability_id }}
+          CAPABILITY_NAME: ${{ needs.find_and_analyze.outputs.capability_name }}
+        run: |
+          BRANCH_NAME="auto-evolution/capability-${CAPABILITY_ID}-$(date +%s)"
+          git checkout -b "$BRANCH_NAME"
+
+          export PYTHONPATH="${PYTHONPATH:+$PYTHONPATH:}$(pwd)"
+
+          python scripts/metabolism_mutator.py \
+            --intent "auto-evolution-capability" \
+            --strategy "minimal_change" \
+            --capability-id "$CAPABILITY_ID" \
+            --capability-name "$CAPABILITY_NAME" \
+            --context "$(cat capability_context.txt)"
+
+          # --- FILTRO DE DNA ---
+          git add -A
+          git reset .github/metabolism_logs/ || true
+
+          if [ -z "$(git status --porcelain)" ]; then
+            echo "⚠️ Nenhuma mudança real detectada. Abortando."
+            exit 0
+          fi
+
+          git commit -m "[Auto-Evolution] Implement capability_id: ${CAPABILITY_ID}
+          
+capability_id: ${CAPABILITY_ID}
+capability_name: ${CAPABILITY_NAME}"
+
+          git push origin "$BRANCH_NAME"
+
+          gh pr create \
+            --title "🧬 Capability ${CAPABILITY_ID}: ${CAPABILITY_NAME}" \
+            --body "Implements capability_id: ${CAPABILITY_ID}
+
+capability_name: ${CAPABILITY_NAME}
+
+--- 
+Gerado automaticamente pelo JARVIS." \
+            --base main \
+            --head "$BRANCH_NAME"
