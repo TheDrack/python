@@ -4,18 +4,11 @@ on:
   pull_request:
     branches: [ main ]
     types: [opened, synchronize, reopened]
-  push:
-    branches: [ main ]
-
-concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: true
 
 permissions:
   contents: write
   pull-requests: write
   issues: write
-  actions: write
 
 jobs:
   homeostasis:
@@ -25,21 +18,19 @@ jobs:
       - name: 🛰️ Checkout
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          ref: ${{ github.event.pull_request.head.sha }}
           fetch-depth: 0
 
       - name: 📦 Setup Environment
         uses: astral-sh/setup-uv@v5
-        with:
-          enable-cache: true
 
       - name: 🔧 Instalar Dependências
         run: |
-          uv venv --python 3.13
-          uv pip install pytest pytest-json-report pytest-cov requests sqlmodel pydantic groq python-jose[cryptography] bcrypt
+          uv venv
+          uv pip install pytest pytest-json-report requests sqlmodel pydantic groq
           echo "PYTHONPATH=$PYTHONPATH:$(pwd)" >> $GITHUB_ENV
 
-      - name: 🧪 Executar Testes (Tentativa 1)
+      - name: 🧪 Testes (Tentativa 1)
         id: test_1
         continue-on-error: true
         run: uv run pytest --json-report --json-report-file=report_1.json tests/
@@ -47,39 +38,43 @@ jobs:
       - name: 🩹 Auto-Cura (Retry 1)
         if: steps.test_1.outcome == 'failure'
         id: heal_1
+        continue-on-error: true
         env:
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
         run: |
-          uv run python scripts/metabolism_mutator.py --strategy "minimal_change" --intent "fix-test-failure" --impact "critical"
+          uv run python scripts/metabolism_mutator.py --strategy "minimal_change" --intent "fix-test-failure"
           uv run pytest --json-report --json-report-file=report_2.json tests/
 
-      - name: 🧪 Executar Testes (Tentativa 2)
-        if: steps.test_1.outcome == 'failure' && steps.heal_1.outcome == 'failure'
-        id: test_2
+      - name: 🩹 Auto-Cura (Retry 2)
+        if: steps.heal_1.outcome == 'failure'
+        id: heal_2
         continue-on-error: true
-        run: uv run pytest --json-report --json-report-file=report_3.json tests/
+        env:
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+        run: |
+          uv run python scripts/metabolism_mutator.py --strategy "minimal_change" --intent "fix-test-failure"
+          uv run pytest --json-report --json-report-file=report_3.json tests/
 
-      - name: 🔬 Análise de Risco Final
+      - name: 🔬 Análise de Risco
         id: risk_check
         run: |
-          uv run python scripts/metabolism_analyzer.py --intent "auto-evolution" --instruction "Validar autonomia" --repo-path "." > analysis_result.txt
+          uv run python scripts/metabolism_analyzer.py --intent "auto-evolution" --repo-path "." > analysis_result.txt
           if grep -q '"requires_human": true' analysis_result.txt; then
             echo "HIGH_RISK=true" >> $GITHUB_ENV
           else
             echo "HIGH_RISK=false" >> $GITHUB_ENV
           fi
 
-      - name: ✅ Auto-Merge (Protocolo Voz do Dono)
-        if: (steps.test_1.outcome == 'success' || steps.test_2.outcome == 'success') && github.event_name == 'pull_request'
+      - name: ✅ Auto-Merge
+        if: (steps.test_1.outcome == 'success' || steps.heal_1.outcome == 'success' || steps.heal_2.outcome == 'success')
         env:
-          GH_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PR_AUTHOR: ${{ github.event.pull_request.user.login }}
           COMMANDER: "TheDrack"
-          PR_NUMBER: ${{ github.event.pull_request.number }}
         run: |
           if [ "$PR_AUTHOR" = "$COMMANDER" ] || [ "${{ env.HIGH_RISK }}" = "false" ]; then
-            gh pr merge "$PR_NUMBER" --auto --merge --repo "${{ github.repository }}"
+            gh pr merge ${{ github.event.pull_request.number }} --auto --merge
           else
-            echo "⚠️ Risco detectado ou erro persistente. Aguardando Comandante."
+            echo "⚠️ Risco alto ou falha persistente. Revisão manual necessária."
             exit 1
           fi
