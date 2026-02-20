@@ -29,6 +29,9 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
+      - name: 📦 Instalar Dependências Base
+        run: |
+          pip install sqlmodel pydantic requests
 
       - name: 🧠 Decisão Estratégica (Data-Driven)
         id: decide
