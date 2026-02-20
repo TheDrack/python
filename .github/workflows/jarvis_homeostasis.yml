@@ -7,6 +7,10 @@ on:
     branches: [ main ]
     types: [opened, synchronize, reopened]
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: write
   pull-requests: write
@@ -16,8 +20,7 @@ permissions:
 jobs:
   homeostasis:
     name: "🧪 Vistoria e Auto-Cura"
-    # Evita rodar duplicado se for um push em uma branch com PR aberta
-    if: github.event_name == 'pull_request_target' || (github.event_name == 'push' && github.ref == 'refs/heads/main')
+    if: (github.event_name == 'pull_request_target') || (github.event_name == 'push' && !contains(github.event.head_commit.message, '🤖 [Auto-Cura]'))
     runs-on: ubuntu-latest
 
     steps:
@@ -45,21 +48,21 @@ jobs:
         run: |
           uv run pytest --json-report --json-report-file=report_1.json tests/
 
-      - name: 🔬 Análise de Risco (Mecânico Revisionador)
+      - name: 🔬 Análise de Risco (Mecânico)
         id: risk_check
         run: |
           uv run python scripts/metabolism_analyzer.py --intent "auto-evolution" --instruction "Validar autonomia" --repo-path "." > analysis_result.txt
           if grep -q '"requires_human": true' analysis_result.txt; then
-            echo "high_risk=true" >> $GITHUB_ENV
+            echo "HIGH_RISK=true" >> $GITHUB_ENV
           else
-            echo "high_risk=false" >> $GITHUB_ENV
+            echo "HIGH_RISK=false" >> $GITHUB_ENV
           fi
 
       - name: ✅ Auto-Merge
         if: |
           steps.run_tests.outcome == 'success' && 
           github.event.pull_request.number != null && 
-          (github.event.pull_request.user.login == 'TheDrack' || env.high_risk == 'false')
+          (github.event.pull_request.user.login == 'TheDrack' || env.HIGH_RISK == 'false')
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -71,34 +74,34 @@ jobs:
         env:
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
           GH_TOKEN: ${{ github.token }}
+          PR_HEAD_REF: ${{ github.event.pull_request.head.ref }}
+          PR_USER: ${{ github.event.pull_request.user.login }}
         run: |
           uv run python scripts/self_healing_mutator.py --report "report_1.json"
+          TARGET_BRANCH="${PR_HEAD_REF:-main}"
+          CURRENT_USER="${PR_USER:-${{ github.actor }}}"
           
-          # Definição segura da branch de destino
-          TARGET_BRANCH="${{ github.event.pull_request.head.ref || 'main' }}"
-          PR_USER="${{ github.event.pull_request.user.login || github.actor }}"
-          
-          if [ "${{ env.high_risk }}" == "true" ] && [ "$PR_USER" != "TheDrack" ]; then
+          if [ "${{ env.HIGH_RISK }}" == "true" ] && [ "$CURRENT_USER" != "TheDrack" ]; then
             echo "stop_healing=true" >> $GITHUB_ENV
           else
             git config --global user.name "Jarvis-AutoCura"
             git config --global user.email "jarvis@bot.com"
             git add .
-            git commit -m "🤖 [Auto-Cura] Evolução validada" || echo "Nada para commitar"
-            
-            # 🚀 Push corrigido com fallback para main
-            git push origin HEAD:$TARGET_BRANCH
-            uv run pytest --json-report --json-report-file=report_2.json tests/ || echo "still_failing=true" >> $GITHUB_ENV
+            if ! git diff --staged --quiet; then
+              git commit -m "🤖 [Auto-Cura] Evolução validada"
+              git push origin HEAD:"$TARGET_BRANCH"
+              uv run pytest --json-report --json-report-file=report_2.json tests/ || echo "still_failing=true" >> $GITHUB_ENV
+            fi
           fi
 
       - name: 🚨 Escalonar
         if: always() && (env.final_failure == 'true' || env.stop_healing == 'true')
         env:
           GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number || github.event.number }}
         run: |
-          PR_NUMBER="${{ github.event.pull_request.number || github.event.number }}"
           if [ -n "$PR_NUMBER" ] && [ "$PR_NUMBER" != "null" ]; then
             gh pr edit "$PR_NUMBER" --add-label "commander-review" --repo "${{ github.repository }}"
             gh pr comment "$PR_NUMBER" --repo "${{ github.repository }}" --body "## 🚨 INTERVENÇÃO NECESSÁRIA
-            Risco ou Falha detectada: ${{ env.stop_healing == 'true' && 'DNA Sensível' || 'Erro persistente' }}."
+            Proteção de DNA ativada."
           fi
