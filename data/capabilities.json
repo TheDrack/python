@@ -232,7 +232,7 @@
       "id": "CAP-021",
       "title": "Map impact of one capability over others",
       "description": "Analyze how modifying one function affects the performance of related functions.",
-      "status": "partial",
+      "status": "complete",
       "auto": true,
       "priority": 2,
       "depends_on": [
