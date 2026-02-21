@@ -1,0 +1,7 @@
+# -*- coding: utf-8 -*-
+"""CAPABILITY: Enforce internal operational limits
+ID: CAP-086"""
+
+def execute(context=None):
+    # JARVIS INITIAL STATE
+    return {"status": "initialized", "id": "CAP-086"}

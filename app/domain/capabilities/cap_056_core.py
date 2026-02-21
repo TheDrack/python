@@ -1,0 +1,7 @@
+# -*- coding: utf-8 -*-
+"""CAPABILITY: Interrupt problematic executions
+ID: CAP-056"""
+
+def execute(context=None):
+    # JARVIS INITIAL STATE
+    return {"status": "initialized", "id": "CAP-056"}
