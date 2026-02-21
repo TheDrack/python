@@ -7,8 +7,8 @@ from googleapiclient.http import MediaFileUpload
 
 def consolidate_project(output_file="CORE_LOGIC_CONSOLIDATED.txt"):
     """Varre o repositório e cria um arquivo único com todo o código."""
-    ignore_dirs = {'.git', 'venv', '__pycache__', 'tests', 'build', 'dist', 'metabolism_logs' '.md'}
-    allowed_extensions = {'.py', '.txt', '.json', '.env.example', '.yml'}
+    ignore_dirs = {'.git', 'venv', '__pycache__', 'tests', 'build', 'dist', 'metabolism_logs', '.md', '.txt', '.env.example'}
+    allowed_extensions = {'.py', '.json', '.yml'}
 
     print(f"🔬 Iniciando consolidação em {output_file}...")
     with open(output_file, "w", encoding="utf-8") as f:
