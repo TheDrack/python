@@ -1,42 +1,93 @@
-name: "🚀 JARVIS: Auto-Evolução"
+name: "🧬 JARVIS: Homeostase e Auto-Cura V2"
 
 on:
-  workflow_dispatch:
-    inputs:
-      mission_id:
-        description: 'ID da Missão (ex: CAP-020)'
-        required: true
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+    types: [opened, synchronize, reopened]
 
 jobs:
-  evolve:
+  homeostasis:
+    name: "🧪 Vistoria e Auto-Cura"
+    # Evita loops: não executa se o commit for gerado pelo próprio processo de cura
+    if: "!contains(github.event.head_commit.message, '[Auto-Cura]')"
     runs-on: ubuntu-latest
+
     steps:
       - name: 🛰️ Checkout
         uses: actions/checkout@v4
         with:
-          token: ${{ secrets.GIT_PAT }} # O segredo do sucesso está aqui
+          fetch-depth: 0
+          token: ${{ secrets.GIT_PAT }} # Chave mestra para disparar outros fluxos e fazer merge
 
-      - name: 📦 Setup DNA
+      - name: 📦 Setup UV
         uses: astral-sh/setup-uv@v5
         with:
+          enable-cache: true
           python-version: '3.11'
 
-      - name: 🧬 Mutation Cycle
+      - name: 🔧 Instalação do DNA
+        run: |
+          # --clear resolve o erro de 'A virtual environment already exists'
+          uv venv --clear --python 3.11
+          uv pip install pytest pytest-json-report sqlmodel groq requests python-dotenv
+          # Registra o PYTHONPATH no ambiente do GitHub Actions
+          echo "PYTHONPATH=$PYTHONPATH:$(pwd)" >> $GITHUB_ENV
+
+      - name: 🔄 Ciclo de Cura e Decisão
+        id: healing_process
         env:
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
-          GIT_PAT: ${{ secrets.GIT_PAT }}
-          PYTHONPATH: ${{ github.workspace }}
         run: |
-          uv venv
-          uv pip install sqlmodel groq requests python-dotenv
-          # Passamos o ID da missão para o script
-          uv run python app/application/services/auto_evolutionV2.py --mission ${{ github.event.inputs.mission_id }}
+          # 1. Executa os testes e gera o relatório em JSON
+          uv run pytest --json-report --json-report-file=report.json || true
+          
+          # 2. Verifica se houve falhas ou erros
+          if [ -f report.json ] && [ "$(jq '.summary.failed // 0' report.json)" == "0" ] && [ "$(jq '.summary.errors // 0' report.json)" == "0" ]; then
+            echo "✅ DNA íntegro. Iniciando Cristalização e Auto-Sensing..."
+            
+            # Roda o Crystallizer para mapear as bibliotecas do código novo (Auto-Sensing)
+            uv run python app/application/services/crystallization/crystallizer_engine.py
+            
+            echo "final_status=true" >> $GITHUB_OUTPUT
+          else
+            echo "❌ Falhas detectadas no DNA. Iniciando Mutator de Auto-Cura..."
+            
+            # Aqui entraria o script scripts/self_healing_mutator.py se você desejar
+            echo "final_status=false" >> $GITHUB_OUTPUT
+          fi
 
-      - name: 🚀 Push Mutation
+      - name: ✅ Auto-Merge
+        # SÓ realiza o merge se for uma PR e os testes passarem (status=true)
+        if: steps.healing_process.outputs.final_status == 'true' && github.event_name == 'pull_request'
+        env:
+          GH_TOKEN: ${{ secrets.GIT_PAT }}
         run: |
-          git config --global user.name "Jarvis-Evolution"
-          git config --global user.email "jarvis@evolution.bot"
-          git add .
-          # O commit deve evitar a flag [Auto-Cura] para não confundir os fluxos
-          git commit -m "feat: [DNA Mutated] Evolution Cycle for ${{ github.event.inputs.mission_id }}" || exit 0
-          git push origin main
+          AUTHOR="${{ github.event.pull_request.user.login }}"
+          echo "🫡 Vistoria aprovada para $AUTHOR. Realizando Merge Automático..."
+          gh pr merge ${{ github.event.pull_request.number }} --auto --merge --delete-branch
+
+      - name: 💾 Persistência de Cristalização
+        # Se os testes passaram, salvamos o mapeamento do Master Crystal no repositório
+        if: steps.healing_process.outputs.final_status == 'true'
+        run: |
+          git config --global user.name "Jarvis-Crystallizer"
+          git config --global user.email "jarvis@bot.com"
+          
+          # Adiciona o Master Crystal (com as mapped_libraries) e os Containers atualizados
+          git add data/master_crystal.json app/application/containers/*.py
+          
+          if [ -n "$(git status --porcelain)" ]; then
+            git commit -m "chore: [Auto-Cura] DNA Cristalizado e Mapeado [Auto-Cura]"
+            git push origin main
+          else
+            echo "✨ DNA já está em equilíbrio."
+          fi
+
+      - name: 🚨 Escalação
+        # Se falhar e não houver cura, abre uma issue (opcional)
+        if: steps.healing_process.outputs.final_status == 'false'
+        run: |
+          echo "🚨 O sistema não conseguiu se auto-curar. Verifique os logs do Pytest."
+          exit 1
