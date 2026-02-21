@@ -1,0 +1,12 @@
+{
+  "system_id": "JARVIS_CORE",
+  "version": "1.0.0",
+  "last_scan": null,
+  "crystallization_summary": {
+    "total_capabilities": 0,
+    "crystallized": 0,
+    "connected_legacy": 0,
+    "orphan": 0
+  },
+  "registry": []
+}
