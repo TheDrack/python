@@ -447,7 +447,7 @@
             "id": "CAP-041",
             "title": "Simulate technical consequences before action",
             "description": "Run virtual trials to predict how a change will affect code and hardware.",
-            "status": "partial",
+            "status": "complete",
             "auto": true,
             "priority": 4,
             "depends_on": [],
