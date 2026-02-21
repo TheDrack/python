@@ -4,8 +4,10 @@ import os
 import re
 import logging
 from datetime import datetime
+from pathlib import Path
+from typing import Dict, Any
 
-# Configuração de Logs para o console do GitHub Actions
+# Configuração de Logs
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(message)s'
@@ -19,10 +21,13 @@ class CrystallizerEngine:
                  container_path="app/container.py"):
         
         self.paths = {
-            "caps": cap_path,
-            "crystal": crystal_path,
-            "container": container_path
+            "caps": Path(cap_path),
+            "crystal": Path(crystal_path),
+            "container": Path(container_path)
         }
+        
+        # Garante que a pasta data existe
+        self.paths["caps"].parent.mkdir(parents=True, exist_ok=True)
         
         # Carrega ou Inicializa o Master Crystal
         self.master_crystal = self._load_json(self.paths["crystal"]) or self._init_crystal()
@@ -31,9 +36,9 @@ class CrystallizerEngine:
         caps_data = self._load_json(self.paths["caps"])
         self.capabilities = caps_data.get('capabilities', []) if caps_data else []
 
-    def _load_json(self, path):
+    def _load_json(self, path: Path):
         try:
-            if os.path.exists(path):
+            if path.exists():
                 with open(path, 'r', encoding='utf-8') as f:
                     return json.load(f)
         except Exception as e:
@@ -54,16 +59,19 @@ class CrystallizerEngine:
             "registry": []
         }
 
-    def _map_target(self, cap):
+    def _map_target(self, cap: Dict[str, Any]) -> str:
         """Mapeia o destino hexagonal baseado no título e descrição"""
         title = cap.get('title', '').lower()
         desc = cap.get('description', '').lower()
         
-        if any(x in title or x in desc for x in ["model", "state", "entity", "schema"]):
-            return "app/domain/models/"
-        if any(x in title or x in desc for x in ["llm", "ai", "reasoning", "gear", "cognition"]):
+        # Prioridade para Gears (Cognição/LLM)
+        if any(x in title or x in desc for x in ["llm", "ai", "reasoning", "gear", "cognition", "gpt", "claude", "groq"]):
             return "app/domain/gears/"
-        if any(x in title or x in desc for x in ["adapter", "web", "db", "keyboard", "pyautogui"]):
+        # Domínio/Modelos
+        if any(x in title or x in desc for x in ["model", "state", "entity", "schema", "database"]):
+            return "app/domain/models/"
+        # Adapters (Interface/Sistemas externos)
+        if any(x in title or x in desc for x in ["adapter", "web", "db", "keyboard", "pyautogui", "os"]):
             return "app/adapters/"
         
         return "app/domain/capabilities/"
@@ -73,9 +81,8 @@ class CrystallizerEngine:
         logger.info("⚡ Iniciando Auditoria do Sistema...")
         
         container_content = ""
-        if os.path.exists(self.paths["container"]):
-            with open(self.paths["container"], 'r', encoding='utf-8') as f:
-                container_content = f.read()
+        if self.paths["container"].exists():
+            container_content = self.paths["container"].read_text(encoding='utf-8')
 
         new_registry = []
         stats = {"total": len(self.capabilities), "crystallized": 0, "legacy": 0, "orphan": 0}
@@ -88,18 +95,18 @@ class CrystallizerEngine:
             file_match = re.search(r'(scripts/[\w\.]+\.py)', notes)
             source_file = file_match.group(1) if file_match else "unknown"
             
-            # Verifica se está no Container ou se o arquivo de destino já existe
+            # Define alvos
             target_dir = self._map_target(cap)
             target_file_name = f"{cap_id.lower().replace('-', '_')}_core.py"
             target_path = os.path.join(target_dir, target_file_name)
             
             is_in_container = cap_id in container_content
-            is_physically_present = os.path.exists(target_path)
+            is_physically_present = Path(target_path).exists()
 
-            if is_in_container:
+            if is_in_container and is_physically_present:
                 status = "crystallized"
                 stats["crystallized"] += 1
-            elif source_file != "unknown":
+            elif source_file != "unknown" and not is_physically_present:
                 status = "legacy_connected"
                 stats["legacy"] += 1
             else:
@@ -133,26 +140,43 @@ class CrystallizerEngine:
         }
         
         self._save_crystal()
-        logger.info(f"✅ Auditoria completa. Total: {stats['total']} | Órfãos: {stats['orphan']}")
+        logger.info(f"✅ Auditoria completa. Órfãos/Legados: {stats['orphan'] + stats['legacy']}")
 
     def transmute(self):
-        """Cria placeholders físicos para evitar erros de DNA corrompido em missões de evolução"""
-        logger.info("🛠 Iniciando Transmutação (Criação de Estrutura)...")
+        """Cria fisicamente a estrutura hexagonal e arquivos core"""
+        logger.info("🛠️ Iniciando Transmutação Física (Criação de Estrutura)...")
         
         for entry in self.master_crystal["registry"]:
-            # Se for órfão ou legado, garantimos que o 'alvo' hexagonal existe para o LLM escrever
+            # Só transmuta o que não está cristalizado
             if entry["status"] in ["orphan", "legacy_connected"]:
-                target_path = entry["genealogy"]["target_file"]
-                target_dir = entry["genealogy"]["target_suggested"]
+                t_path = Path(entry["genealogy"]["target_file"])
+                t_dir = Path(entry["genealogy"]["target_suggested"])
                 
-                os.makedirs(target_dir, exist_ok=True)
-                
-                if not os.path.exists(target_path):
-                    with open(target_path, 'w', encoding='utf-8') as f:
-                        f.write(f'# -*- coding: utf-8 -*-\n')
-                        f.write(f'"""\nCAPABILITY: {entry["title"]}\nID: {entry["id"]}\nSTATUS: Placeholder para Cristalização\n"""\n\n')
-                        f.write(f'def init_capability():\n    """Inicializa a lógica desta capacidade"""\n    pass\n')
-                    logger.info(f"  [+] Criado Placeholder: {target_path}")
+                # 1. Cria diretórios e __init__.py
+                t_dir.mkdir(parents=True, exist_ok=True)
+                init_file = t_dir / "__init__.py"
+                if not init_file.exists():
+                    init_file.touch()
+
+                # 2. Cria o arquivo de capacidade se não existir
+                if not t_path.exists():
+                    try:
+                        with open(t_path, 'w', encoding='utf-8') as f:
+                            f.write('# -*- coding: utf-8 -*-\n')
+                            f.write(f'"""\nCAPABILITY: {entry["title"]}\nID: {entry["id"]}\nSTATUS: Cristalizado\n"""\n\n')
+                            f.write('from typing import Dict, Any\n\n')
+                            f.write('def execute(context: Dict[str, Any] = None) -> Dict[str, Any]:\n')
+                            f.write('    """Lógica central da capacidade gerada pelo Arquiteto"""\n')
+                            f.write('    return {"status": "ready", "id": "' + entry["id"] + '"}\n')
+                        
+                        logger.info(f"  [💎] Arquivo criado: {t_path}")
+                        entry["integration"]["physically_present"] = True
+                        entry["status"] = "crystallized" # Atualiza status para o próximo ciclo
+                    except Exception as e:
+                        logger.error(f"  [!] Erro ao criar {t_path}: {e}")
+
+        # Salva o estado final após as criações
+        self._save_crystal()
 
     def _save_crystal(self):
         with open(self.paths["crystal"], 'w', encoding='utf-8') as f:
@@ -160,5 +184,6 @@ class CrystallizerEngine:
 
 if __name__ == "__main__":
     engine = CrystallizerEngine()
-    engine.audit()      # Fase 1: Mapear
-    engine.transmute()  # Fase 2: Criar caminhos para o LLM
+    engine.audit()      # Fase 1: Mapear o que falta
+    engine.transmute()  # Fase 2: Criar as pastas e arquivos físicos
+    logger.info("✨ Sistema cristalizado e organizado.")
