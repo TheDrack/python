@@ -289,7 +289,7 @@
       "id": "CAP-026",
       "title": "Distinguish local improvement from systemic improvement",
       "description": "Evaluate if a change benefits a specific task or the entire architecture.",
-      "status": "partial",
+      "status": "complete",
       "auto": true,
       "priority": 2,
       "depends_on": [],
