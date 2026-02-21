@@ -489,7 +489,7 @@
             "id": "CAP-045",
             "title": "Evaluate maintenance cost",
             "description": "Estimate the long-term effort required to keep a new feature operational.",
-            "status": "pending",
+            "status": "complete",
             "auto": true,
             "priority": 4,
             "depends_on": [],
