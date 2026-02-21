@@ -6,90 +6,43 @@ from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
 
 def consolidate_project(output_file="CORE_LOGIC_CONSOLIDATED.txt"):
-    """Varre o repositório e cria um arquivo único com todo o código."""
-    ignore_dirs = {'.git', 'venv', '__pycache__', 'tests', 'build', 'dist', 'metabolism_logs', '.md', '.txt', '.env.example'}
-    allowed_extensions = {'.py', '.json', '.yml'}
+    """Varre o repositório e cria um arquivo único com o caminho completo de cada arquivo."""
+    # Filtros de segurança e foco
+    ignore_dirs = {'.git', 'venv', '__pycache__', 'tests', 'build', 'dist', 'metabolism_logs'}
+    ignore_files = {output_file, '.env', 'credentials.json'}
+    allowed_extensions = {'.py', '.json', '.yml', '.yaml', '.sh', '.sql'}
 
-    print(f"🔬 Iniciando consolidação em {output_file}...")
+    print(f"🔬 JARVIS: Iniciando consolidação em {output_file}...")
+    
     with open(output_file, "w", encoding="utf-8") as f:
+        # Adiciona um cabeçalho de integridade ao arquivo final
+        f.write(f"### CONSOLIDAÇÃO DE SISTEMA - JARVIS ENTITY ###\n")
+        f.write(f"### RAIZ: {os.getcwd()} ###\n\n")
+
         for root, dirs, files in os.walk("."):
+            # Modifica dirs in-place para ignorar pastas indesejadas
             dirs[:] = [d for d in dirs if d not in ignore_dirs]
+            
             for file in files:
-                if any(file.endswith(ext) for ext in allowed_extensions) and file != output_file:
-                    file_path = os.path.join(root, file)
-                    rel_path = os.path.relpath(file_path, ".")
-                    f.write(f"\n\n--- INÍCIO: {rel_path} ---\n")
+                file_path = os.path.join(root, file)
+                # rel_path extrai o caminho desde a pasta atual (ex: ./src/auth/logic.py)
+                rel_path = os.path.relpath(file_path, ".")
+                
+                # Validação de extensão e exclusão do próprio arquivo de saída
+                if any(file.endswith(ext) for ext in allowed_extensions) and rel_path not in ignore_files:
+                    
+                    f.write(f"\n{'='*80}\n")
+                    f.write(f" FILE: {rel_path} \n") # Aqui o caminho completo é inserido
+                    f.write(f"{'='*80}\n\n")
+                    
                     try:
                         with open(file_path, "r", encoding="utf-8") as content:
                             f.write(content.read())
                     except Exception as e:
-                        f.write(f"ERRO AO LER: {str(e)}")
-                    f.write(f"\n--- FIM: {rel_path} ---\n")
+                        f.write(f" [!] ERRO AO ACESSAR CAMINHO {rel_path}: {str(e)}")
+                    
+                    f.write(f"\n\n--- FIM DO ARQUIVO: {rel_path} ---\n")
+                    
     return output_file
 
-def upload_to_drive(file_path):
-    """Sincroniza o arquivo com o Drive usando PATCH para evitar Erro 400."""
-    try:
-        json_raw = os.environ['G_JSON'].strip()
-        folder_id = os.environ['DRIVE_FOLDER_ID'].strip()
-
-        info = json.loads(json_raw)
-        creds = service_account.Credentials.from_service_account_info(
-            info, scopes=['https://www.googleapis.com/auth/drive']
-        )
-        service = build('drive', 'v3', credentials=creds)
-
-        file_name = os.path.basename(file_path)
-        
-        # 🎯 Forçamos o upload como stream binário simples
-        media = MediaFileUpload(
-            file_path, 
-            mimetype='text/plain', 
-            resumable=False  # Crucial: desativa o handshake que gera o erro 400
-        )
-
-        # 🔍 Localiza o arquivo alvo
-        query = f"name='{file_name}' and '{folder_id}' in parents and trashed = false"
-        results = service.files().list(q=query, fields="files(id)").execute()
-        files = results.get('files', [])
-
-        if files:
-            file_id = files[0]['id']
-            # 🔄 Usamos update apenas com media_body. 
-            # O Google API client cuidará de enviar como uploadType=media corretamente.
-            service.files().update(
-                fileId=file_id,
-                media_body=media,
-                fields='id'
-            ).execute()
-            print(f"✅ Sucesso: {file_name} atualizado via Patch (ID: {file_id}).")
-        else:
-            # ✨ Criação inicial se não existir
-            file_metadata = {'name': file_name, 'parents': [folder_id]}
-            file = service.files().create(
-                body=file_metadata,
-                media_body=media,
-                fields='id'
-            ).execute()
-            print(f"✨ Sucesso: Novo arquivo criado (ID: {file.get('id')}).")
-
-    except Exception as e:
-        # Debug extra para capturarmos se o erro persistir
-        print(f"❌ Erro na sincronização: {str(e)}")
-        exit(1)
-
-
-if __name__ == "__main__":
-    try:
-        # 1. Gera o arquivo consolidado
-        output = consolidate_project()
-        
-        # 2. Faz o upload para o Google Drive
-        upload_to_drive(output)
-        
-        print("🚀 Operação JARVIS concluída com sucesso!")
-    except Exception as e:
-        print(f"💥 Falha crítica na execução: {e}")
-        exit(1)
-
-
+# ... (Mantenha a função upload_to_drive e o bloco __main__ como estão)
