@@ -78,3 +78,18 @@ def upload_to_drive(file_path):
         print(f"❌ Erro na sincronização: {str(e)}")
         exit(1)
 
+
+if __name__ == "__main__":
+    try:
+        # 1. Gera o arquivo consolidado
+        output = consolidate_project()
+        
+        # 2. Faz o upload para o Google Drive
+        upload_to_drive(output)
+        
+        print("🚀 Operação JARVIS concluída com sucesso!")
+    except Exception as e:
+        print(f"💥 Falha crítica na execução: {e}")
+        exit(1)
+
+
