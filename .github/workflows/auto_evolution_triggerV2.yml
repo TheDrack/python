@@ -14,7 +14,6 @@ permissions:
 jobs:
   evolution_cycle:
     name: "🧬 Ciclo de Evolução"
-    # Proteção contra execução em PRs abertas
     if: github.event_name != 'pull_request' && !contains(github.event.head_commit.message, '[Auto-Evolution] DNA Mutated')
     runs-on: ubuntu-latest
     outputs:
@@ -48,39 +47,38 @@ jobs:
           python - << 'PYCODE'
           import os, sys, re
           from app.application.services.auto_evolutionV2 import AutoEvolutionServiceV2
+          # Importação direta para evitar erro de sintaxe shell
+          from app.application.services.crystallization.crystallizer_engine import CrystallizerEngine
           
           try:
               auto = AutoEvolutionServiceV2()
               github_output = os.environ.get('GITHUB_OUTPUT')
               
-              # 1. Analisa a mensagem do último commit (DNA do Merge)
               last_msg = os.popen("git log -1 --pretty=%B").read()
               print(f"--- ANALISANDO DNA ---\nMsg: {last_msg.strip()}")
               
-              # Lógica corrigida para capturar o padrão do log: 'auto-evolution/mission-XXX'
               is_auto_evolution = bool(re.search(r'auto-evolution|mission-\d+', last_msg, re.IGNORECASE))
               is_sync = "Inventory Synchronized" in last_msg
               
-              # 2. SE FOR MERGE DE AUTO-EVOLUÇÃO: Sincroniza e Encerra (FIM DO LOOP)
               if is_auto_evolution and not is_sync:
                   print("🎯 DNA de Evolução detectado. Cristalizando aprendizado...")
                   
-                  # Busca o CAP-ID na mensagem do commit para finalizar no banco
                   match = re.search(r'CAP-\d+', last_msg)
                   if match:
                       cap_id = match.group()
                       if auto.mark_mission_as_completed(cap_id):
                           print(f"✅ Sincronização concluída: {cap_id} integrada.")
-             # 3. Cristalização do estado atual
-                  python app/application/services/crystallization/crystallizer_engine.py
                   
-                  # Força o modo IDLE para não iniciar nova missão no mesmo ciclo
+                  # EXECUÇÃO DO MOTOR DE CRISTALIZAÇÃO (Correção da Sintaxe)
+                  print("💎 Rodando Crystallizer Engine...")
+                  engine = CrystallizerEngine()
+                  engine.run_full_cycle()
+                  
                   with open(github_output, 'a') as f:
                       f.write("action=idle\n")
                   sys.exit(0)
 
-              # 3. SE FOR PUSH EXTERNO (Não-Evolução): Busca nova missão
-              print("🟢 Caminho livre. Consultando apostila de aprendizado para nova evolução...")
+              print("🟢 Caminho livre. Consultando apostila de aprendizado...")
               next_m = auto.find_next_mission()
               
               if next_m:
@@ -88,13 +86,13 @@ jobs:
                   with open('mission_context.txt', 'w', encoding='utf-8') as mc:
                       mc.write(context)
                   
-                  with open(github_output, 'a') as f:
-                      f.write(f"action=evolve \n")
-                      f.write(f"mission_desc={next_m['id']}: {next_m['title']} \n")
+                  with open(github_output, 'a', encoding='utf-8') as f:
+                      f.write(f"action=evolve\n")
+                      f.write(f"mission_desc={next_m['id']}: {next_m['title']}\n")
                   print(f"🚀 Iniciando Missão: {next_m['id']}")
               else:
                   with open(github_output, 'a') as f:
-                      f.write("action=idle \n")
+                      f.write("action=idle\n")
                   print("😴 Nenhuma missão pendente.")
                   
           except Exception as e:
@@ -114,19 +112,15 @@ jobs:
           git config --global user.email "jarvis@bot.com"
           
           source .venv/bin/activate
-          export PYTHONPATH=$PYTHONPATH:$(pwd)
           
-          # 1. Cristalização do estado atual
+          # 1. Cristalização do estado atual antes da mutação
           python app/application/services/crystallization/crystallizer_engine.py
           
-          # 2. Criação da Branch para a nova missão
+          # 2. Criação da Branch
           BRANCH_NAME="auto-evolution/mission-$(date +%s)"
           git checkout -b "$BRANCH_NAME"
-          git commit --allow-empty -m "🧬 [Auto-Evolution] Iniciando Missão: ${{ steps.flow.outputs.mission_desc }}"
-          git push origin "$BRANCH_NAME"
-          echo "branch=$BRANCH_NAME" >> $GITHUB_OUTPUT
           
-          # 3. Execução do Mutator (DNA Injection)
+          # 3. Execução do Mutator
           if ! python scripts/evolution_mutator.py \
             --strategy "minimal_change" \
             --intent "auto-evolution-mission" \
@@ -145,12 +139,12 @@ jobs:
             echo "📢 Abrindo Pull Request..."
             PR_URL=$(gh pr create \
                          --title "🧬 Evolução: ${{ steps.flow.outputs.mission_desc }}" \
-                         --body "### 🧠 Auto-Evolução Detectada \nvMissão: ${{ steps.flow.outputs.mission_desc }} \n\n Status: Mutação em andamento." \
+                         --body "### 🧠 Auto-Evolução Detectada \nMissão: ${{ steps.flow.outputs.mission_desc }} \n\n Status: Mutação concluída." \
                          --base main --head "$BRANCH_NAME")
             
-            PR_NUMBER=$(echo $PR_URL | awk -F'/' '{print $6}')
-            echo "pr_number=$PR_NUMBER" >> $GITHUB_OUTPUT
-            echo "✅ Ciclo de mutação finalizado com sucesso."
+            echo "pr_number=$(echo $PR_URL | awk -F'/' '{print $6}')" >> $GITHUB_OUTPUT
+            echo "branch=$BRANCH_NAME" >> $GITHUB_OUTPUT
           else
-            echo "⚠️ Nenhuma alteração foi necessária para esta missão."
+            echo "⚠️ Nenhuma alteração necessária."
+            echo "action=idle" >> $GITHUB_OUTPUT
           fi
