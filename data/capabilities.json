@@ -407,7 +407,7 @@
             "id": "CAP-037",
             "title": "Recognize urgency context",
             "description": "Identify situations that require immediate response or higher resource allocation.",
-            "status": "partial",
+            "status": "complete",
             "auto": true,
             "priority": 3,
             "depends_on": [],
