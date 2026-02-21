@@ -26,4 +26,3 @@ def calculate_performance_degradation(historical_data):
 def store_results(performance_degradation):
     # Implementar lógica para armazenar os resultados
     pass
-   
