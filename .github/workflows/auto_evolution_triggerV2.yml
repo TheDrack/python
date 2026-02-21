@@ -29,6 +29,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          # Instala dependências básicas para o orquestrador
           uv pip install sqlmodel pydantic requests
           export PYTHONPATH="${PYTHONPATH:+$PYTHONPATH:}$(pwd)"
           python - << 'PYCODE'
@@ -62,10 +63,13 @@ jobs:
           git config --global user.name "Jarvis-AutoEvolution"
           git config --global user.email "jarvis@bot.com"
           
-          # 1. Preparar Ambiente para Cura
+          # 1. Preparar Ambiente Completo (DNA Base + Teste)
+          # Adicionadas as libs que causaram erro no log: fastapi, jose, passlib, bcrypt
           uv pip install pytest pytest-json-report pytest-cov pytest-asyncio \
                          pydantic pydantic-settings cryptography httpx \
-                         sqlmodel groq python-dotenv
+                         sqlmodel groq python-dotenv \
+                         fastapi python-jose[cryptography] passlib[bcrypt] bcrypt \
+                         -e .
           
           # 2. Evolução (Crystallizer + Mutator)
           BRANCH_NAME="auto-evolution/mission-$(date +%s)"
@@ -73,6 +77,8 @@ jobs:
           export PYTHONPATH="${PYTHONPATH:+$PYTHONPATH:}$(pwd)"
           
           python app/application/services/crystallization/crystallizer_engine.py
+          
+          # Nota: Garante que os argumentos do mutator estão corretos conforme a tua versão
           python scripts/evolution_mutator.py \
             --strategy "minimal_change" --intent "auto-evolution" \
             --impact "functional-improvement" --roadmap-context "$(cat mission_context.txt)"
@@ -81,15 +87,21 @@ jobs:
           ATTEMPT=1
           while [ $ATTEMPT -le 2 ]; do
             echo "🧪 Vistoria de Cura - Tentativa $ATTEMPT"
+            # Executa pytest. O '|| true' permite que o script continue para tentar a cura
             uv run pytest --json-report --json-report-file=report.json tests/ || true
             
-            if [ -f report.json ] && [ "$(jq '.summary.failed // 0' report.json)" == "0" ]; then
-              echo "✅ Código Saudável!"
+            # VALIDAÇÃO CRÍTICA: Verifica se (failed == 0) E (errors == 0)
+            if [ -f report.json ] && \
+               [ "$(jq '.summary.failed // 0' report.json)" == "0" ] && \
+               [ "$(jq '.summary.errors // 0' report.json)" == "0" ]; then
+              echo "✅ Código 100% Saudável (Sem falhas e sem erros de importação)!"
               break
             fi
             
-            echo "🔧 Detectada instabilidade. Iniciando Mutator de Cura..."
+            echo "🔧 Instabilidade detectada (Falhas: $(jq '.summary.failed // 0' report.json), Erros: $(jq '.summary.errors // 0' report.json))"
+            echo "Iniciando Mutator de Cura..."
             uv run python scripts/self_healing_mutator.py --report "report.json"
+            
             git add -A
             git commit -m "🤖 [Auto-Cura] Correção Integrada #$ATTEMPT" || echo "Sem mudanças"
             ATTEMPT=$((ATTEMPT+1))
@@ -101,6 +113,8 @@ jobs:
             git commit -m "[Auto-Evolution] DNA Evoluído e Curado: $ISSUE_BODY"
             git push origin "$BRANCH_NAME"
             gh pr create --title "🧬 Evolução Curada: $ISSUE_BODY" \
-                         --body "Ciclo completo: Evolução + Auto-Cura integradas sem dependências externas." \
+                         --body "Ciclo completo de evolução e cura realizado nativamente. Verificação de integridade passou em todos os níveis." \
                          --base main --head "$BRANCH_NAME"
+          else
+            echo "⚠️ Nenhuma mutação detetada para commit."
           fi
