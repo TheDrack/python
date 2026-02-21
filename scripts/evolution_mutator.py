@@ -35,6 +35,36 @@ def get_entry_from_crystal(cap_id: str, crystal_path="data/master_crystal.json")
         if entry["id"] == cap_id: return entry
     return None
 
+def update_capability_status(cap_id: str, status="complete", cap_path="data/capabilities.json"):
+    """
+    Sincroniza o status no arquivo base para que o Crystallizer Engine 
+    possa computar a métrica correta no Master Crystal.
+    """
+    path = Path(cap_path)
+    if not path.exists():
+        print(f"⚠️ Alerta: {cap_path} não encontrado para atualização de status.")
+        return False
+    
+    try:
+        with open(path, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+        
+        updated = False
+        for cap in data.get('capabilities', []):
+            if cap['id'] == cap_id:
+                cap['status'] = status
+                updated = True
+                break
+        
+        if updated:
+            with open(path, 'w', encoding='utf-8') as f:
+                json.dump(data, f, indent=4, ensure_ascii=False)
+            print(f"💾 DNA Sincronizado: {cap_id} marcado como {status} em {cap_path}")
+            return True
+    except Exception as e:
+        print(f"❌ Erro ao atualizar status no DNA: {e}")
+    return False
+
 def evolve():
     parser = argparse.ArgumentParser()
     parser.add_argument('--strategy', required=True)
@@ -43,24 +73,20 @@ def evolve():
     parser.add_argument('--roadmap-context', default="")
     args = parser.parse_args()
 
-    # --- CORREÇÃO: Busca de CAP_ID em múltiplas fontes ---
     issue_body = os.getenv('ISSUE_BODY', '')
     cap_id = None
-    
-    # 1. Tenta pela Issue Body
+
     match = re.search(r'(CAP-\d+)', issue_body)
     if match:
         cap_id = match.group(1)
-    # 2. Se falhar, tenta pelo roadmap-context passado pelo Workflow
     elif args.roadmap_context:
         match = re.search(r'(CAP-\d+)', args.roadmap_context)
         if match:
             cap_id = match.group(1)
 
     if not cap_id:
-        print("❌ Erro: CAP_ID não encontrado no ISSUE_BODY nem no roadmap-context.")
+        print("❌ Erro: CAP_ID não encontrado.")
         sys.exit(1)
-    # ---------------------------------------------------
 
     core = MetabolismCore()
     entry = get_entry_from_crystal(cap_id)
@@ -90,8 +116,13 @@ def evolve():
             target_file.parent.mkdir(parents=True, exist_ok=True)
             target_file.write_text(new_code, encoding='utf-8')
             print(f"✅ Sucesso: {target_file} mutado.")
+            
+            # --- NOVA LÓGICA DE SINCRONIZAÇÃO ---
+            # Se o arquivo foi mutado com sucesso, marcamos como complete
+            update_capability_status(cap_id)
+            # ------------------------------------
         else:
-            print("❌ Falha crítica: Estrutura 'execute' não encontrada na resposta da IA.")
+            print("❌ Falha crítica: Estrutura 'execute' não encontrada.")
             sys.exit(1)
     except Exception as e:
         print(f"❌ Erro na mutação: {e}")
