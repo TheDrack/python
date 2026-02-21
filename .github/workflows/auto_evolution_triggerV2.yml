@@ -14,7 +14,8 @@ permissions:
 jobs:
   evolution_cycle:
     name: "🧬 Ciclo de Evolução"
-    if: github.event_name != 'pull_request' && !contains(github.event.head_commit.message, '[Auto-Evolution]')
+    # Evita rodar em PRs abertas; foca no Push para Main (Merge)
+    if: github.event_name != 'pull_request' && !contains(github.event.head_commit.message, '[Auto-Evolution] DNA Mutated')
     runs-on: ubuntu-latest
     outputs:
       action: ${{ steps.flow.outputs.action }}
@@ -42,7 +43,6 @@ jobs:
         run: |
           uv venv --python 3.11
           source .venv/bin/activate
-          # Reinstalando dependências necessárias
           uv pip install sqlmodel requests pydantic groq python-dotenv
           
           python - << 'PYCODE'
@@ -53,25 +53,30 @@ jobs:
               auto = AutoEvolutionServiceV2()
               github_output = os.environ.get('GITHUB_OUTPUT')
               
-              # --- LÓGICA RECUPERADA DA IMAGEM (VERDE) ---
+              # 1. Analisa a mensagem do último commit (DNA do Merge)
               last_msg = os.popen("git log -1 --pretty=%B").read()
               print(f"--- ANALISANDO DNA ---\nMsg: {last_msg.strip()}")
               
-              is_auto = "auto-evolution/mission" in last_msg
+              # Critérios baseados na imagem e comportamento de loop
+              is_auto_evolution = "[Auto-Evolution]" in last_msg
               is_sync = "Inventory Synchronized" in last_msg
               
-              if is_sync:
-                  print("🛡️ Trava Anti-Loop."); out = "action=idle\n"
-              elif is_auto:
-                  print("🎯 Merge de Evolução detectado.")
+              # 2. SE FOR MERGE DE AUTO-EVOLUÇÃO: Apenas Sincroniza e Encerra (Trava Anti-Loop)
+              if is_auto_evolution and not is_sync:
+                  print("🎯 Merge de Evolução detectado. Sincronizando Homeostase...")
                   match = re.search(r'CAP-\d+', last_msg)
                   if match:
                       cap_id = match.group()
-                      # Marca como completada para não repetir
-                      auto.mark_mission_as_completed(cap_id)
-                      print(f"✅ Missão {cap_id} sincronizada na Homeostase.")
-              
-              # --- BUSCA PRÓXIMA MISSÃO ---
+                      if auto.mark_mission_as_completed(cap_id):
+                          print(f"✅ Missão {cap_id} sincronizada no banco/JSON.")
+                  
+                  # Registra IDLE para impedir nova missão no mesmo ciclo
+                  with open(github_output, 'a') as f:
+                      f.write("action=idle\n")
+                  sys.exit(0)
+
+              # 3. SE FOR PUSH/MERGE EXTERNO: Busca nova missão
+              print("🟢 Caminho livre. Buscando próxima missão no Roadmap...")
               next_m = auto.find_next_mission()
               
               if next_m:
@@ -82,7 +87,7 @@ jobs:
                   with open(github_output, 'a') as f:
                       f.write(f"action=evolve\n")
                       f.write(f"mission_desc={next_m['id']}: {next_m['title']}\n")
-                  print(f"🚀 Próxima missão preparada: {next_m['id']}")
+                  print(f"🚀 Próxima missão disparada: {next_m['id']}")
               else:
                   with open(github_output, 'a') as f:
                       f.write("action=idle\n")
@@ -110,14 +115,14 @@ jobs:
           # 1. Cristalização Setorial
           python app/application/services/crystallization/crystallizer_engine.py
           
-          # 2. Setup de Branch
+          # 2. Setup de Branch para a nova missão
           BRANCH_NAME="auto-evolution/mission-$(date +%s)"
           git checkout -b "$BRANCH_NAME"
           git commit --allow-empty -m "🧬 [Auto-Evolution] Iniciando Missão: ${{ steps.flow.outputs.mission_desc }}"
           git push origin "$BRANCH_NAME"
           echo "branch=$BRANCH_NAME" >> $GITHUB_OUTPUT
           
-          # 3. Mutação
+          # 3. Mutação de DNA
           if ! python scripts/evolution_mutator.py \
             --strategy "minimal_change" \
             --intent "auto-evolution-mission" \
@@ -127,7 +132,7 @@ jobs:
               exit 1
           fi
 
-          # 4. PR
+          # 4. Verificação e PR
           git add -A
           if [ -n "$(git status --porcelain)" ]; then
             git commit -m "[Auto-Evolution] DNA Mutated: ${{ steps.flow.outputs.mission_desc }}"
@@ -135,7 +140,11 @@ jobs:
             
             PR_URL=$(gh pr create \
                          --title "🧬 Evolução: ${{ steps.flow.outputs.mission_desc }}" \
-                         --body "### 🧠 Auto-Evolução Detectada\nMissão: ${{ steps.flow.outputs.mission_desc }}\n\nStatus: Auto-Cura e Melhoria em andamento." \
+                         --body "### 🧠 Auto-Evolução Ativa\nMissão: ${{ steps.flow.outputs.mission_desc }}\n\nStatus: Processando Mutação de DNA." \
                          --base main --head "$BRANCH_NAME")
+            
             echo "pr_number=$(echo $PR_URL | awk -F'/' '{print $6}')" >> $GITHUB_OUTPUT
+            echo "✅ PR Criado com sucesso."
+          else
+            echo "⚠️ Nenhuma alteração física gerada pela mutação."
           fi
