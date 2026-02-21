@@ -11,11 +11,12 @@ def execute(context=None):
     return goals
 
 def analyze_action(action):
-    # Lógica para analisar a ação e identificar a intenção
-    # Exemplo: se a ação for 'ligar a luz', a intenção pode ser 'iluminar o ambiente'
-    intentions = {
-        'ligar a luz': 'iluminar o ambiente',
-        'desligar a luz': 'economizar energia',
-        # Adicionar mais ações e intenções aqui
-    }
-    return intentions.get(action, None)
+    # Lógica para analisar a ação do usuário e entender a intenção
+    # Exemplo: se o usuário pede para ligar a luz, a intenção pode ser 'iluminar o ambiente'
+    if action == 'ligar_luz':
+        return 'iluminar_ambiente'
+    elif action == 'desligar_luz':
+        return 'economizar_energia'
+    else:
+        return None
+   
