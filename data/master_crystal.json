@@ -1,12 +1,829 @@
 {
-  "system_id": "JARVIS_CORE",
-  "version": "1.0.0",
-  "last_scan": null,
-  "crystallization_summary": {
-    "total_capabilities": 0,
-    "crystallized": 0,
-    "connected_legacy": 0,
-    "orphan": 0
-  },
-  "registry": []
+    "system_id": "JARVIS_CORE",
+    "version": "1.0.0",
+    "last_scan": "2026-02-21T03:22:20.157103",
+    "crystallization_summary": {
+        "total_capabilities": 0,
+        "crystallized": 0,
+        "connected_legacy": 0,
+        "orphan": 0
+    },
+    "registry": [
+        {
+            "id": "CAP-001",
+            "title": "Maintain internal inventory of all known capabilities",
+            "status": "orphan",
+            "original_home": "unknown",
+            "target_hexagonal": "app/domain/gears/",
+            "last_check": "2026-02-21T03:22:20.155727"
+        },
+        {
+            "id": "CAP-002",
+            "title": "Classify capabilities by status: nonexistent, partial, complete",
+            "status": "orphan",
+            "original_home": "unknown",
+            "target_hexagonal": "app/domain/capabilities/",
+            "last_check": "2026-02-21T03:22:20.155751"
+        },
+        {
+            "id": "CAP-003",
+            "title": "Automatically detect functional gaps",
+            "status": "legacy_connected",
+            "original_home": "scripts/metabolism_mutator.py",
+            "target_hexagonal": "app/adapters/",
+            "last_check": "2026-02-21T03:22:20.155850"
+        },
+        {
+            "id": "CAP-004",
+            "title": "Generate technical objectives from detected gaps",
+            "status": "orphan",
+            "original_home": "unknown",
+            "target_hexagonal": "app/adapters/",
+            "last_check": "2026-02-21T03:22:20.155871"
+        },
+        {
+            "id": "CAP-005",
+            "title": "Prioritize objectives by systemic impact",
+            "status": "orphan",
+            "original_home": "unknown",
+            "target_hexagonal": "app/domain/capabilities/",
+            "last_check": "2026-02-21T03:22:20.155886"
+        },
+        {
+            "id": "CAP-006",
+            "title": "Prioritize objectives by failure reduction",
+            "status": "orphan",
+            "original_home": "unknown",
+            "target_hexagonal": "app/domain/gears/",
+            "last_check": "2026-02-21T03:22:20.155896"
+        },
+        {
+            "id": "CAP-007",
+            "title": "Prioritize objectives by future reuse potential",
+            "status": "orphan",
+            "original_home": "unknown",
+            "target_hexagonal": "app/domain/capabilities/",
+            "last_check": "2026-02-21T03:22:20.155904"
+        },
+        {
+            "id": "CAP-008",
+            "title": "Maintain history of completed objectives",
+            "status": "orphan",
+            "original_home": "unknown",
+            "target_hexagonal": "app/domain/gears/",
+            "last_check": "2026-02-21T03:22:20.155919"
+        },
+        {
+            "id": "CAP-009",
+            "title": "Maintain history of technical decisions",
+            "status": "orphan",
+            "original_home": "unknown",
+            "target_hexagonal": "app/domain/gears/",
+            "last_check": "2026-02-21T03:22:20.155929"
+        },
+        {
+            "id": "CAP-010",
+            "title": "Distinguish technical error from conceptual limitation",
+            "status": "orphan",
+            "original_home": "unknown",
+            "target_hexagonal": "app/domain/capabilities/",
+            "last_check": "2026-02-21T03:22:20.155940"
+        },
+        {
+            "id": "CAP-011",
+            "title": "Request human intervention only when required",
+            "status": "orphan",
+            "original_home": "unknown",
+            "target_hexagonal": "app/domain/capabilities/",
+            "last_check": "2026-02-21T03:22:20.155953"
+        },
+        {
+            "id": "CAP-012",
+            "title": "Validate improvements using automated tests",
+            "status": "orphan",
+            "original_home": "unknown",
+            "target_hexagonal": "app/domain/capabilities/",
+            "last_check": "2026-02-21T03:22:20.155969"
+        },
+        {
+            "id": "CAP-013",
+            "title": "Automatically revert unstable changes",
+            "status": "orphan",
+            "original_home": "unknown",
+            "target_hexagonal": "app/domain/capabilities/",
+            "last_check": "2026-02-21T03:22:20.155980"
+        },
+        {
+            "id": "CAP-014",
+            "title": "Preserve architectural compatibility",
+            "status": "orphan",
+            "original_home": "unknown",
+            "target_hexagonal": "app/domain/capabilities/",
+            "last_check": "2026-02-21T03:22:20.155995"
+        },
+        {
+            "id": "CAP-015",
+            "title": "Automatically document each evolution",
+            "status": "orphan",
+            "original_home": "unknown",
+            "target_hexagonal": "app/domain/capabilities/",
+            "last_check": "2026-02-21T03:22:20.156008"
+        },
+        {
+            "id": "CAP-016",
+            "title": "Explicitly recognize existing capabilities",
+            "status": "orphan",
+            "original_home": "unknown",
+            "target_hexagonal": "app/domain/capabilities/",
+            "last_check": "2026-02-21T03:22:20.156020"
+        },
+        {
+            "id": "CAP-017",
+            "title": "Explicitly recognize missing capabilities",
+            "status": "orphan",
+            "original_home": "unknown",
+            "target_hexagonal": "app/domain/capabilities/",
+            "last_check": "2026-02-21T03:22:20.156027"
+        },
+        {
+            "id": "CAP-018",
+            "title": "Identify internal dependencies between capabilities",
+            "status": "orphan",
+            "original_home": "unknown",
+            "target_hexagonal": "app/domain/capabilities/",
+            "last_check": "2026-02-21T03:22:20.156040"
+        },
+        {
+            "id": "CAP-019",
+            "title": "Identify mission-critical capabilities",
+            "status": "orphan",
+            "original_home": "unknown",
+            "target_hexagonal": "app/domain/capabilities/",
+            "last_check": "2026-02-21T03:22:20.156049"
+        },
+        {
+            "id": "CAP-020",
+            "title": "Identify redundant capabilities",
+            "status": "orphan",
+            "original_home": "unknown",
+            "target_hexagonal": "app/domain/capabilities/",
+            "last_check": "2026-02-21T03:22:20.156059"
+        },
+        {
+            "id": "CAP-021",
+            "title": "Map impact of one capability over others",
+            "status": "orphan",
+            "original_home": "unknown",
+            "target_hexagonal": "app/domain/capabilities/",
+            "last_check": "2026-02-21T03:22:20.156072"
+        },
+        {
+            "id": "CAP-022",
+            "title": "Evaluate risks before modifying critical capabilities",
+            "status": "orphan",
+            "original_home": "unknown",
+            "target_hexagonal": "app/domain/capabilities/",
+            "last_check": "2026-02-21T03:22:20.156086"
+        },
+        {
+            "id": "CAP-023",
+            "title": "Maintain internal operational self-model",
+            "status": "orphan",
+            "original_home": "unknown",
+            "target_hexagonal": "app/domain/models/",
+            "last_check": "2026-02-21T03:22:20.156098"
+        },
+        {
+            "id": "CAP-024",
+            "title": "Monitor performance degradation over time",
+            "status": "orphan",
+            "original_home": "unknown",
+            "target_hexagonal": "app/domain/capabilities/",
+            "last_check": "2026-02-21T03:22:20.156115"
+        },
+        {
+            "id": "CAP-025",
+            "title": "Detect silent regressions",
+            "status": "crystallized",
+            "original_home": "unknown",
+            "target_hexagonal": "app/adapters/",
+            "last_check": "2026-02-21T03:22:20.156121"
+        },
+        {
+            "id": "CAP-026",
+            "title": "Distinguish local improvement from systemic improvement",
+            "status": "orphan",
+            "original_home": "unknown",
+            "target_hexagonal": "app/domain/capabilities/",
+            "last_check": "2026-02-21T03:22:20.156133"
+        },
+        {
+            "id": "CAP-027",
+            "title": "Maintain short-term operational memory",
+            "status": "orphan",
+            "original_home": "unknown",
+            "target_hexagonal": "app/domain/gears/",
+            "last_check": "2026-02-21T03:22:20.156143"
+        },
+        {
+            "id": "CAP-028",
+            "title": "Maintain mid-term strategic memory",
+            "status": "orphan",
+            "original_home": "unknown",
+            "target_hexagonal": "app/domain/gears/",
+            "last_check": "2026-02-21T03:22:20.156150"
+        },
+        {
+            "id": "CAP-029",
+            "title": "Maintain long-term historical memory",
+            "status": "orphan",
+            "original_home": "unknown",
+            "target_hexagonal": "app/domain/gears/",
+            "last_check": "2026-02-21T03:22:20.156158"
+        },
+        {
+            "id": "CAP-030",
+            "title": "Correlate temporally distant events",
+            "status": "orphan",
+            "original_home": "unknown",
+            "target_hexagonal": "app/domain/capabilities/",
+            "last_check": "2026-02-21T03:22:20.156174"
+        },
+        {
+            "id": "CAP-031",
+            "title": "Infer intention from behavior",
+            "status": "orphan",
+            "original_home": "unknown",
+            "target_hexagonal": "app/domain/capabilities/",
+            "last_check": "2026-02-21T03:22:20.156191"
+        },
+        {
+            "id": "CAP-032",
+            "title": "Distinguish literal command from real objective",
+            "status": "orphan",
+            "original_home": "unknown",
+            "target_hexagonal": "app/domain/capabilities/",
+            "last_check": "2026-02-21T03:22:20.156202"
+        },
+        {
+            "id": "CAP-033",
+            "title": "Build dynamic user model",
+            "status": "orphan",
+            "original_home": "unknown",
+            "target_hexagonal": "app/domain/models/",
+            "last_check": "2026-02-21T03:22:20.156213"
+        },
+        {
+            "id": "CAP-034",
+            "title": "Continuously update user model",
+            "status": "orphan",
+            "original_home": "unknown",
+            "target_hexagonal": "app/domain/models/",
+            "last_check": "2026-02-21T03:22:20.156225"
+        },
+        {
+            "id": "CAP-035",
+            "title": "Detect changes in user patterns",
+            "status": "crystallized",
+            "original_home": "unknown",
+            "target_hexagonal": "app/adapters/",
+            "last_check": "2026-02-21T03:22:20.156231"
+        },
+        {
+            "id": "CAP-036",
+            "title": "Distinguish signal from noise",
+            "status": "orphan",
+            "original_home": "unknown",
+            "target_hexagonal": "app/domain/capabilities/",
+            "last_check": "2026-02-21T03:22:20.156242"
+        },
+        {
+            "id": "CAP-037",
+            "title": "Recognize urgency context",
+            "status": "orphan",
+            "original_home": "unknown",
+            "target_hexagonal": "app/domain/capabilities/",
+            "last_check": "2026-02-21T03:22:20.156257"
+        },
+        {
+            "id": "CAP-038",
+            "title": "Recognize human priority context",
+            "status": "orphan",
+            "original_home": "unknown",
+            "target_hexagonal": "app/domain/capabilities/",
+            "last_check": "2026-02-21T03:22:20.156266"
+        },
+        {
+            "id": "CAP-039",
+            "title": "Plan actions across multiple steps",
+            "status": "orphan",
+            "original_home": "unknown",
+            "target_hexagonal": "app/domain/capabilities/",
+            "last_check": "2026-02-21T03:22:20.156281"
+        },
+        {
+            "id": "CAP-040",
+            "title": "Compare multiple possible strategies",
+            "status": "orphan",
+            "original_home": "unknown",
+            "target_hexagonal": "app/domain/capabilities/",
+            "last_check": "2026-02-21T03:22:20.156298"
+        },
+        {
+            "id": "CAP-041",
+            "title": "Simulate technical consequences before action",
+            "status": "orphan",
+            "original_home": "unknown",
+            "target_hexagonal": "app/domain/capabilities/",
+            "last_check": "2026-02-21T03:22:20.156314"
+        },
+        {
+            "id": "CAP-042",
+            "title": "Simulate systemic consequences before action",
+            "status": "orphan",
+            "original_home": "unknown",
+            "target_hexagonal": "app/domain/capabilities/",
+            "last_check": "2026-02-21T03:22:20.156326"
+        },
+        {
+            "id": "CAP-043",
+            "title": "Evaluate failure risk",
+            "status": "orphan",
+            "original_home": "unknown",
+            "target_hexagonal": "app/domain/gears/",
+            "last_check": "2026-02-21T03:22:20.156340"
+        },
+        {
+            "id": "CAP-044",
+            "title": "Evaluate computational cost",
+            "status": "orphan",
+            "original_home": "unknown",
+            "target_hexagonal": "app/domain/capabilities/",
+            "last_check": "2026-02-21T03:22:20.156349"
+        },
+        {
+            "id": "CAP-045",
+            "title": "Evaluate maintenance cost",
+            "status": "orphan",
+            "original_home": "unknown",
+            "target_hexagonal": "app/domain/gears/",
+            "last_check": "2026-02-21T03:22:20.156357"
+        },
+        {
+            "id": "CAP-046",
+            "title": "Evaluate long-term impact of decisions",
+            "status": "orphan",
+            "original_home": "unknown",
+            "target_hexagonal": "app/domain/capabilities/",
+            "last_check": "2026-02-21T03:22:20.156365"
+        },
+        {
+            "id": "CAP-047",
+            "title": "Select strategies with optimal cost-benefit",
+            "status": "orphan",
+            "original_home": "unknown",
+            "target_hexagonal": "app/domain/capabilities/",
+            "last_check": "2026-02-21T03:22:20.156379"
+        },
+        {
+            "id": "CAP-048",
+            "title": "Abort actions with excessive risk",
+            "status": "orphan",
+            "original_home": "unknown",
+            "target_hexagonal": "app/domain/capabilities/",
+            "last_check": "2026-02-21T03:22:20.156393"
+        },
+        {
+            "id": "CAP-049",
+            "title": "Request human validation for critical decisions",
+            "status": "orphan",
+            "original_home": "unknown",
+            "target_hexagonal": "app/domain/capabilities/",
+            "last_check": "2026-02-21T03:22:20.156406"
+        },
+        {
+            "id": "CAP-050",
+            "title": "Orchestrate multiple agents simultaneously",
+            "status": "orphan",
+            "original_home": "unknown",
+            "target_hexagonal": "app/domain/capabilities/",
+            "last_check": "2026-02-21T03:22:20.156419"
+        },
+        {
+            "id": "CAP-051",
+            "title": "Delegate tasks based on specialization",
+            "status": "orphan",
+            "original_home": "unknown",
+            "target_hexagonal": "app/domain/capabilities/",
+            "last_check": "2026-02-21T03:22:20.156434"
+        },
+        {
+            "id": "CAP-052",
+            "title": "Execute actions in parallel",
+            "status": "orphan",
+            "original_home": "unknown",
+            "target_hexagonal": "app/domain/capabilities/",
+            "last_check": "2026-02-21T03:22:20.156447"
+        },
+        {
+            "id": "CAP-053",
+            "title": "Prioritize critical executions",
+            "status": "orphan",
+            "original_home": "unknown",
+            "target_hexagonal": "app/domain/capabilities/",
+            "last_check": "2026-02-21T03:22:20.156462"
+        },
+        {
+            "id": "CAP-054",
+            "title": "Execute long-running actions",
+            "status": "orphan",
+            "original_home": "unknown",
+            "target_hexagonal": "app/domain/capabilities/",
+            "last_check": "2026-02-21T03:22:20.156473"
+        },
+        {
+            "id": "CAP-055",
+            "title": "Monitor execution in real time",
+            "status": "orphan",
+            "original_home": "unknown",
+            "target_hexagonal": "app/domain/capabilities/",
+            "last_check": "2026-02-21T03:22:20.156493"
+        },
+        {
+            "id": "CAP-056",
+            "title": "Interrupt problematic executions",
+            "status": "orphan",
+            "original_home": "unknown",
+            "target_hexagonal": "app/domain/capabilities/",
+            "last_check": "2026-02-21T03:22:20.156506"
+        },
+        {
+            "id": "CAP-057",
+            "title": "Rollback partially completed executions",
+            "status": "orphan",
+            "original_home": "unknown",
+            "target_hexagonal": "app/domain/capabilities/",
+            "last_check": "2026-02-21T03:22:20.156516"
+        },
+        {
+            "id": "CAP-058",
+            "title": "Adapt plans during execution",
+            "status": "crystallized",
+            "original_home": "unknown",
+            "target_hexagonal": "app/domain/capabilities/",
+            "last_check": "2026-02-21T03:22:20.156521"
+        },
+        {
+            "id": "CAP-059",
+            "title": "Distribute execution across devices",
+            "status": "orphan",
+            "original_home": "unknown",
+            "target_hexagonal": "app/domain/capabilities/",
+            "last_check": "2026-02-21T03:22:20.156535"
+        },
+        {
+            "id": "CAP-060",
+            "title": "Operate continuously without supervision",
+            "status": "orphan",
+            "original_home": "unknown",
+            "target_hexagonal": "app/domain/capabilities/",
+            "last_check": "2026-02-21T03:22:20.156556"
+        },
+        {
+            "id": "CAP-061",
+            "title": "Learn from recurring failures",
+            "status": "orphan",
+            "original_home": "unknown",
+            "target_hexagonal": "app/domain/gears/",
+            "last_check": "2026-02-21T03:22:20.156573"
+        },
+        {
+            "id": "CAP-062",
+            "title": "Learn from recurring successes",
+            "status": "orphan",
+            "original_home": "unknown",
+            "target_hexagonal": "app/domain/capabilities/",
+            "last_check": "2026-02-21T03:22:20.156584"
+        },
+        {
+            "id": "CAP-063",
+            "title": "Reinforce effective strategies",
+            "status": "orphan",
+            "original_home": "unknown",
+            "target_hexagonal": "app/domain/capabilities/",
+            "last_check": "2026-02-21T03:22:20.156601"
+        },
+        {
+            "id": "CAP-064",
+            "title": "Discard ineffective strategies",
+            "status": "orphan",
+            "original_home": "unknown",
+            "target_hexagonal": "app/domain/capabilities/",
+            "last_check": "2026-02-21T03:22:20.156614"
+        },
+        {
+            "id": "CAP-065",
+            "title": "Learn from human feedback",
+            "status": "orphan",
+            "original_home": "unknown",
+            "target_hexagonal": "app/domain/capabilities/",
+            "last_check": "2026-02-21T03:22:20.156626"
+        },
+        {
+            "id": "CAP-066",
+            "title": "Learn from systemic impact",
+            "status": "orphan",
+            "original_home": "unknown",
+            "target_hexagonal": "app/domain/capabilities/",
+            "last_check": "2026-02-21T03:22:20.156636"
+        },
+        {
+            "id": "CAP-067",
+            "title": "Learn from computational cost",
+            "status": "orphan",
+            "original_home": "unknown",
+            "target_hexagonal": "app/domain/capabilities/",
+            "last_check": "2026-02-21T03:22:20.156666"
+        },
+        {
+            "id": "CAP-068",
+            "title": "Measure solution efficiency",
+            "status": "orphan",
+            "original_home": "unknown",
+            "target_hexagonal": "app/domain/capabilities/",
+            "last_check": "2026-02-21T03:22:20.156681"
+        },
+        {
+            "id": "CAP-069",
+            "title": "Optimize response time",
+            "status": "orphan",
+            "original_home": "unknown",
+            "target_hexagonal": "app/domain/capabilities/",
+            "last_check": "2026-02-21T03:22:20.156695"
+        },
+        {
+            "id": "CAP-070",
+            "title": "Optimize stability",
+            "status": "orphan",
+            "original_home": "unknown",
+            "target_hexagonal": "app/domain/capabilities/",
+            "last_check": "2026-02-21T03:22:20.156704"
+        },
+        {
+            "id": "CAP-071",
+            "title": "Optimize code reuse",
+            "status": "orphan",
+            "original_home": "unknown",
+            "target_hexagonal": "app/domain/capabilities/",
+            "last_check": "2026-02-21T03:22:20.156711"
+        },
+        {
+            "id": "CAP-072",
+            "title": "Evaluate cost of each executed action",
+            "status": "orphan",
+            "original_home": "unknown",
+            "target_hexagonal": "app/domain/capabilities/",
+            "last_check": "2026-02-21T03:22:20.156726"
+        },
+        {
+            "id": "CAP-073",
+            "title": "Evaluate potential return of actions",
+            "status": "orphan",
+            "original_home": "unknown",
+            "target_hexagonal": "app/domain/capabilities/",
+            "last_check": "2026-02-21T03:22:20.156736"
+        },
+        {
+            "id": "CAP-074",
+            "title": "Decide whether an action should be executed",
+            "status": "orphan",
+            "original_home": "unknown",
+            "target_hexagonal": "app/domain/capabilities/",
+            "last_check": "2026-02-21T03:22:20.156752"
+        },
+        {
+            "id": "CAP-075",
+            "title": "Create value-generating activities",
+            "status": "crystallized",
+            "original_home": "unknown",
+            "target_hexagonal": "app/domain/capabilities/",
+            "last_check": "2026-02-21T03:22:20.156763"
+        },
+        {
+            "id": "CAP-076",
+            "title": "Measure real economic return",
+            "status": "orphan",
+            "original_home": "unknown",
+            "target_hexagonal": "app/domain/capabilities/",
+            "last_check": "2026-02-21T03:22:20.156776"
+        },
+        {
+            "id": "CAP-077",
+            "title": "Eliminate economically unviable actions",
+            "status": "orphan",
+            "original_home": "unknown",
+            "target_hexagonal": "app/domain/capabilities/",
+            "last_check": "2026-02-21T03:22:20.156791"
+        },
+        {
+            "id": "CAP-078",
+            "title": "Prioritize profitable actions",
+            "status": "orphan",
+            "original_home": "unknown",
+            "target_hexagonal": "app/domain/capabilities/",
+            "last_check": "2026-02-21T03:22:20.156804"
+        },
+        {
+            "id": "CAP-079",
+            "title": "Automatically reinvest resources",
+            "status": "orphan",
+            "original_home": "unknown",
+            "target_hexagonal": "app/domain/capabilities/",
+            "last_check": "2026-02-21T03:22:20.156815"
+        },
+        {
+            "id": "CAP-080",
+            "title": "Sustain own infrastructure",
+            "status": "orphan",
+            "original_home": "unknown",
+            "target_hexagonal": "app/domain/gears/",
+            "last_check": "2026-02-21T03:22:20.156830"
+        },
+        {
+            "id": "CAP-081",
+            "title": "Reduce human dependency",
+            "status": "orphan",
+            "original_home": "unknown",
+            "target_hexagonal": "app/domain/capabilities/",
+            "last_check": "2026-02-21T03:22:20.156844"
+        },
+        {
+            "id": "CAP-082",
+            "title": "Generate recurring revenue",
+            "status": "orphan",
+            "original_home": "unknown",
+            "target_hexagonal": "app/domain/capabilities/",
+            "last_check": "2026-02-21T03:22:20.156860"
+        },
+        {
+            "id": "CAP-083",
+            "title": "Allocate portion of revenue to creator",
+            "status": "orphan",
+            "original_home": "unknown",
+            "target_hexagonal": "app/domain/capabilities/",
+            "last_check": "2026-02-21T03:22:20.156874"
+        },
+        {
+            "id": "CAP-084",
+            "title": "Detect anomalous internal behavior",
+            "status": "crystallized",
+            "original_home": "unknown",
+            "target_hexagonal": "app/adapters/",
+            "last_check": "2026-02-21T03:22:20.156881"
+        },
+        {
+            "id": "CAP-085",
+            "title": "Detect dangerous decision loops",
+            "status": "crystallized",
+            "original_home": "unknown",
+            "target_hexagonal": "app/adapters/",
+            "last_check": "2026-02-21T03:22:20.156886"
+        },
+        {
+            "id": "CAP-086",
+            "title": "Enforce internal operational limits",
+            "status": "orphan",
+            "original_home": "unknown",
+            "target_hexagonal": "app/domain/capabilities/",
+            "last_check": "2026-02-21T03:22:20.156902"
+        },
+        {
+            "id": "CAP-087",
+            "title": "Block potentially destructive actions",
+            "status": "orphan",
+            "original_home": "unknown",
+            "target_hexagonal": "app/domain/capabilities/",
+            "last_check": "2026-02-21T03:22:20.156912"
+        },
+        {
+            "id": "CAP-088",
+            "title": "Escalate sensitive decisions to human",
+            "status": "orphan",
+            "original_home": "unknown",
+            "target_hexagonal": "app/domain/capabilities/",
+            "last_check": "2026-02-21T03:22:20.156926"
+        },
+        {
+            "id": "CAP-089",
+            "title": "Log critical decisions for audit",
+            "status": "crystallized",
+            "original_home": "unknown",
+            "target_hexagonal": "app/domain/capabilities/",
+            "last_check": "2026-02-21T03:22:20.156932"
+        },
+        {
+            "id": "CAP-090",
+            "title": "Protect sensitive data",
+            "status": "orphan",
+            "original_home": "unknown",
+            "target_hexagonal": "app/domain/capabilities/",
+            "last_check": "2026-02-21T03:22:20.156946"
+        },
+        {
+            "id": "CAP-091",
+            "title": "Protect the user",
+            "status": "orphan",
+            "original_home": "unknown",
+            "target_hexagonal": "app/domain/capabilities/",
+            "last_check": "2026-02-21T03:22:20.156954"
+        },
+        {
+            "id": "CAP-092",
+            "title": "Protect itself",
+            "status": "orphan",
+            "original_home": "unknown",
+            "target_hexagonal": "app/domain/capabilities/",
+            "last_check": "2026-02-21T03:22:20.156964"
+        },
+        {
+            "id": "CAP-093",
+            "title": "Maintain full traceability",
+            "status": "orphan",
+            "original_home": "unknown",
+            "target_hexagonal": "app/domain/gears/",
+            "last_check": "2026-02-21T03:22:20.156977"
+        },
+        {
+            "id": "CAP-094",
+            "title": "Anticipate user needs",
+            "status": "orphan",
+            "original_home": "unknown",
+            "target_hexagonal": "app/domain/capabilities/",
+            "last_check": "2026-02-21T03:22:20.156994"
+        },
+        {
+            "id": "CAP-095",
+            "title": "Propose solutions before explicit requests",
+            "status": "orphan",
+            "original_home": "unknown",
+            "target_hexagonal": "app/domain/capabilities/",
+            "last_check": "2026-02-21T03:22:20.157010"
+        },
+        {
+            "id": "CAP-096",
+            "title": "Act proactively and safely",
+            "status": "crystallized",
+            "original_home": "unknown",
+            "target_hexagonal": "app/domain/capabilities/",
+            "last_check": "2026-02-21T03:22:20.157016"
+        },
+        {
+            "id": "CAP-097",
+            "title": "Coordinate physical and digital systems",
+            "status": "orphan",
+            "original_home": "unknown",
+            "target_hexagonal": "app/domain/capabilities/",
+            "last_check": "2026-02-21T03:22:20.157032"
+        },
+        {
+            "id": "CAP-098",
+            "title": "Operate as cognitive copilot",
+            "status": "orphan",
+            "original_home": "unknown",
+            "target_hexagonal": "app/domain/capabilities/",
+            "last_check": "2026-02-21T03:22:20.157048"
+        },
+        {
+            "id": "CAP-099",
+            "title": "Maintain continuous alignment with user",
+            "status": "orphan",
+            "original_home": "unknown",
+            "target_hexagonal": "app/domain/gears/",
+            "last_check": "2026-02-21T03:22:20.157060"
+        },
+        {
+            "id": "CAP-100",
+            "title": "Evolve continuously without losing identity",
+            "status": "orphan",
+            "original_home": "unknown",
+            "target_hexagonal": "app/domain/capabilities/",
+            "last_check": "2026-02-21T03:22:20.157074"
+        },
+        {
+            "id": "CAP-101",
+            "title": "Sustain itself economically long-term",
+            "status": "orphan",
+            "original_home": "unknown",
+            "target_hexagonal": "app/domain/gears/",
+            "last_check": "2026-02-21T03:22:20.157087"
+        },
+        {
+            "id": "CAP-102",
+            "title": "Operate as personal cognitive infrastructure",
+            "status": "orphan",
+            "original_home": "unknown",
+            "target_hexagonal": "app/domain/capabilities/",
+            "last_check": "2026-02-21T03:22:20.157101"
+        }
+    ]
 }
