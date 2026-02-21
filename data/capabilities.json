@@ -509,7 +509,7 @@
             "id": "CAP-047",
             "title": "Select strategies with optimal cost-benefit",
             "description": "Choose the most efficient path based on risk, cost, and expected result.",
-            "status": "pending",
+            "status": "complete",
             "auto": true,
             "priority": 4,
             "depends_on": [
