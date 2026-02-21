@@ -469,7 +469,7 @@
             "id": "CAP-043",
             "title": "Evaluate failure risk",
             "description": "Quantify the probability of a plan failing.",
-            "status": "partial",
+            "status": "complete",
             "auto": true,
             "priority": 4,
             "depends_on": [],
