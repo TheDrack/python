@@ -1,7 +1,7 @@
 {
     "system_id": "JARVIS_CORE",
     "version": "1.0.0",
-    "last_scan": "2026-02-21T20:25:28.382921",
+    "last_scan": "2026-02-21T20:26:03.701521",
     "crystallization_summary": {
         "total_capabilities": 102,
         "crystallized": 53,
@@ -559,7 +559,7 @@
         {
             "id": "CAP-040",
             "title": "Compare multiple possible strategies",
-            "status": "partial",
+            "status": "complete",
             "mapped_libraries": [],
             "sector": "capabilities",
             "genealogy": {
