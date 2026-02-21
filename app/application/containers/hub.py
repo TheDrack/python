@@ -6,6 +6,7 @@ logger = logging.getLogger("JarvisHub")
 
 class JarvisHub:
     def __init__(self):
+        # Mapeamento para Lazy Loading
         self.sector_map = {
             "gears": "app.application.containers.gears_container",
             "models": "app.application.containers.models_container",
@@ -15,7 +16,7 @@ class JarvisHub:
         self._cache = {}
 
     def resolve(self, cap_id: str, sector: str):
-        """ Importa o container do setor apenas quando necessário. """
+        """Carrega e retorna o executor da capacidade apenas sob demanda."""
         if cap_id in self._cache:
             return self._cache[cap_id]
 
@@ -24,7 +25,6 @@ class JarvisHub:
             return None
 
         try:
-            # Import dinâmico
             module = importlib.import_module(module_path)
             container_class = getattr(module, f"{sector.capitalize()}Container")
             container_instance = container_class()
@@ -34,9 +34,9 @@ class JarvisHub:
                 self._cache[cap_id] = executor
                 return executor
         except Exception as e:
-            logger.error(f"Erro ao resolver {cap_id} no setor {sector}: {e}")
+            logger.error(f"Erro ao carregar setor {sector} para {cap_id}: {e}")
         
         return None
 
-# Instância Global Única
+# Singleton para uso em todo o JARVIS
 hub = JarvisHub()
