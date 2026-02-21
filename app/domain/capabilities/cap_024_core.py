@@ -16,14 +16,14 @@ def execute(context=None):
     return performance_degradation
 
 def get_historical_performance_data():
-    # Implementar lógica para obter dados de desempenho históricos
+    # Implementação para obter dados de desempenho históricos
     pass
 
 def calculate_performance_degradation(historical_data):
-    # Implementar lógica para calcular a degradação do desempenho
+    # Implementação para calcular a degradação do desempenho
     pass
 
 def store_results(performance_degradation):
-    # Implementar lógica para armazenar os resultados
+    # Implementação para armazenar os resultados
     pass
    
