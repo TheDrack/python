@@ -244,7 +244,7 @@
       "id": "CAP-022",
       "title": "Evaluate risks before modifying critical capabilities",
       "description": "Perform a risk assessment before altering core system functions.",
-      "status": "partial",
+      "status": "complete",
       "auto": true,
       "priority": 2,
       "depends_on": [
