@@ -1,11 +1,13 @@
-name: Auto Evolution Trigger
+name: JARVIS Integrated Evolution
 on:
   push:
     branches: [main]
+  workflow_dispatch:
+
 permissions:
   contents: write
   pull-requests: write
-  issues: write
+
 jobs:
   evolution_cycle:
     name: "🧬 Ciclo Unificado JARVIS"
@@ -14,11 +16,15 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - run: pip install sqlmodel pydantic requests
-      - name: 🧠 Orquestrador
+
+      - name: 📦 Install Deps
+        run: pip install sqlmodel pydantic requests
+
+      - name: 🧠 Orquestrador e Sincronizador
         id: flow
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -26,39 +32,21 @@ jobs:
           export PYTHONPATH="${PYTHONPATH:+$PYTHONPATH:}$(pwd)"
           python - << 'PYCODE'
           import os, sys, re
+          from app.application.services.auto_evolutionV2 import AutoEvolutionServiceV2
           try:
-              from app.application.services.auto_evolutionV2 import AutoEvolutionServiceV2
               auto = AutoEvolutionServiceV2()
               last_msg = os.popen("git log -1 --pretty=%B").read()
-              print(f"--- ANALISANDO DNA ---\nMsg: {last_msg.strip()}")
-              is_auto = "auto-evolution/mission" in last_msg
-              is_sync = "Inventory Synchronized" in last_msg
+              is_sync = "[Auto-Evolution] Inventory Synchronized" in last_msg
+              
               if is_sync:
-                  print("🛡️ Trava Anti-Loop."); out = "action=idle\n"
-              elif is_auto:
-                  print("🎯 Merge de Evolução detectado.")
-                  match = re.search(r'CAP-\d+', last_msg)
-                  if match:
-                      cap_id = match.group()
-                      if auto.mark_mission_as_completed(cap_id):
-                          os.system("git config --global user.name 'Jarvis-AutoEvolution'")
-                          os.system("git config --global user.email 'jarvis@bot.com'")
-                          os.system("git add data/capabilities.json")
-                          os.system(f"git commit -m '[Auto-Evolution] Inventory Synchronized ✅ for {cap_id}'")
-                          os.system("git push origin main")
-                  out = "action=sync_only\n"
+                  out = "action=idle\n"
               else:
-                  print("🚀 Buscando nova missão...")
                   next_m = auto.find_next_mission()
                   if next_m:
                       cap_id = next_m['id']
-                      pr_check = os.popen(f'gh pr list --search "{cap_id}" --state open --json title').read()
-                      if len(pr_check.strip()) > 5:
-                          out = "action=wait\n"
-                      else:
-                          with open('mission_context.txt', 'w', encoding='utf-8') as f:
-                              f.write(auto.get_roadmap_context(next_m))
-                          out = f"action=evolve\nmission_desc={cap_id}: {next_m['title']}\n"
+                      with open('mission_context.txt', 'w', encoding='utf-8') as f:
+                          f.write(auto.get_roadmap_context(next_m))
+                      out = f"action=evolve\nmission_desc={cap_id}: {next_m['title']}\n"
                   else:
                       out = "action=idle\n"
               with open(os.environ['GITHUB_OUTPUT'], 'a') as f: f.write(out)
@@ -66,7 +54,7 @@ jobs:
               print(f"❌ Erro: {e}"); sys.exit(1)
           PYCODE
 
-      - name: 🤖 Mutação
+      - name: 🤖 Cristalização e Mutação
         if: steps.flow.outputs.action == 'evolve'
         env:
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
@@ -75,13 +63,22 @@ jobs:
         run: |
           git config --global user.name "Jarvis-AutoEvolution"
           git config --global user.email "jarvis@bot.com"
+          
+          # 1. Cristaliza primeiro (Cria a casca)
+          export PYTHONPATH="${PYTHONPATH:+$PYTHONPATH:}$(pwd)"
+          python app/application/services/crystallization/crystallizer_engine.py
+          
+          # 2. Prepara Branch de Evolução
           BRANCH_NAME="auto-evolution/mission-$(date +%s)"
           git checkout -b "$BRANCH_NAME"
-          export PYTHONPATH="${PYTHONPATH:+$PYTHONPATH:}$(pwd)"
-          python scripts/evolution_mutator.py --strategy "minimal_change" --intent "auto-evolution-mission" --impact "functional-improvement" --roadmap-context "$(cat mission_context.txt)"
+          
+          # 3. Muta (Preenche a lógica)
+          python scripts/evolution_mutator.py --strategy "minimal_change" --intent "auto-evolution-mission" --roadmap-context "$(cat mission_context.txt)"
+          
+          # 4. Commit Unificado (Código + Estrutura + Master Crystal)
           git add -A
           if [ -n "$(git status --porcelain)" ]; then
-            git commit -m "[Auto-Evolution] DNA Mutated: $ISSUE_BODY"
+            git commit -m "[Auto-Evolution] DNA Mutated & Crystallized: $ISSUE_BODY"
             git push origin "$BRANCH_NAME"
-            gh pr create --title "🧬 Evolução: $ISSUE_BODY" --body "Automated evolution." --base main --head "$BRANCH_NAME"
+            gh pr create --title "🧬 Evolução: $ISSUE_BODY" --body "Automated evolution and crystallization cycle." --base main --head "$BRANCH_NAME"
           fi
