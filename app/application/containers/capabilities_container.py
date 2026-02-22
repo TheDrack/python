@@ -85,7 +85,6 @@ from app.domain.capabilities.cap_016_core import execute as cap_016_exec
 from app.domain.capabilities.cap_015_core import execute as cap_015_exec
 from app.domain.capabilities.cap_014_core import execute as cap_014_exec
 from app.domain.capabilities.cap_013_core import execute as cap_013_exec
-from app.domain.capabilities.cap_012_core import execute as cap_012_exec
 from app.domain.capabilities.cap_011_core import execute as cap_011_exec
 from app.domain.capabilities.cap_007_core import execute as cap_007_exec
 from app.domain.capabilities.cap_005_core import execute as cap_005_exec
